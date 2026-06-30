@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tactical Souls - Multiplayer Edition</title>
+    <style>
+        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0d131a; 
+
+font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; color: 
+
+#fff; }
+        canvas { display: block; background-color: #1a242f; }
+
+        /* ????? ??????? ???????? ???????? ??????? */
+        .menu-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+
+background: rgba(13, 19, 26, 0.95); display: flex; flex-direction: column; justify-content: 
+
+center; align-items: center; z-index: 10; }
+        .menu-card { background: #16222f; padding: 30px; border-radius: 15px; border: 2px 
+
+solid #00e5ff; box-shadow: 0 0 20px rgba(0, 229, 255, 0.2); text-align: center; max-width: 
+
+400px; width: 90%; }
+        
+        h1 { color: #00e5ff; text-shadow: 0 0 10px rgba(0, 229, 255, 0.5); margin-bottom: 
+
+20px; }
+        
+        input[type="text"] { width: 80%; padding: 12px; margin-bottom: 20px; border-radius: 
+
+8px; border: 1px solid #00e5ff; background: #0d131a; color: white; text-align: center; 
+
+font-size: 16px; }
+        
+        .btn { 
+            background: linear-gradient(135deg, #00e5ff 0%, #008697 100%); 
+            color: #0d131a; padding: 12px 30px; border: none; 
+            border-radius: 25px; font-weight: bold; font-size: 16px; 
+            cursor: pointer; margin: 10px; transition: all 0.3s ease; 
+            box-shadow: 0 4px 15px rgba(0, 229, 255, 0.4);
+            position: relative; overflow: hidden;
+        }
+        /* ??????? ?????? ??????? */
+        .btn:after { content: ''; position: absolute; top: -50%; left: -60%; width: 30%; 
+
+height: 200%; background: rgba(255, 255, 255, 0.3); transform: rotate(30deg); transition: 
+
+all 0.5s ease; }
+        .btn:hover:after { left: 130%; }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0, 229, 255, 
+
+0.6); color: #fff; }
+        
+        .btn-secondary { background: linear-gradient(135deg, #ff1744 0%, #b2102f 100%); 
+
+color: white; box-shadow: 0 4px 15px rgba(255, 23, 68, 0.4); }
+
+        #ui-layer { position: fixed; top: 10px; left: 10px; pointer-events: none; font-
+
+family: monospace; font-size: 16px; z-index: 5; }
+        .hud-bar { background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 8px; 
+
+margin-bottom: 5px; border-left: 4px solid #00e5ff; }
+    </style>
+    <script src="https://cdn.socket.io/4.1.3/socket.io.min.js"></script>
+</head>
+<body>
+
+    <div id="login-menu" class="menu-overlay">
+        <div class="menu-card">
+            <h1>TACTICAL SOULS</h1>
+            <p>Entrez votre nom pour jouer en ligne :</p>
+            <input type="text" id="username-input" placeholder="Nom de joueur..." 
+
+value="GamerX">
+            <button class="btn" onclick="connectToServer()">Rejoindre le serveur</button>
+            <button class="btn btn-secondary" onclick="openLevelsMenu()">Modes Solo / 
+
+Niveaux</button>
+        </div>
+    </div>
+
+    <div id="levels-menu" class="menu-overlay" style="display: none;">
+        <div class="menu-card">
+            <h1>Sélection de Niveau</h1>
+            <div style="max-height: 250px; overflow-y: auto; margin-bottom: 20px;">
+                <script>
+                    document.write('<div style="display: grid; grid-template-columns: 
+
+repeat(4, 1fr); gap: 10px;">');
+                    for(let i=1; i<=100; i++) {
+                        let isBoss = i % 10 === 0;
+                        let style = isBoss ? 'background: linear-gradient(135deg, #ff9100, 
+
+#ff3d00); color:white; border-radius:8px; font-weight:bold;' : 'background:#1a242f; 
+
+color:white; border-radius:8px;';
+                        document.write(`<button style="${style} padding:10px; border:none; 
+
+cursor:pointer;" onclick="startSoloLevel(${i})">${i}${isBoss?' ??':''}</button>`);
+                    }
+                    document.write('</div>');
+                </script>
+            </div>
+            <button class="btn btn-secondary" onclick="closeLevelsMenu()">Retour</button>
+        </div>
+    </div>
+
+    <div id="ui-layer">
+        <div class="hud-bar">Joueur: <span id="hud-username">...</span></div>
+        <div class="hud-bar">Niveau: <span id="hud-level">En ligne</span></div>
+        <div class="hud-bar">HP: <span id="hud-hp">100</span>/100</div>
+        <div class="hud-bar">Pièces: <span id="hud-coins">0</span> ??</div>
+    </div>
+
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        function resize() { canvas.width = window.innerWidth; canvas.height = 
+
+window.innerHeight; }
+        resize(); window.addEventListener("resize", resize);
+
+        // ??????? ?????? ???????
+        const world = { w: 3000, h: 3000 };
+        let socket = null;
+        let isOnline = false;
+        let currentLevel = 0; // 0 ???? ??????? ?????
+
+        const player = {
+            id: null, name: "Joueur", x: 1500, y: 1500, r: 18, speed: 6, hp: 100, maxHp: 
+
+100, angle: 0, coins: 0, color: "#00e5ff"
+        };
+
+        let keys = {};
+        window.onkeydown = e => keys[e.key.toLowerCase()] = true;
+        window.onkeyup = e => keys[e.key.toLowerCase()] = false;
+
+        let mouse = { x: 0, y: 0 };
+        window.onmousemove = e => { mouse.x = e.clientX; mouse.y = e.clientY; };
+
+        // ??????? ????????
+        let otherPlayers = {};
+        let bots = [];
+        let bullets = [];
+        let camera = { x: 0, y: 0 };
+
+        // ??? ?????? ????? ???????
+        function openLevelsMenu() { document.getElementById("login-menu").style.display = 
+
+"none"; document.getElementById("levels-menu").style.display = "flex"; }
+        function closeLevelsMenu() { document.getElementById("levels-menu").style.display = 
+
+"none"; document.getElementById("login-menu").style.display = "flex"; }
+
+        // --- ??????? ?????????? ---
+        function connectToServer() {
+            const chosenName = document.getElementById("username-input").value.trim();
+            player.name = chosenName || "Gamer";
+            document.getElementById("hud-username").innerText = player.name;
+            document.getElementById("hud-level").innerText = "Multiplayer";
+
+            // ??????? ???????? ?????? (???? ?? ?????? ??????? ????)
+const socket = io();
+
+            socket.on("connect", () => {
+                player.id = socket.id;
+                isOnline = true;
+                document.getElementById("login-menu").style.display = "none";
+                
+                // ????? ??????? ?????? ???????
+                socket.emit("newPlayer", { name: player.name, x: player.x, y: player.y, 
+
+angle: player.angle, color: player.color });
+            });
+
+            // ??????? ??????? ???????? ??????? ?? ???????
+            socket.on("stateUpdate", (serverPlayers) => {
+                otherPlayers = serverPlayers;
+            });
+
+            // ??????? ????? ???? ???????? ???????
+            socket.on("bulletFired", (bData) => {
+                bullets.push(bData);
+            });
+        }
+
+        // --- ??? ????? ????? (Solo Level) ---
+        function startSoloLevel(levelNum) {
+            isOnline = false;
+            currentLevel = levelNum;
+            document.getElementById("levels-menu").style.display = "none";
+            document.getElementById("hud-username").innerText = player.name + " (Solo)";
+            document.getElementById("hud-level").innerText = levelNum;
+
+            bots = [];
+            bullets = [];
+            player.x = 1500; player.y = 1500; player.hp = player.maxHp;
+
+            // ????? ??? ???? ??????? ?????? ????? 10 (????? ???)
+            if (levelNum % 10 === 0) {
+                // ????? ??? ??? ????? ????? ?????? ??? ???????
+                let bossAbility = "Feu";
+                if(levelNum === 20) bossAbility = "Glace";
+                if(levelNum === 30) bossAbility = "Téléportation";
+                if(levelNum >= 40) bossAbility = "Vampire";
+
+                bots.push({
+                    x: 1700, y: 1700, r: 40 + (levelNum/2), 
+                    hp: 500 * (levelNum / 10), maxHp: 500 * (levelNum / 10),
+                    speed: 3, isBoss: true, ability: bossAbility, 
+                    color: "#ff3d00", lastMagicTime: 0
+                });
+            } else {
+                // ????? ?????: ????? ????? ??? ???? ?????
+                for (let i = 0; i < 3 + levelNum; i++) {
+                    bots.push({
+                        x: Math.random() * 800 + 1100, y: Math.random() * 800 + 1100,
+                        r: 16, hp: 50 + levelNum * 5, maxHp: 50 + levelNum * 5,
+                        speed: 4, isBoss: false, color: "#ff1744"
+                    });
+                }
+            }
+        }
+
+        // ????? ?????
+        window.addEventListener("click", () => {
+            if (document.getElementById("login-menu").style.display === "flex" || 
+
+document.getElementById("levels-menu").style.display === "flex") return;
+
+            let bData = {
+                x: player.x + Math.cos(player.angle) * 25,
+                y: player.y + Math.sin(player.angle) * 25,
+                vx: Math.cos(player.angle) * 15,
+                vy: Math.sin(player.angle) * 15,
+                owner: player.id || "solo"
+            };
+            bullets.push(bData);
+
+            if (isOnline && socket) {
+                socket.emit("shoot", bData);
+            }
+        });
+
+        function update() {
+            // ???? ?????? ????? ??
+            let moveX = 0, moveY = 0;
+            if (keys["w"] || keys["arrowup"]) moveY -= player.speed;
+            if (keys["s"] || keys["arrowdown"]) moveY += player.speed;
+            if (keys["a"] || keys["arrowleft"]) moveX -= player.speed;
+            if (keys["d"] || keys["arrowright"]) moveX += player.speed;
+
+            player.x = Math.max(player.r, Math.min(world.w - player.r, player.x + moveX));
+            player.y = Math.max(player.r, Math.min(world.h - player.r, player.y + moveY));
+
+            // ???? ????? ??????
+            let dx = mouse.x + camera.x - player.x;
+            let dy = mouse.y + camera.y - player.y;
+            player.angle = Math.atan2(dy, dx);
+
+            // ????? ?????? ??????? ??? ??? ???????
+            if (isOnline && socket && player.id) {
+                socket.emit("move", { x: player.x, y: player.y, angle: player.angle });
+            }
+
+            // ???? ?????? ?????? ????? ??????
+            camera.x = player.x - canvas.width / 2;
+            camera.y = player.y - canvas.height / 2;
+
+            // ????? ??????
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i];
+                b.x += b.vx; b.y += b.vy;
+                if (b.x < 0 || b.y < 0 || b.x > world.w || b.y > world.h) { bullets.splice
+
+(i, 1); continue; }
+
+                // ????? ?????? ?? ??????? ?? ????? ??????
+                if (!isOnline) {
+                    bots.forEach((bot, bIdx) => {
+                        let dist = Math.hypot(b.x - bot.x, b.y - bot.y);
+                        if (dist < bot.r && b.owner === "solo") {
+                            bot.hp -= 20;
+                            bullets.splice(i, 1);
+                            if (bot.hp <= 0) { bots.splice(bIdx, 1); player.coins += 10; }
+                        }
+                    });
+                }
+            }
+
+            // ????? ???? ??????? (AI) ???????? ??????? ??????? ?? ????? ??????
+            if (!isOnline) {
+                bots.forEach(bot => {
+                    let bdx = player.x - bot.x;
+                    let bdy = player.y - bot.y;
+                    let bdist = Math.hypot(bdx, bdy);
+                    
+                    // ????? ???? ??? ??????
+                    bot.x += (bdx / bdist) * bot.speed;
+                    bot.y += (bdy / bdist) * bot.speed;
+
+                    // ????? ??????? ??????? ????? ?? 3 ?????
+                    if (bot.isBoss && Date.now() - bot.lastMagicTime > 3000) {
+                        bot.lastMagicTime = Date.now();
+                        if (bot.ability === "Feu") {
+                            // ????? 8 ?????? ????? ??????
+                            for(let a=0; a<Math.PI*2; a+=Math.PI/4){
+                                bullets.push({ x: bot.x, y: bot.y, vx: Math.cos(a)*6, vy: 
+
+Math.sin(a)*6, owner: "bot" });
+                            }
+                        } else if (bot.ability === "Téléportation" && bdist > 200) {
+                            // ?????? ????? ????? ??? ??????
+                            bot.x = player.x + (Math.random() - 0.5) * 100;
+                            bot.y = player.y + (Math.random() - 0.5) * 100;
+                        }
+                    }
+                });
+            }
+
+            // ????? ??????? (HUD)
+            document.getElementById("hud-hp").innerText = Math.max(0, player.hp);
+            document.getElementById("hud-coins").innerText = player.coins;
+        }
+
+        function drawHuman(x, y, r, angle, color, name) {
+            ctx.save(); ctx.translate(x, y); ctx.rotate(angle);
+            // ??? ?????
+            ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); 
+
+ctx.fill();
+            ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
+            // ??? ?????? ??????
+            ctx.fillStyle = "#263238"; ctx.fillRect(5, -6, r * 1.4, 12);
+            ctx.restore();
+
+            // ??? ??? ?????? ??? ????
+            ctx.fillStyle = "#ffffff"; ctx.font = "bold 14px sans-serif"; ctx.textAlign = 
+
+"center";
+            ctx.fillText(name, x, y - r - 10);
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save(); ctx.translate(-camera.x, -camera.y);
+
+            // ???? ??????? (Grid)
+            ctx.strokeStyle = "#2c3e50"; ctx.lineWidth = 1;
+            for (let x = 0; x < world.w; x += 100) { ctx.beginPath(); ctx.moveTo(x, 0); 
+
+ctx.lineTo(x, world.h); ctx.stroke(); }
+            for (let y = 0; y < world.h; y += 100) { ctx.beginPath(); ctx.moveTo(0, y); 
+
+ctx.lineTo(world.w, y); ctx.stroke(); }
+
+            // ??? ?????? ????? ??
+            drawHuman(player.x, player.y, player.r, player.angle, player.color, 
+
+player.name);
+
+            // ??? ???????? ??????? (?????????)
+            if (isOnline) {
+                for (let id in otherPlayers) {
+                    if (id !== player.id) {
+                        let p = otherPlayers[id];
+                        drawHuman(p.x, p.y, 18, p.angle, "#ff1744", p.name || "Ennemi");
+                    }
+                }
+            } else {
+                // ??? ??????? ???????? (??????)
+                bots.forEach(bot => {
+                    drawHuman(bot.x, bot.y, bot.r, 0, bot.color, bot.isBoss ? `BOSS 
+
+(${bot.ability})` : "Bot");
+                    // ???? ???? ?????
+                    if(bot.isBoss){
+                        ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(bot.x - 50, bot.y - 
+
+bot.r - 25, 100, 8);
+                        ctx.fillStyle = "#ff3d00"; ctx.fillRect(bot.x - 50, bot.y - bot.r - 
+
+25, (bot.hp / bot.maxHp) * 100, 8);
+                    }
+                });
+            }
+
+            // ??? ??????
+            bullets.forEach(b => {
+                ctx.fillStyle = b.owner === "bot" ? "#ff9100" : "#fff176";
+                ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI * 2); ctx.fill();
+            });
+
+            ctx.restore();
+        }
+
+        function loop() { update(); draw(); requestAnimationFrame(loop); }
+        loop();
+    </script>
+</body>
+</html>
