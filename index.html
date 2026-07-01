@@ -53,10 +53,71 @@
         #hp-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #2e7d32, #4caf50); transition: width 0.1s ease; }
         #gold-match-display { margin-top: 8px; font-size: 16px; color: #ffd700; font-weight: bold; text-shadow: 1px 1px 2px black; }
 
-        /* Ingame Settings Floating Panels */
-        #ingame-settings-btn { position: absolute; top: 20px; left: 240px; width: 42px; height: 42px; border-radius: 50%; display: none; justify-content: center; align-items: center; z-index: 6; font-size: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        /* Ingame Settings Floating Panels - Modern Gear Icon Customization */
+        #ingame-settings-btn { 
+            position: absolute; 
+            top: 20px; 
+            left: 240px; 
+            width: 44px; 
+            height: 44px; 
+            border-radius: 50%; 
+            display: none; 
+            justify-content: center; 
+            align-items: center; 
+            z-index: 6; 
+            background: linear-gradient(135deg, #263238 0%, #37474F 100%);
+            border: 2px solid #455A64;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5); 
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+        #ingame-settings-btn:hover { transform: rotate(45deg); }
+        
+        /* Custom SVG Gear inside Button */
+        #ingame-settings-btn::before {
+            content: "";
+            width: 22px;
+            height: 22px;
+            background: #eceff1;
+            clip-path: polygon(50% 0%, 57% 12%, 70% 6%, 72% 20%, 86% 20%, 82% 33%, 94% 38%, 88% 50%, 94% 62%, 82% 67%, 86% 80%, 72% 80%, 70% 94%, 57% 88%, 50% 100%, 43% 88%, 30% 94%, 28% 80%, 14% 80%, 18% 67%, 6% 62%, 12% 50%, 6% 38%, 18% 33%, 14% 20%, 28% 20%, 30% 6%, 43% 12%);
+        }
+        #ingame-settings-btn::after {
+            content: "";
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #263238;
+            border-radius: 50%;
+        }
+
         #ingame-popup { position: absolute; top: 75px; left: 240px; background: rgba(22, 32, 44, 0.95); border: 1px solid #243447; padding: 15px; border-radius: 10px; display: none; flex-direction: column; gap: 10px; z-index: 6; box-shadow: 0 8px 25px rgba(0,0,0,0.6); }
         
+        /* Mobile Door Trigger Overlay Button */
+        #mobile-door-prompt {
+            position: absolute;
+            bottom: 120px;
+            right: 30px;
+            width: 65px;
+            height: 65px;
+            background: linear-gradient(135deg, #ff8f00 0%, #ff6f00 100%);
+            border: 3px solid #fff;
+            border-radius: 50%;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9;
+            box-shadow: 0 6px 15px rgba(0,0,0,0.4);
+            cursor: pointer;
+            transform: scale(0);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        /* Tiny hand icon inside prompt */
+        #mobile-door-prompt::before {
+            content: "?";
+            font-size: 28px;
+            color: white;
+        }
+
         .match-end-screen { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(9, 13, 18, 0.9); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:99; }
 
         /* Premium Floating Chat Component Architecture */
@@ -210,11 +271,13 @@
         <div id="gold-match-display">Gold: 0</div>
     </div>
 
-    <button class="btn-secondary" id="ingame-settings-btn">?</button>
+    <button class="btn-secondary" id="ingame-settings-btn"></button>
     <div id="ingame-popup">
         <button class="btn-secondary" id="btn-game-resume">Resume Combat</button>
         <button class="btn-secondary" id="btn-game-quit" style="background: linear-gradient(135deg, #b71c1c 0%, #e53935 100%); border-color: #7f0000;">Quit Room</button>
     </div>
+
+    <div id="mobile-door-prompt"></div>
 
     <div id="game-chat-box">
         <div id="chat-messages-container"></div>
@@ -373,7 +436,6 @@
         let gameActive = false;
         let largeMap = false;
         
-        // SPEED FIXED: 7.5 (+25% faster)
         let player = { id: null, x: 2000, y: 2000, r: 18, speed: 7.5, hp: 100, maxHp: 100, angle: 0, nickname: "", legCycle: 0, isMoving: false };
         let camera = { x: 2000, y: 2000 };
         let otherPlayers = {};
@@ -400,64 +462,140 @@
             rightJoystick.startY = canvas.height - 105; 
             rightJoystick.currentX = rightJoystick.startX; 
             rightJoystick.currentY = rightJoystick.startY;
+
+            // Smart Responsiveness for Gear Button on Mobile vs PC
+            let btn = document.getElementById("ingame-settings-btn");
+            if (isMobileTouch || window.innerWidth < 768) {
+                btn.style.left = "initial";
+                btn.style.right = "20px";
+                btn.style.top = "180px"; // Shifted downwards safely out of radar space
+                btn.style.opacity = "0.35"; // Made highly translucent
+            } else {
+                btn.style.left = "240px";
+                btn.style.right = "initial";
+                btn.style.top = "20px";
+                btn.style.opacity = "1";
+            }
         }
 
+        // --- High Detail Map: Extended Houses, Roads, and Foliage Tree Matrices ---
+        // Enhanced Houses with distinct color signatures, realistic dimensions, and interactive rotational doors.
         const obstacles = [
             { 
-                id: "house_alpha", name: "Command Base Alpha", x: 500, y: 500, w: 250, h: 250, 
-                door: { x: 580, y: 730, w: 90, h: 20 },
+                id: "house_alpha", name: "Command Base Alpha", x: 500, y: 500, w: 260, h: 260, color: "#9e2a2b", roofColor: "#bd3a42",
+                door: { x: 580, y: 760, w: 90, h: 16, isOpen: false, angle: 0, side: "bottom" },
                 walls: [
-                    {x: 500, y: 500, w: 250, h: 20}, {x: 500, y: 500, w: 20, h: 250},
-                    {x: 730, y: 500, w: 20, h: 250}, {x: 500, y: 730, w: 80, h: 20}, {x: 670, y: 730, w: 80, h: 20}
+                    {x: 500, y: 500, w: 260, h: 20}, {x: 500, y: 500, w: 20, h: 260},
+                    {x: 740, y: 500, w: 20, h: 260}, {x: 500, y: 740, w: 80, h: 20}, {x: 670, y: 740, w: 80, h: 20}
                 ] 
             },
             { 
-                id: "house_bravo", name: "Supply Depot Bravo", x: 2200, y: 900, w: 300, h: 200, 
-                door: { x: 2300, y: 1080, w: 100, h: 20 },
+                id: "house_bravo", name: "Supply Depot Bravo", x: 2200, y: 900, w: 320, h: 220, color: "#2e5a88", roofColor: "#3b6e9c",
+                door: { x: 2320, y: 1120, w: 90, h: 16, isOpen: false, angle: 0, side: "bottom" },
                 walls: [
-                    {x: 2200, y: 900, w: 300, h: 20}, {x: 2200, y: 900, w: 20, h: 200},
-                    {x: 2480, y: 900, w: 20, h: 200}, {x: 2200, y: 1080, w: 100, h: 20}, {x: 2400, y: 1080, w: 100, h: 20}
+                    {x: 2200, y: 900, w: 320, h: 20}, {x: 2200, y: 900, w: 20, h: 220},
+                    {x: 2500, y: 900, w: 20, h: 220}, {x: 2200, y: 1100, w: 120, h: 20}, {x: 2410, y: 1100, w: 110, h: 20}
                 ] 
             },
             { 
-                id: "house_charlie", name: "Barracks Compound", x: 1400, y: 2500, w: 200, h: 300, 
-                door: { x: 1400, y: 2620, w: 20, h: 60 },
+                id: "house_charlie", name: "Barracks Compound", x: 1400, y: 2500, w: 220, h: 320, color: "#3a506b", roofColor: "#5bc0be",
+                door: { x: 1400, y: 2620, w: 16, h: 80, isOpen: false, angle: 0, side: "left" },
                 walls: [
-                    {x: 1400, y: 2500, w: 200, h: 20}, {x: 1400, y: 2780, w: 200, h: 20},
-                    {x: 1580, y: 2500, w: 20, h: 300}, {x: 1400, y: 2500, w: 20, h: 120}, {x: 1400, y: 2680, w: 20, h: 120}
+                    {x: 1400, y: 2500, w: 220, h: 20}, {x: 1400, y: 2800, w: 220, h: 20},
+                    {x: 1600, y: 2500, w: 20, h: 320}, {x: 1400, y: 2500, w: 20, h: 120}, {x: 1400, y: 2700, w: 20, h: 120}
                 ] 
             },
-            {
-                id: "house_delta", name: "Sub-Station Delta", x: 3100, y: 400, w: 220, h: 220,
-                door: { x: 3190, y: 400, w: 50, h: 20 },
+            { 
+                id: "house_delta", name: "Sub-Station Delta", x: 3100, y: 400, w: 240, h: 240, color: "#415a77", roofColor: "#778da9",
+                door: { x: 3190, y: 400, w: 70, h: 16, isOpen: false, angle: 0, side: "top" },
                 walls: [
-                    {x: 3100, y: 400, w: 90, h: 20}, {x: 3240, y: 400, w: 80, h: 20},
-                    {x: 3100, y: 400, w: 20, h: 220}, {x: 3300, y: 400, w: 20, h: 220}, {x: 3100, y: 600, w: 220, h: 20}
-                ]
+                    {x: 3100, y: 400, w: 90, h: 20}, {x: 3260, y: 400, w: 80, h: 20},
+                    {x: 3100, y: 400, w: 20, h: 240}, {x: 3320, y: 400, w: 20, h: 240}, {x: 3100, y: 620, w: 240, h: 20}
+                ] 
             },
-            {
-                id: "house_echo", name: "Research Lab Echo", x: 800, y: 1600, w: 350, h: 180,
-                door: { x: 1130, y: 1650, w: 20, h: 70 },
+            { 
+                id: "house_echo", name: "Research Lab Echo", x: 800, y: 1600, w: 360, h: 200, color: "#2d6a4f", roofColor: "#40916c",
+                door: { x: 1160, y: 1660, w: 16, h: 70, isOpen: false, angle: 0, side: "right" },
                 walls: [
-                    {x: 800, y: 1600, w: 350, h: 20}, {x: 800, y: 1760, w: 350, h: 20},
-                    {x: 800, y: 1600, w: 20, h: 180}, {x: 1130, y: 1600, w: 20, h: 50}, {x: 1130, y: 1720, w: 20, h: 60}
-                ]
+                    {x: 800, y: 1600, w: 360, h: 20}, {x: 800, y: 1780, w: 360, h: 20},
+                    {x: 800, y: 1600, w: 20, h: 200}, {x: 1140, y: 1600, w: 20, h: 60}, {x: 1140, y: 1730, w: 20, h: 70}
+                ] 
             },
-            {
-                id: "house_foxtrot", name: "Security Post Center", x: 2500, y: 2900, w: 180, h: 180,
-                door: { x: 2500, y: 2960, w: 20, h: 50 },
+            { 
+                id: "house_foxtrot", name: "Security Post Center", x: 2500, y: 2900, w: 200, h: 200, color: "#6f4e37", roofColor: "#b85042",
+                door: { x: 2500, y: 2960, w: 16, h: 60, isOpen: false, angle: 0, side: "left" },
                 walls: [
-                    {x: 2500, y: 2900, w: 180, h: 20}, {x: 2500, y: 3060, w: 180, h: 20},
-                    {x: 2660, y: 2900, w: 20, h: 180}, {x: 2500, y: 2900, w: 20, h: 60}, {x: 2500, y: 3010, w: 20, h: 70}
-                ]
+                    {x: 2500, y: 2900, w: 200, h: 20}, {x: 2500, y: 3080, w: 200, h: 20},
+                    {x: 2680, y: 2900, w: 20, h: 200}, {x: 2500, y: 2900, w: 20, h: 60}, {x: 2500, y: 3020, w: 20, h: 80}
+                ] 
+            },
+            { 
+                id: "house_gamma", name: "Vanguard Hub Gamma", x: 1200, y: 1100, w: 240, h: 240, color: "#3d348b", roofColor: "#7678ed",
+                door: { x: 1280, y: 1340, w: 80, h: 16, isOpen: false, angle: 0, side: "bottom" },
+                walls: [
+                    {x: 1200, y: 1100, w: 240, h: 20}, {x: 1200, y: 1100, w: 20, h: 240},
+                    {x: 1420, y: 1100, w: 20, h: 240}, {x: 1200, y: 1320, w: 80, h: 20}, {x: 1360, y: 1320, w: 80, h: 20}
+                ] 
+            },
+            { 
+                id: "house_hotel", name: "Arsenal Outpost Hotel", x: 2800, y: 1900, w: 280, h: 240, color: "#4a5759", roofColor: "#dedbd2",
+                door: { x: 2800, y: 1980, w: 16, h: 80, isOpen: false, angle: 0, side: "left" },
+                walls: [
+                    {x: 2800, y: 1900, w: 280, h: 20}, {x: 2800, y: 2120, w: 280, h: 20},
+                    {x: 3060, y: 1900, w: 20, h: 240}, {x: 2800, y: 1900, w: 20, h: 80}, {x: 2800, y: 2060, w: 20, h: 80}
+                ] 
             }
         ];
 
+        // Dirt roads crossing the world for advanced aesthetics
+        const roads = [
+            { x: 0, y: 1950, w: 4000, h: 100 }, 
+            { x: 1950, y: 0, w: 100, h: 4000 }
+        ];
+
+        // Real 2D Top-Down Foliage Trees Vector Array
+        const trees = [];
+        function generateTreeEcosystem() {
+            trees.length = 0;
+            let attempts = 0;
+            while(trees.length < 65 && attempts < 2000) {
+                let tx = Math.random() * (world.w - 100) + 50;
+                let ty = Math.random() * (world.h - 100) + 50;
+                let size = Math.random() * 15 + 25; // radius
+                
+                let overlap = false;
+                // Check houses overlap
+                for(let obs of obstacles) {
+                    if(tx + size > obs.x - 40 && tx - size < obs.x + obs.w + 40 && ty + size > obs.y - 40 && ty - size < obs.y + obs.h + 40) {
+                        overlap = true; break;
+                    }
+                }
+                // Check road overlap
+                for(let r of roads) {
+                    if(tx + size > r.x && tx - size < r.x + r.w && ty + size > r.y && ty - size < r.y + r.h) {
+                        overlap = true; break;
+                    }
+                }
+                if(!overlap) {
+                    trees.push({ x: tx, y: ty, r: size, seed: Math.random() * 100 });
+                }
+                attempts++;
+            }
+        }
+        generateTreeEcosystem();
+
+        // Safe coordinates calculation avoiding inside buildings/closed rooms & walls
         function checkCollision(nx, ny, r) {
             if (nx - r < 0 || nx + r > world.w || ny - r < 0 || ny + r > world.h) return true;
+            // Wall hard collision blocks
             for (let obs of obstacles) {
                 for(let wall of obs.walls) {
                     if (nx + r > wall.x && nx - r < wall.x + wall.w && ny + r > wall.y && ny - r < wall.y + wall.h) return true;
+                }
+                // Interactive Doors blocked when closed
+                if(!obs.door.isOpen) {
+                    let d = obs.door;
+                    if(nx + r > d.x && nx - r < d.x + d.w && ny + r > d.y && ny - r < d.y + d.h) return true;
                 }
             }
             return false;
@@ -465,19 +603,19 @@
 
         function getSafeSpawnCoords(radius) {
             let rx, ry, attempts = 0;
-            while(attempts < 1000) {
-                rx = Math.random() * (world.w - 400) + 200; 
+            while(attempts < 1500) {
+                rx = Math.random() * (world.w - 400) + 200;
                 ry = Math.random() * (world.h - 400) + 200;
+                let insideBoundaries = false;
                 
-                let insideHouse = false;
                 for (let obs of obstacles) {
-                    if (rx + radius > obs.x && rx - radius < obs.x + obs.w && ry + radius > obs.y && ry - radius < obs.y + obs.h) {
-                        insideHouse = true;
+                    // Safe spacing outside whole structure boundaries
+                    if (rx + radius > obs.x - 30 && rx - radius < obs.x + obs.w + 30 && ry + radius > obs.y - 30 && ry - radius < obs.y + obs.h + 30) {
+                        insideBoundaries = true;
                         break;
                     }
                 }
-                
-                if(!insideHouse && !checkCollision(rx, ry, radius)) {
+                if(!insideBoundaries && !checkCollision(rx, ry, radius)) {
                     return { x: rx, y: ry };
                 }
                 attempts++;
@@ -485,26 +623,80 @@
             return { x: 2000, y: 2000 };
         }
 
-        // Ingame Floating Controls
+        // --- Door Interaction Key / Click Mechanics ---
+        let proximalDoorRef = null;
+
+        function checkDoorProximity() {
+            proximalDoorRef = null;
+            let closestDist = 75; // Activation threshold radius
+            
+            for(let obs of obstacles) {
+                let doorWorldX = obs.door.x + obs.door.w/2;
+                let doorWorldY = obs.door.y + obs.door.h/2;
+                let dist = Math.hypot(player.x - doorWorldX, player.y - doorWorldY);
+                if(dist < closestDist) {
+                    closestDist = dist;
+                    proximalDoorRef = obs.door;
+                }
+            }
+
+            let promptElement = document.getElementById("mobile-door-prompt");
+            if(proximalDoorRef) {
+                promptElement.style.display = "flex";
+                setTimeout(() => promptElement.style.transform = "scale(1)", 10);
+            } else {
+                promptElement.style.transform = "scale(0)";
+                setTimeout(() => promptElement.style.display = "none", 200);
+            }
+        }
+
+        function toggleDoorState(door) {
+            if(!door) return;
+            door.isOpen = !door.isOpen;
+            triggerAlertNotification(door.isOpen ? "Door Opened (F)" : "Door Closed (F)");
+            
+            // Sync with Server if online mode active
+            if(currentMode === "online" && socket.connected) {
+                socket.emit("syncMapDoorEvent", { doorX: door.x, doorY: door.y, isOpen: door.isOpen });
+            }
+        }
+
+        document.getElementById("mobile-door-prompt").addEventListener("touchstart", (e) => {
+            e.preventDefault();
+            if(proximalDoorRef) toggleDoorState(proximalDoorRef);
+        });
+
+        // Floating UI controllers mapping
         document.getElementById("ingame-settings-btn").addEventListener("click", () => {
-            let pop = document.getElementById("ingame-popup"); 
+            let pop = document.getElementById("ingame-popup");
             pop.style.display = pop.style.display === "flex" ? "none" : "flex";
         });
         document.getElementById("btn-game-resume").addEventListener("click", () => document.getElementById("ingame-popup").style.display = "none");
-        document.getElementById("btn-game-quit").addEventListener("click", () => { 
-            if(currentMode !== 'offline') socket.emit("leaveQueue"); 
+        document.getElementById("btn-game-quit").addEventListener("click", () => {
+            if(currentMode !== 'offline') socket.emit("leaveQueue");
             document.getElementById("hud").style.display = "none";
             document.getElementById("ingame-settings-btn").style.display = "none";
             document.getElementById("ingame-popup").style.display = "none";
             document.getElementById("game-chat-box").style.display = "none";
             gameActive = false;
-            showMainMenu(); 
+            showMainMenu();
+        });
+        
+        document.getElementById("btn-lose-retry").addEventListener("click", () => {
+            document.getElementById("screen-lose").style.display="none";
+            initMatchEngine();
+        });
+        document.getElementById("btn-win-cont").addEventListener("click", () => {
+            document.getElementById("screen-win").style.display="none";
+            currentStage++;
+            initMatchEngine();
         });
 
-        document.getElementById("btn-lose-retry").addEventListener("click", () => { document.getElementById("screen-lose").style.display="none"; initMatchEngine(); });
-        document.getElementById("btn-win-cont").addEventListener("click", () => { document.getElementById("screen-win").style.display="none"; currentStage++; initMatchEngine(); });
-
-        window.startOfflineMission = function(lvl) { currentStage = lvl; currentMode = "offline"; document.getElementById("campaign-screen").style.display = "none"; initMatchEngine(); };
+        window.startOfflineMission = function(lvl) {
+            currentStage = lvl; currentMode = "offline";
+            document.getElementById("campaign-screen").style.display = "none";
+            initMatchEngine();
+        };
 
         document.getElementById("btn-match-1v1").addEventListener("click", () => {
             if(account.gold < 70) { alert("Insufficient Gold for 1v1 Duel! Need 70 G."); return; }
@@ -512,589 +704,759 @@
             document.getElementById("matchmaking-screen").style.display = "flex";
             socket.emit("join1v1Queue", { nickname: account.nickname, email: account.email });
         });
-
+        document.getElementById("btn-match-br").addEventListener("click", () => {
+            if(account.gold < 30) { alert("Insufficient Balance fee for War Room 30!"); return; }
+            document.getElementById("online-lobby").style.display = "none";
+            document.getElementById("matchmaking-screen").style.display = "flex";
+            socket.emit("joinBRQueue", { nickname: account.nickname, email: account.email });
+        });
+        document.getElementById("btn-match-coop").addEventListener("click", () => {
+            document.getElementById("online-lobby").style.display = "none";
+            document.getElementById("matchmaking-screen").style.display = "flex";
+            socket.emit("joinCoopQueue", { nickname: account.nickname, email: account.email });
+        });
         document.getElementById("btn-cancel-matchmaking").addEventListener("click", () => {
             socket.emit("leaveQueue");
             document.getElementById("matchmaking-screen").style.display = "none";
             document.getElementById("online-lobby").style.display = "flex";
         });
 
-        document.getElementById("btn-match-br").addEventListener("click", () => {
-            if(account.gold < 30) { alert("Insufficient Gold for War Room 30! Need 30 G."); return; }
-            account.gold -= 30; saveAccount();
-            document.getElementById("online-lobby").style.display = "none";
-            socket.emit("joinBR30Direct", { nickname: account.nickname, email: account.email });
-        });
-
-        document.getElementById("btn-match-coop").addEventListener("click", () => {
-            document.getElementById("online-lobby").style.display = "none";
-            socket.emit("joinCoopQueue", { nickname: account.nickname, email: account.email, stage: currentStage });
-        });
-
-        // Chat UI functionality & message registration
-        function addChatMessage(sender, text, type = "player") {
-            const container = document.getElementById("chat-messages-container");
-            const msgRow = document.createElement("div");
-            msgRow.className = "chat-row";
-            
-            const senderSpan = document.createElement("span");
-            senderSpan.className = "chat-sender " + type;
-            senderSpan.innerText = sender + ": ";
-            
-            const textSpan = document.createElement("span");
-            textSpan.className = "chat-text";
-            textSpan.innerText = text;
-            
-            msgRow.appendChild(senderSpan);
-            msgRow.appendChild(textSpan);
-            container.appendChild(msgRow);
-            
-            container.scrollTop = container.scrollHeight;
-        }
-
-        // CHAT ENGINE REWORKED FOR 100% RELIABILITY
-        function submitPlayerChat() {
-            const input = document.getElementById("chat-input-field");
-            const text = input.value.trim();
-            if(!text) return;
-            
-            if(currentMode !== "offline") {
-                // We send both 'msg' and 'message' fields to satisfy any server implementation perfectly
-                socket.emit("chatMessage", { 
-                    sender: account.nickname, 
-                    msg: text,
-                    message: text
-                });
-            } else {
-                // Local echo only on offline mode
-                addChatMessage(account.nickname, text, "player");
-                setTimeout(() => {
-                    let activeBots = localBots.filter(b => b.hp > 0);
-                    if(activeBots.length > 0 && Math.random() > 0.3) {
-                        let randomBot = activeBots[Math.floor(Math.random() * activeBots.length)];
-                        let nameTag = randomBot.type === "merged_boss" ? "SUPER BOT X6" : "BOT SOLDIER";
-                        let phrase = BOT_CHAT_PHRASES[Math.floor(Math.random() * BOT_CHAT_PHRASES.length)];
-                        addChatMessage(nameTag, phrase, "bot");
-                    }
-                }, 1000 + Math.random() * 1200);
-            }
-            input.value = "";
-        }
-
-        document.getElementById("chat-send-btn").addEventListener("click", submitPlayerChat);
-        document.getElementById("chat-input-field").addEventListener("keydown", (e) => {
-            if(e.key === "Enter") { submitPlayerChat(); e.stopPropagation(); }
-        });
-
-        // Socket Receivers Hubs
-        socket.on("match1v1Ready", (spawnPos) => {
-            account.gold -= 70; saveAccount();
+        // --- Socket Multiplayer Event Link ---
+        socket.on("matchFound", (data) => {
             document.getElementById("matchmaking-screen").style.display = "none";
-            currentMode = "1v1";
-            initMatchEngine(spawnPos);
+            currentMode = "online";
+            player.id = socket.id;
+            initMatchEngine();
+            pushSystemChatMessage("Match Joined successfully! Engaging hostiles.");
         });
 
-        socket.on("br30Start", (spawnPos) => { currentMode = "br30"; initMatchEngine(spawnPos); });
-        socket.on("coopStart", (data) => { currentMode = "coop"; currentStage = data.stage; initMatchEngine(data.spawn); });
-
-        socket.on("forcedCoordinates", (data) => {
-            if(Math.hypot(player.x - data.x, player.y - data.y) > 75) { player.x = data.x; player.y = data.y; }
-        });
-
-        socket.on("stateUpdate", serverPlayers => {
-            otherPlayers = {};
-            for(let id in serverPlayers) {
-                if(id !== player.id) { 
-                    let oldP = otherPlayers[id] || { x: serverPlayers[id].x, y: serverPlayers[id].y, legCycle: 0 };
-                    let isMoving = Math.hypot(serverPlayers[id].x - oldP.x, serverPlayers[id].y - oldP.y) > 0.5;
-                    let legCycle = oldP.legCycle;
-                    if(isMoving) legCycle += 0.25;
-                    
-                    otherPlayers[id] = serverPlayers[id]; 
-                    otherPlayers[id].isMoving = isMoving;
-                    otherPlayers[id].legCycle = legCycle;
-                } 
-                else { player.hp = serverPlayers[id].hp; }
+        socket.on("gameUpdate", (state) => {
+            if(!gameActive || currentMode !== "online") return;
+            bullets = state.bullets || [];
+            
+            // Sync remote doors state
+            if(state.doorsState) {
+                state.doorsState.forEach(sd => {
+                    let d = obstacles.find(o => o.door.x === sd.doorX && o.door.y === sd.doorY);
+                    if(d) d.door.isOpen = sd.isOpen;
+                });
             }
-        });
 
-        socket.on("bulletFired", bData => bullets.push(bData));
-        socket.on("onlineKillAward", () => { account.gold += 10; saveAccount(); localKills++; });
-        
-        // GLOBAL SYNC CHAT RECEIVER: Handles all inbound chats reliably and paints correctly
-        socket.on("chatMessage", data => {
-            if(gameActive && data && data.sender) {
-                let actualMsg = data.message || data.msg || "";
-                if(actualMsg) {
-                    let chatType = "enemy";
-                    if(data.sender === account.nickname) {
-                        chatType = "player";
-                    }
-                    addChatMessage(data.sender, actualMsg, chatType);
+            for(let id in state.players) {
+                if(id === player.id) {
+                    player.hp = state.players[id].hp;
+                    matchGold = state.players[id].gold;
+                } else {
+                    otherPlayers[id] = state.players[id];
                 }
             }
+            for(let id in otherPlayers) {
+                if(!state.players[id]) delete otherPlayers[id];
+            }
         });
 
-        socket.on("tournamentWinner", (data) => {
-            account.gold += data.prize; saveAccount();
-            triggerCanvasAlert("YOU WIN! WON " + data.prize + "G", 120, () => {
-                document.getElementById("hud").style.display = "none";
-                document.getElementById("ingame-settings-btn").style.display = "none";
-                document.getElementById("game-chat-box").style.display = "none";
-                gameActive = false;
-                showMainMenu();
-            });
-        });
-
-        socket.on("tournamentKicked", () => {
-            triggerCanvasAlert("GAME OVER", 120, () => {
-                document.getElementById("hud").style.display = "none";
-                document.getElementById("ingame-settings-btn").style.display = "none";
-                document.getElementById("game-chat-box").style.display = "none";
-                gameActive = false;
-                showMainMenu();
-            });
-        });
-
-        socket.on("coopStageCleared", (data) => {
-            account.gold += Math.floor(data.sharedGold / 2); saveAccount();
-            currentStage = data.nextStage;
-            triggerCanvasAlert("YOU WIN! STAGE " + currentStage + " IN 2S", 120, () => {
-                initMatchEngine(data.nextSpawn);
-            });
-        });
-
-        function triggerCanvasAlert(text, duration, callback) {
-            canvasAlertText = text; canvasAlertTimer = duration;
-            let check = setInterval(() => {
-                if(canvasAlertTimer <= 0) { clearInterval(check); callback(); }
-            }, 1000/60);
-        }
-
-        function initMatchEngine(serverSpawn = null) {
-            gameActive = true; bullets = []; localBots = []; matchGold = 0; localKills = 0; largeMap = false;
-            otherPlayers = {}; 
-            player.maxHp = 100; player.hp = 100;
-            player.id = currentMode === "offline" ? "local" : socket.id;
-            player.nickname = account.nickname;
-            player.legCycle = 0;
-            player.isMoving = false;
-
-            if (serverSpawn) { player.x = serverSpawn.x; player.y = serverSpawn.y; } 
-            else { let p = getSafeSpawnCoords(player.r); player.x = p.x; player.y = p.y; }
-
-            camera.x = player.x - canvas.width / 2;
-            camera.y = player.y - canvas.height / 2;
+        // --- Core Match Engine Initiator ---
+        function initMatchEngine() {
+            resize();
+            gameActive = true;
+            largeMap = false;
+            bullets = [];
+            otherPlayers = {};
+            localBots = [];
+            localKills = 0;
+            matchGold = 0;
+            
+            let pSpawn = getSafeSpawnCoords(player.r);
+            player.x = pSpawn.x; player.y = pSpawn.y;
+            player.hp = 100; player.nickname = account.nickname;
+            camera.x = player.x; camera.y = player.y;
 
             document.getElementById("hud").style.display = "block";
-            document.getElementById("ingame-settings-btn").style.display = "flex";
             document.getElementById("hud-name").innerText = player.nickname;
-            
-            document.getElementById("chat-messages-container").innerHTML = "";
+            document.getElementById("ingame-settings-btn").style.display = "flex";
             document.getElementById("game-chat-box").style.display = "flex";
-            addChatMessage("SYSTEM", "Tactical links established. You can talk with others safely.", "system");
+            document.getElementById("chat-messages-container").innerHTML = "";
 
-            if(window.innerWidth < 1024 || 'ontouchstart' in window) {
-                isMobileTouch = true;
+            if (currentMode === "offline") {
+                // Bots Count Formula based on Level progression
+                let botCount = 4 + Math.min(10, Math.floor(currentStage / 2));
+                for(let i=0; i<botCount; i++) {
+                    let bSpawn = getSafeSpawnCoords(16);
+                    localBots.push({
+                        id: "bot_" + i + "_" + Math.floor(Math.random()*10000),
+                        x: bSpawn.x, y: bSpawn.y, r: 16,
+                        speed: 2.8 + Math.min(2.5, currentStage * 0.15),
+                        hp: 60 + (currentStage * 8), maxHp: 60 + (currentStage * 8),
+                        type: i % 3 === 0 ? "elite" : "grunt",
+                        shootCooldown: 0, angle: 0, 
+                        isMergedUnit: false, mergeFactor: 1
+                    });
+                }
+                triggerAlertNotification("STAGE " + currentStage + " - ELIMINATE ALL BOTS");
+                pushSystemChatMessage("Offline campaign mission started. Stage: " + currentStage);
             }
-            updateJoystickLayout();
+            
+            // Re-generate tree coordinates safely outside houses
+            generateTreeEcosystem();
 
-            if (currentMode === "offline" || currentMode === "coop") {
-                let count = 4 + currentStage;
-                for(let i=0; i<count; i++) {
-                    let b = getSafeSpawnCoords(16);
-                    localBots.push({ id: "bot_"+i, type: "standard", x: b.x, y: b.y, r: 16, speed: 2.75, hp: 35, maxHp: 35, fireCooldown: Math.random()*50, legCycle: 0, isMoving: true });
+            window.requestAnimationFrame(gameLoop);
+        }
+
+        function triggerAlertNotification(text) {
+            canvasAlertText = text;
+            canvasAlertTimer = 110;
+        }
+
+        // --- Bot Hexa-Merging Evolutionary Core Engine ---
+        function processBotHexaMergingSystem() {
+            if(currentMode !== "offline") return;
+
+            let liveBots = localBots.filter(b => b.hp > 0 && !b.isMergedUnit);
+            let gruntGroup = liveBots.filter(b => b.type === "grunt");
+            let eliteGroup = liveBots.filter(b => b.type === "elite");
+
+            // Hexa merging condition: 6 identical tier grunts cluster together
+            if(gruntGroup.length >= 6) {
+                attemptClusterMerge(gruntGroup);
+            }
+            if(eliteGroup.length >= 6) {
+                attemptClusterMerge(eliteGroup);
+            }
+        }
+
+        function attemptClusterMerge(subGroup) {
+            for(let i=0; i<subGroup.length; i++) {
+                let leader = subGroup[i];
+                let cluster = [leader];
+                
+                for(let j=0; j<subGroup.length; j++) {
+                    if(i === j) continue;
+                    let distance = Math.hypot(leader.x - subGroup[j].x, leader.y - subGroup[j].y);
+                    if(distance < 380) { // Merging proximity matrix
+                        cluster.push(subGroup[j]);
+                        if(cluster.length === 6) break;
+                    }
+                }
+
+                if(cluster.length === 6) {
+                    // Evolutionary Merge transformation activation
+                    leader.isMergedUnit = true;
+                    leader.mergeFactor = 6;
+                    leader.type = "HEXA-TITAN";
+                    leader.maxHp *= 6;
+                    leader.hp = leader.maxHp;
+                    leader.r = 35; // Increased geometric size representation
+                    leader.speed *= 1.35; // Enhanced speed parameters
+                    
+                    // Kill secondary components
+                    cluster.forEach((b, index) => {
+                        if(index > 0) b.hp = 0; 
+                    });
+
+                    triggerAlertNotification("?? WAR WARNING: 6 BOTS MERGED INTO HEXA-TITAN!");
+                    pushBotChatMessage(leader.id, "UNITS SYNCHRONIZED. HEXA-TITAN RE-EVOLUTION COMPLETE! PREPARE TO BE ELIMINATED.");
+                    break;
                 }
             }
         }
 
-        window.addEventListener("keydown", e => { 
-            if (!gameActive) return; 
-            if(document.activeElement === document.getElementById("chat-input-field")) return;
-            keys[e.key.toLowerCase()] = true; 
-            if(e.key.toLowerCase() === 'm') largeMap = !largeMap; 
+        // --- Window Key Input Mapping Listeners ---
+        window.addEventListener("keydown", (e) => {
+            let key = e.key.toLowerCase();
+            keys[key] = true;
+            if (key === "m") largeMap = !largeMap;
+            if (key === "f") {
+                if(proximalDoorRef) toggleDoorState(proximalDoorRef);
+            }
+            if (e.key === "Enter") {
+                triggerChatInputFieldSend();
+            }
         });
-        window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
-        window.addEventListener("mousemove", e => { mouse.x = e.clientX; mouse.y = e.clientY; });
-        window.addEventListener("click", (e) => {
-            if(!gameActive || canvasAlertTimer > 0 || isMobileTouch) return;
-            if(e.clientX < 300 && e.clientY > window.innerHeight - 300) return;
-            if(e.clientY > window.innerHeight - 220 && e.clientX > window.innerWidth/2 - 180 && e.clientX < window.innerWidth/2 + 180) return;
-            fireBullet();
+        window.addEventListener("keyup", (e) => { keys[e.key.toLowerCase()] = false; });
+        
+        window.addEventListener("mousemove", (e) => {
+            if(!isMobileTouch) {
+                mouse.x = e.clientX; mouse.y = e.clientY;
+            }
+        });
+        window.addEventListener("mousedown", (e) => {
+            if(!isMobileTouch && gameActive && player.hp > 0) {
+                triggerWeaponFireAction();
+            }
         });
 
-        window.addEventListener("touchstart", e => {
-            if(!gameActive) return;
+        // --- Mobile Touch Event Mapping Handlers ---
+        window.addEventListener("touchstart", (e) => {
             isMobileTouch = true;
             for(let t of e.changedTouches) {
-                let distToLeft = Math.hypot(t.clientX - leftJoystick.startX, t.clientY - leftJoystick.startY);
-                if(distToLeft < leftJoystick.maxRadius + 40 && leftJoystick.touchId === null) {
-                    leftJoystick.active = true; leftJoystick.touchId = t.identifier;
-                    leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY;
-                }
-                let distToRight = Math.hypot(t.clientX - rightJoystick.startX, t.clientY - rightJoystick.startY);
-                if(distToRight < rightJoystick.maxRadius + 40 && rightJoystick.touchId === null) {
-                    rightJoystick.active = true; rightJoystick.touchId = t.identifier;
-                    rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY;
+                if(t.clientX < window.innerWidth / 2) {
+                    if(!leftJoystick.active) {
+                        leftJoystick.active = true;
+                        leftJoystick.touchId = t.identifier;
+                        leftJoystick.startX = t.clientX; leftJoystick.startY = t.clientY;
+                        leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY;
+                    }
+                } else {
+                    // Prevent right joystick mapping if clicking floating settings gear or door finger prompt
+                    if(t.clientX > window.innerWidth - 90 && t.clientY < 240) continue;
+                    if(proximalDoorRef && t.clientX > window.innerWidth - 120 && t.clientY > window.innerHeight - 220) continue;
+
+                    if(!rightJoystick.active) {
+                        rightJoystick.active = true;
+                        rightJoystick.touchId = t.identifier;
+                        rightJoystick.startX = t.clientX; rightJoystick.startY = t.clientY;
+                        rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY;
+                        
+                        touchShootInterval = setInterval(() => {
+                            if(gameActive && player.hp > 0) triggerWeaponFireAction();
+                        }, 180);
+                    }
                 }
             }
-        }, {passive: false});
+        }, { passive: false });
 
-        window.addEventListener("touchmove", e => {
-            if(!gameActive) return;
-            for(let t of e.changedTouches) {
-                if(t.identifier === leftJoystick.touchId) {
-                    let dx = t.clientX - leftJoystick.startX; let dy = t.clientY - leftJoystick.startY;
+        window.addEventListener("touchmove", (e) => {
+            for(let t of e.touches) {
+                if(leftJoystick.active && t.identifier === leftJoystick.touchId) {
+                    let dx = t.clientX - leftJoystick.startX;
+                    let dy = t.clientY - leftJoystick.startY;
                     let dist = Math.hypot(dx, dy);
                     if(dist > leftJoystick.maxRadius) {
-                        let angle = Math.atan2(dy, dx);
-                        leftJoystick.currentX = leftJoystick.startX + Math.cos(angle) * leftJoystick.maxRadius;
-                        leftJoystick.currentY = leftJoystick.startY + Math.sin(angle) * leftJoystick.maxRadius;
+                        leftJoystick.currentX = leftJoystick.startX + (dx/dist)*leftJoystick.maxRadius;
+                        leftJoystick.currentY = leftJoystick.startY + (dy/dist)*leftJoystick.maxRadius;
                     } else {
                         leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY;
                     }
                 }
-                if(t.identifier === rightJoystick.touchId) {
-                    let dx = t.clientX - rightJoystick.startX; let dy = t.clientY - rightJoystick.startY;
+                if(rightJoystick.active && t.identifier === rightJoystick.touchId) {
+                    let dx = t.clientX - rightJoystick.startX;
+                    let dy = t.clientY - rightJoystick.startY;
                     let dist = Math.hypot(dx, dy);
                     if(dist > rightJoystick.maxRadius) {
-                        let angle = Math.atan2(dy, dx);
-                        rightJoystick.currentX = rightJoystick.startX + Math.cos(angle) * rightJoystick.maxRadius;
-                        rightJoystick.currentY = rightJoystick.startY + Math.sin(angle) * rightJoystick.maxRadius;
+                        rightJoystick.currentX = rightJoystick.startX + (dx/dist)*rightJoystick.maxRadius;
+                        rightJoystick.currentY = rightJoystick.startY + (dy/dist)*rightJoystick.maxRadius;
                     } else {
                         rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY;
                     }
-                    player.angle = Math.atan2(dy, dx);
-                    if(touchShootInterval === 0) {
-                        touchShootInterval = setInterval(() => { if(gameActive) fireBullet(); }, 180);
-                    }
                 }
             }
-        }, {passive: false});
+        }, { passive: false });
 
-        window.addEventListener("touchend", e => {
+        window.addEventListener("touchend", (e) => {
             for(let t of e.changedTouches) {
-                if(t.identifier === leftJoystick.touchId) { leftJoystick.active = false; leftJoystick.touchId = null; updateJoystickLayout(); }
-                if(t.identifier === rightJoystick.touchId) { 
-                    rightJoystick.active = false; rightJoystick.touchId = null; updateJoystickLayout(); 
-                    clearInterval(touchShootInterval); touchShootInterval = 0;
+                if(leftJoystick.active && t.identifier === leftJoystick.touchId) {
+                    leftJoystick.active = false; leftJoystick.touchId = null;
+                    updateJoystickLayout();
+                }
+                if(rightJoystick.active && t.identifier === rightJoystick.touchId) {
+                    rightJoystick.active = false; rightJoystick.touchId = null;
+                    clearInterval(touchShootInterval);
+                    updateJoystickLayout();
                 }
             }
         });
 
-        function fireBullet() {
-            if(player.hp <= 0) return;
-            let b = { 
-                x: player.x + Math.cos(player.angle)*22, 
-                y: player.y + Math.sin(player.angle)*22, 
-                vx: Math.cos(player.angle)*15, 
-                vy: Math.sin(player.angle)*15, 
-                id: player.id, 
-                damage: WEAPONS_DATA[account.weapon].dmg 
-            };
-            bullets.push(b);
-            if(currentMode !== "offline") socket.emit("shoot", b);
+        // --- Fire Weapon Shell Action ---
+        function triggerWeaponFireAction() {
+            let activeWep = WEAPONS_DATA[account.weapon];
+            let targetAngle = player.angle;
+
+            if(currentMode === "offline") {
+                bullets.push({
+                    owner: player.id, x: player.x, y: player.y,
+                    vx: Math.cos(targetAngle) * 15, vy: Math.sin(targetAngle) * 15,
+                    dmg: activeWep.dmg, r: 5, color: account.weapon === 2 ? "#00ffff" : "#ffd700"
+                });
+            } else {
+                socket.emit("fireBullet", { x: player.x, y: player.y, angle: targetAngle });
+            }
         }
 
-        function update() {
-            if (!gameActive) return;
-            if (canvasAlertTimer > 0) { canvasAlertTimer--; return; }
+        // --- Core Engine Loop Processing Thread ---
+        function gameLoop() {
+            if(!gameActive) return;
 
-            let nx = player.x; let ny = player.y; let moved = false;
-            
-            if (keys["w"]) { ny -= player.speed; moved = true; }
-            if (keys["s"]) { ny += player.speed; moved = true; }
-            if (keys["a"]) { nx -= player.speed; moved = true; }
-            if (keys["d"]) { nx += player.speed; moved = true; }
+            updateTickPhysics();
+            renderGraphicsFrame();
 
-            if (leftJoystick.active) {
-                let dx = leftJoystick.currentX - leftJoystick.startX; 
-                let dy = leftJoystick.currentY - leftJoystick.startY;
-                let dist = Math.hypot(dx, dy);
-                if (dist > 5) {
-                    let angle = Math.atan2(dy, dx);
-                    nx += Math.cos(angle) * player.speed; 
-                    ny += Math.sin(angle) * player.speed; 
-                    moved = true;
-                }
+            window.requestAnimationFrame(gameLoop);
+        }
+
+        // --- Physics Engine Tick Calculation ---
+        function updateTickPhysics() {
+            if(player.hp <= 0) return;
+
+            // Player Angle Calculations
+            if(isMobileTouch && rightJoystick.active) {
+                player.angle = Math.atan2(rightJoystick.currentY - rightJoystick.startY, rightJoystick.currentX - rightJoystick.startX);
+            } else if (!isMobileTouch) {
+                let worldMouseX = mouse.x + camera.x - canvas.width/2;
+                let worldMouseY = mouse.y + camera.y - canvas.height/2;
+                player.angle = Math.atan2(worldMouseY - player.y, worldMouseX - player.x);
             }
 
-            player.isMoving = moved;
-            if(player.isMoving) {
-                player.legCycle += 0.35;
+            // Directional Input Matrix
+            let moveX = 0; let moveY = 0;
+            if(leftJoystick.active) {
+                moveX = (leftJoystick.currentX - leftJoystick.startX) / leftJoystick.maxRadius;
+                moveY = (leftJoystick.currentY - leftJoystick.startY) / leftJoystick.maxRadius;
             } else {
-                player.legCycle = 0;
+                if (keys["w"] || keys["z"] || keys["arrowup"]) moveY = -1;
+                if (keys["s"] || keys["arrowdown"]) moveY = 1;
+                if (keys["a"] || keys["q"] || keys["arrowleft"]) moveX = -1;
+                if (keys["d"] || keys["arrowright"]) moveX = 1;
             }
 
-            if (!rightJoystick.active && !isMobileTouch && (mouse.x !== 0 || mouse.y !== 0)) {
-                player.angle = Math.atan2(mouse.y - canvas.height/2, mouse.x - canvas.width/2);
+            player.isMoving = (moveX !== 0 || moveY !== 0);
+            if(player.isMoving) {
+                let length = Math.hypot(moveX, moveY);
+                let speedMod = player.speed;
+                let nx = player.x + (moveX / length) * speedMod;
+                let ny = player.y + (moveY / length) * speedMod;
+
+                if(!checkCollision(nx, player.y, player.r)) player.x = nx;
+                if(!checkCollision(player.x, ny, player.r)) player.y = ny;
+                
+                player.legCycle += 0.22;
             }
 
-            if (!checkCollision(nx, player.y, player.r)) player.x = nx;
-            if (!checkCollision(player.x, ny, player.r)) player.y = ny;
+            // Real-time door checker loop
+            checkDoorProximity();
 
-            if (moved && currentMode !== "offline") { 
-                socket.emit("move", { x: player.x, y: player.y, angle: player.angle }); 
-            }
+            // Camera Interp Interpolation Smooth Follow
+            camera.x += (player.x - camera.x) * 0.1;
+            camera.y += (player.y - camera.y) * 0.1;
 
-            camera.x = player.x - canvas.width / 2;
-            camera.y = player.y - canvas.height / 2;
+            // Offline Mode Logic Engine Loops
+            if(currentMode === "offline") {
+                // Periodically execute Bot merging evaluation check
+                if(Math.random() < 0.015) processBotHexaMergingSystem();
 
-            document.getElementById("hp-bar").style.width = (player.hp / player.maxHp * 100) + "%";
-            document.getElementById("gold-match-display").innerText = "Gold Bank: " + account.gold + " G";
-
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                let b = bullets[i]; b.x += b.vx; b.y += b.vy;
-                if (checkCollision(b.x, b.y, 4)) { bullets.splice(i, 1); continue; }
-
-                if (b.id !== player.id && player.hp > 0 && Math.hypot(player.x - b.x, player.y - b.y) < player.r + 4) {
-                    let block = ARMORS_DATA[account.armor].protection;
-                    let finalDmg = Math.max(2, b.damage - block);
-                    player.hp = Math.max(0, player.hp - finalDmg);
-                    if(currentMode !== "offline") socket.emit("takeDamage", { damage: finalDmg });
-                    bullets.splice(i, 1); continue;
-                }
-
-                if (currentMode === "offline" || currentMode === "coop") {
-                    localBots.forEach(bot => {
-                        if (b.id === player.id && bot.hp > 0 && Math.hypot(bot.x - b.x, bot.y - b.y) < bot.r + 4) {
-                            bot.hp = Math.max(0, bot.hp - b.damage); bullets.splice(i, 1);
-                            if(bot.hp <= 0) { 
-                                matchGold += 20; 
-                                account.gold += 10; 
-                                saveAccount(); 
-                            }
-                        }
-                    });
-                }
-            }
-
-            if (currentMode === "offline" || currentMode === "coop") {
-                let activeStandardBots = localBots.filter(b => b.hp > 0 && b.type === "standard");
-                if (activeStandardBots.length >= 6) {
-                    let source = activeStandardBots[0];
-                    source.type = "merged_boss";
-                    source.r = 35;
-                    source.hp = 200;
-                    source.maxHp = 200;
-                    source.speed = 1.88;
-                    source.damage = 60; 
-                    for(let k = 1; k < 6; k++) { activeStandardBots[k].hp = 0; } 
-                    addChatMessage("SYSTEM WARNING", "Six enemy units fused into a SUPER BOT X6 entity!", "system");
-                }
-
-                localBots.forEach(bot => {
-                    if(bot.hp <= 0) return;
-                    let dist = Math.hypot(player.x - bot.x, player.y - bot.y);
-                    if(dist < 600) {
-                        bot.isMoving = true;
-                        bot.legCycle += 0.2;
-                        
-                        let directAngle = Math.atan2(player.y - bot.y, player.x - bot.x);
-                        bot.angle = directAngle;
-                        
-                        let bnx = bot.x + Math.cos(bot.angle) * bot.speed;
-                        let bny = bot.y + Math.sin(bot.angle) * bot.speed;
-                        
-                        if (checkCollision(bnx, bot.y, bot.r)) {
-                            bot.angle += Math.PI / 2; 
-                            bnx = bot.x + Math.cos(bot.angle) * bot.speed;
-                        }
-                        if (checkCollision(bot.x, bny, bot.r)) {
-                            bot.angle -= Math.PI / 2;
-                            bny = bot.y + Math.sin(bot.angle) * bot.speed;
-                        }
-
-                        if (!checkCollision(bnx, bot.y, bot.r)) bot.x = bnx;
-                        if (!checkCollision(bot.x, bny, bot.r)) bot.y = bny;
-
-                        if(bot.fireCooldown <= 0) {
-                            let dmg = bot.type === "merged_boss" ? 40 : 10;
-                            bullets.push({ x: bot.x, y: bot.y, vx: Math.cos(bot.angle)*11, vy: Math.sin(bot.angle)*11, id: bot.id, damage: dmg });
-                            bot.fireCooldown = bot.type === "merged_boss" ? 40 : 70;
-                        }
-                    } else {
-                        bot.isMoving = false;
+                // Bullets fly operations
+                bullets.forEach((b, index) => {
+                    b.x += b.vx; b.y += b.vy;
+                    
+                    // Wall intersection break triggers
+                    if(checkCollision(b.x, b.y, b.r)) {
+                        bullets.splice(index, 1); return;
                     }
-                    if(bot.fireCooldown > 0) bot.fireCooldown--;
+
+                    // Bullet hit checking
+                    if(b.owner === player.id) {
+                        localBots.forEach(bot => {
+                            if(bot.hp > 0 && Math.hypot(b.x - bot.x, b.y - bot.y) < bot.r + b.r) {
+                                bot.hp -= b.dmg;
+                                bullets.splice(index, 1);
+                                if(bot.hp <= 0) {
+                                    localKills++;
+                                    let bonus = bot.isMergedUnit ? 180 : 30;
+                                    matchGold += bonus;
+                                    pushSystemChatMessage(`Hostile eliminated! +${bonus} Gold earned.`);
+                                    checkMatchVictoryCondition();
+                                }
+                            }
+                        });
+                    } else {
+                        // Enemy projectile hit local player
+                        if(Math.hypot(b.x - player.x, b.y - player.y) < player.r + b.r) {
+                            let prot = ARMORS_DATA[account.armor].protection;
+                            let finalDmg = Math.max(2, b.dmg - prot);
+                            player.hp -= finalDmg;
+                            bullets.splice(index, 1);
+                            if(player.hp <= 0) triggerDefeatState();
+                        }
+                    }
                 });
 
-                let aliveBots = localBots.filter(b => b.hp > 0).length;
-                if(aliveBots === 0 && player.hp > 0 && gameActive) {
-                    gameActive = false;
-                    if(currentMode === "offline") {
-                        account.gold += matchGold; 
-                        if(currentStage === account.maxStage) account.maxStage++; 
-                        saveAccount();
-                        document.getElementById("screen-win").style.display = "flex";
-                    } else {
-                        socket.emit("coopClearedStageServer", { stage: currentStage, goldShared: matchGold });
+                // Bots Smart Movement AI Pathfinding Engine Loop
+                localBots.forEach(bot => {
+                    if(bot.hp <= 0) return;
+
+                    let distToPlayer = Math.hypot(player.x - bot.x, player.y - bot.y);
+                    bot.angle = Math.atan2(player.y - bot.y, player.x - bot.x);
+
+                    // Aggressive follow tracking range radius
+                    if(distToPlayer < 950) {
+                        let bx = bot.x + Math.cos(bot.angle) * bot.speed;
+                        let by = bot.y + Math.sin(bot.angle) * bot.speed;
+
+                        // Advanced Anti-Stuck Raycast wall avoidance routine
+                        if(!checkCollision(bx, by, bot.r)) {
+                            bot.x = bx; bot.y = by;
+                        } else {
+                            // Slide raycast vector tracking offset
+                            let slideX = bot.x + Math.cos(bot.angle + Math.PI/2) * bot.speed;
+                            let slideY = bot.y + Math.sin(bot.angle + Math.PI/2) * bot.speed;
+                            if(!checkCollision(slideX, slideY, bot.r)) {
+                                bot.x = slideX; bot.y = slideY;
+                            } else {
+                                bot.x -= Math.cos(bot.angle) * bot.speed * 0.5;
+                                bot.y -= Math.sin(bot.angle) * bot.speed * 0.5;
+                            }
+                        }
+
+                        // Weapon fire trigger cadence pattern
+                        bot.shootCooldown--;
+                        if(bot.shootCooldown <= 0 && distToPlayer < 450) {
+                            bot.shootCooldown = bot.isMergedUnit ? 18 : 45; // Hexa titans shoot significantly faster
+                            bullets.push({
+                                owner: bot.id, x: bot.x, y: bot.y,
+                                vx: Math.cos(bot.angle) * 11, vy: Math.sin(bot.angle) * 11,
+                                dmg: bot.isMergedUnit ? 25 : 8, r: bot.isMergedUnit ? 8 : 4, color: "#ff3d00"
+                            });
+
+                            // Low random probability bot chatter broadcast trigger
+                            if(Math.random() < 0.04) {
+                                let phrase = BOT_CHAT_PHRASES[Math.floor(Math.random() * BOT_CHAT_PHRASES.length)];
+                                pushBotChatMessage(bot.id, phrase);
+                            }
+                        }
                     }
-                }
-            }
-
-            if(player.hp <= 0 && gameActive) {
-                gameActive = false;
-                if(currentMode === "offline") { 
-                    document.getElementById("screen-lose").style.display = "flex"; 
-                } else {
-                    socket.emit("playerDiedTournament");
-                    triggerCanvasAlert("GAME OVER", 120, () => {
-                        document.getElementById("hud").style.display = "none";
-                        document.getElementById("ingame-settings-btn").style.display = "none";
-                        document.getElementById("game-chat-box").style.display = "none";
-                        showMainMenu();
-                    });
-                }
-            }
-        }
-
-        function drawHuman(x, y, r, angle, color, name, curHp, maxHp, isBoss = false, legCycle = 0, isMoving = false) {
-            if (curHp <= 0) return;
-            ctx.save();
-            
-            ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
-            ctx.shadowBlur = 12;
-            ctx.shadowOffsetX = 5;
-            ctx.shadowOffsetY = 8;
-            
-            ctx.translate(x, y);
-            
-            ctx.save();
-            ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
-            ctx.fillStyle = isBoss ? "#ff1744" : "white"; 
-            ctx.font = isBoss ? "bold 14px sans-serif" : "bold 12px sans-serif"; 
-            ctx.textAlign = "center"; 
-            ctx.fillText(name, 0, -r - 14);
-            
-            ctx.fillStyle = "#c62828"; ctx.fillRect(-20, -r - 8, 40, 5);
-            ctx.fillStyle = "#2e7d32"; ctx.fillRect(-20, -r - 8, 40 * (curHp / maxHp), 5);
-            ctx.restore();
-            
-            ctx.rotate(angle); 
-
-            if (isMoving) {
-                let leftLegOffset = Math.sin(legCycle) * 8;
-                let rightLegOffset = Math.sin(legCycle + Math.PI) * 8;
-                ctx.fillStyle = "#2c3e50";
-                ctx.fillRect(-10 + leftLegOffset, -r + 2, 9, 6);
-                ctx.fillRect(-10 + rightLegOffset, r - 8, 9, 6);
+                });
             } else {
-                ctx.fillStyle = "#2c3e50";
-                ctx.fillRect(-8, -r + 2, 7, 5);
-                ctx.fillRect(-8, r - 7, 7, 5);
+                // Online multiplayer frame inputs streaming dispatch
+                socket.emit("playerInput", { x: player.x, y: player.y, angle: player.angle, isMoving: player.isMoving, legCycle: player.legCycle });
             }
-            
-            ctx.fillStyle = color; 
-            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-            
-            ctx.strokeStyle = "rgba(0,0,0,0.4)";
-            ctx.lineWidth = 2.5;
-            ctx.stroke();
 
-            ctx.beginPath(); ctx.arc(0, 0, r * 0.6, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255,255,255,0.12)"; ctx.fill();
-
-            ctx.fillStyle = "#1e272e"; 
-            ctx.fillRect(4, -5, r * 1.45, 10); 
-            ctx.strokeStyle = "#718093"; ctx.lineWidth = 1; ctx.strokeRect(4, -5, r * 1.45, 10);
-            
-            ctx.restore();
+            // Sync HTML UI components 
+            document.getElementById("hp-bar").style.width = Math.max(0, player.hp) + "%";
+            document.getElementById("gold-match-display").innerText = "Gold: " + matchGold;
         }
 
-        function draw() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save(); ctx.translate(-camera.x, -camera.y);
-            
-            ctx.fillStyle = "#111a24"; ctx.fillRect(0, 0, world.w, world.h);
-            
-            ctx.strokeStyle = "rgba(255,255,255,0.03)"; ctx.lineWidth = 2;
-            for(let x=0; x<world.w; x+=100) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,world.h); ctx.stroke(); }
-            for(let y=0; y<world.h; y+=100) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(world.w,y); ctx.stroke(); }
-
-            obstacles.forEach(obs => {
-                ctx.fillStyle = "rgba(44, 62, 80, 0.4)"; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-                ctx.fillStyle = "#57606f"; 
-                obs.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
-                ctx.fillStyle = "#ffb300";
-                ctx.fillRect(obs.door.x, obs.door.y, obs.door.w, obs.door.h);
-                
-                ctx.fillStyle = "rgba(255,255,255,0.25)";
-                ctx.font = "12px sans-serif";
-                ctx.textAlign = "center";
-                ctx.fillText(obs.name, obs.x + obs.w/2, obs.y + obs.h/2);
-            });
-
-            if (gameActive && player.hp > 0) {
-                drawHuman(player.x, player.y, player.r, player.angle, "#273c75", player.nickname, player.hp, player.maxHp, false, player.legCycle, player.isMoving);
-            }
-            
-            for (let id in otherPlayers) { 
-                let p = otherPlayers[id]; 
-                drawHuman(p.x, p.y, 18, p.angle, "#7f1d1d", p.nickname, p.hp, p.maxHp, false, p.legCycle, p.isMoving); 
-            }
-            
-            localBots.forEach(bot => {
-                if(bot.type === "merged_boss") {
-                    drawHuman(bot.x, bot.y, bot.r, bot.angle, "#9c0517", "SUPER BOT X6", bot.hp, bot.maxHp, true, bot.legCycle, bot.isMoving);
-                } else {
-                    drawHuman(bot.x, bot.y, bot.r, bot.angle, "#353b48", "BOT SOLDIER", bot.hp, bot.maxHp, false, bot.legCycle, bot.isMoving);
+        function checkMatchVictoryCondition() {
+            if(currentMode !== "offline") return;
+            let alive = localBots.filter(b => b.hp > 0);
+            if(alive.length === 0) {
+                gameActive = false;
+                account.gold += matchGold;
+                if(currentStage === account.maxStage && account.maxStage < 100) {
+                    account.maxStage++;
                 }
+                saveAccount();
+                document.getElementById("screen-win").style.display = "flex";
+            }
+        }
+
+        function triggerDefeatState() {
+            gameActive = false;
+            account.gold += Math.floor(matchGold * 0.4); // Compensation ratio
+            saveAccount();
+            document.getElementById("screen-lose").style.display = "flex";
+        }
+
+        // --- Rendering Graphics Frame Pipeline (`Canvas Painting Context`) ---
+        function renderGraphicsFrame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(canvas.width/2 - camera.x, canvas.height/2 - camera.y);
+
+            // 1. Draw Ground Texture & Grass Design Instead of Black Screen
+            ctx.fillStyle = "#1e3512"; // Beautiful Dark Forest Green Base
+            ctx.fillRect(0, 0, world.w, world.h);
+
+            // Draw structural paths/roads grid pattern
+            ctx.fillStyle = "#4a3b32"; // Dirt Dust Road Texture Color
+            roads.forEach(r => {
+                ctx.fillRect(r.x, r.y, r.w, r.h);
             });
 
-            ctx.fillStyle = "#ffd700"; 
-            bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI*2); ctx.fill(); });
+            // Draw field environment grass details to look authentic
+            ctx.fillStyle = "rgba(46, 82, 27, 0.4)";
+            for(let i=0; i<world.w; i+=250) {
+                for(let j=0; j<world.h; j+=250) {
+                    ctx.fillRect(i + 15, j + 45, 12, 4);
+                    ctx.fillRect(i + 80, j + 140, 6, 8);
+                }
+            }
+
+            // 2. Draw 2D Real Top-Down Foliage Trees Ecosystem Layer
+            trees.forEach(t => {
+                // Outer Shadow circle
+                ctx.fillStyle = "rgba(10, 20, 5, 0.45)";
+                ctx.beginPath(); ctx.arc(t.x + 8, t.y + 12, t.r * 1.1, 0, Math.PI*2); ctx.fill();
+
+                // Solid Wooden Trunk Core
+                ctx.fillStyle = "#5c4033";
+                ctx.beginPath(); ctx.arc(t.x, t.y, t.r * 0.3, 0, Math.PI*2); ctx.fill();
+
+                // Leaf Cluster Layer 1 (Darker Green Outer Ring)
+                ctx.fillStyle = "#1b4d3e";
+                ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI*2); ctx.fill();
+
+                // Leaf Cluster Layer 2 (Mid Green)
+                ctx.fillStyle = "#2c6b4f";
+                ctx.beginPath(); ctx.arc(t.x - t.r*0.15, t.y - t.r*0.15, t.r * 0.8, 0, Math.PI*2); ctx.fill();
+
+                // Leaf Cluster Layer 3 (Lighter Highlights)
+                ctx.fillStyle = "#388e3c";
+                ctx.beginPath(); ctx.arc(t.x - t.r*0.25, t.y - t.r*0.25, t.r * 0.5, 0, Math.PI*2); ctx.fill();
+            });
+
+            // 3. Draw Complex Styled Premium Houses
+            obstacles.forEach(obs => {
+                // Base House Structure Wall Filling
+                ctx.fillStyle = obs.color || "#1c2a39";
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+
+                // High-End Roof Inner Borders Decoration Painting
+                ctx.fillStyle = obs.roofColor || "#2d3f55";
+                ctx.fillRect(obs.x + 16, obs.y + 16, obs.w - 32, obs.h - 32);
+
+                // Interior Flooring representation tile
+                ctx.fillStyle = "rgba(9, 13, 18, 0.4)";
+                ctx.fillRect(obs.x + 20, obs.y + 20, obs.w - 40, obs.h - 40);
+
+                // Draw Structural Wall Lines
+                ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4;
+                ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+
+                // Draw Functional Rotational Door Asset Line
+                ctx.save();
+                let d = obs.door;
+                ctx.translate(d.x, d.y);
+                
+                // Rotation transformation logic based on Opened status
+                if(d.isOpen) {
+                    if(d.side === "bottom" || d.side === "top") ctx.rotate(-Math.PI / 2);
+                    else ctx.rotate(Math.PI / 2);
+                }
+
+                ctx.fillStyle = "#ffd700"; // Golden Bright Colored Structural Door Handle Plate
+                ctx.fillRect(0, 0, d.w, d.h);
+                ctx.strokeStyle = "#000"; ctx.lineWidth = 1.5;
+                ctx.strokeRect(0, 0, d.w, d.h);
+                ctx.restore();
+
+                // House Name Header Labeling
+                ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+                ctx.font = "bold 11px Arial";
+                ctx.fillText(obs.name, obs.x + 25, obs.y - 8);
+            });
+
+            // 4. Draw Bullets Projetiles Pipeline
+            bullets.forEach(b => {
+                ctx.fillStyle = b.color || "#ffd700";
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
+            });
+
+            // 5. Draw Local Bots Strategy Units (Campaign Only)
+            if(currentMode === "offline") {
+                localBots.forEach(b => {
+                    if(b.hp <= 0) return;
+                    drawCharacterSpriteFrame(b.x, b.y, b.angle, b.r, b.type === "HEXA-TITAN" ? "#ff1744" : "#ff9100", b.nickname || "Hostile Bot", b.hp, b.maxHp, b.legCycle, b.isMergedUnit);
+                });
+            } else {
+                // Online Rival Loop Pipeline Painting
+                for(let id in otherPlayers) {
+                    let op = otherPlayers[id];
+                    drawCharacterSpriteFrame(op.x, op.y, op.angle, op.r, "#f50057", op.nickname, op.hp, 100, op.legCycle, false);
+                }
+            }
+
+            // 6. Draw Local Hero Soldier Player Agent
+            if(player.hp > 0) {
+                drawCharacterSpriteFrame(player.x, player.y, player.angle, player.r, "#00e5ff", player.nickname, player.hp, player.maxHp, player.legCycle, false);
+            }
+
             ctx.restore();
 
-            if (isMobileTouch) {
-                ctx.beginPath(); ctx.arc(leftJoystick.startX, leftJoystick.startY, leftJoystick.maxRadius, 0, Math.PI*2);
-                ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.lineWidth = 3; ctx.stroke();
-                ctx.beginPath(); ctx.arc(leftJoystick.currentX, leftJoystick.currentY, 24, 0, Math.PI*2);
-                ctx.fillStyle = leftJoystick.active ? "rgba(21, 101, 192, 0.4)" : "rgba(255,255,255,0.1)"; ctx.fill();
-
-                ctx.beginPath(); ctx.arc(rightJoystick.startX, rightJoystick.startY, rightJoystick.maxRadius, 0, Math.PI*2);
-                ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.lineWidth = 3; ctx.stroke();
-                ctx.beginPath(); ctx.arc(rightJoystick.currentX, rightJoystick.currentY, 24, 0, Math.PI*2);
-                ctx.fillStyle = rightJoystick.active ? "rgba(198, 40, 40, 0.4)" : "rgba(255,255,255,0.1)"; ctx.fill();
-            }
-
+            // --- Front-End HUD Interface Painting Layer ---
             if(canvasAlertTimer > 0) {
-                ctx.fillStyle = "rgba(13, 19, 26, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = canvasAlertText.includes("WIN") ? "#4caf50" : "#ef5350";
-                ctx.font = "black 36px 'Segoe UI'"; ctx.textAlign = "center";
-                ctx.fillText(canvasAlertText, canvas.width/2, canvas.height/2);
+                canvasAlertTimer--;
+                ctx.fillStyle = "rgba(235, 77, 75, " + Math.min(1, canvasAlertTimer/25) + ")";
+                ctx.font = "black 24px Segoe UI"; ctx.textAlign = "center";
+                ctx.fillText(canvasAlertText, canvas.width/2, 130);
+                ctx.textAlign = "left"; // reset
             }
 
-            let mSize = largeMap ? Math.min(canvas.width*0.75, canvas.height*0.75) : 130;
+            // Mobile Touch Controllers Screen Layer Representation
+            if(isMobileTouch) {
+                drawTouchJoystickCircleElement(leftJoystick.startX, leftJoystick.startY, leftJoystick.currentX, leftJoystick.currentY, leftJoystick.maxRadius);
+                drawTouchJoystickCircleElement(rightJoystick.startX, rightJoystick.startY, rightJoystick.currentX, rightJoystick.currentY, rightJoystick.maxRadius);
+            }
+
+            // Render Radar Mini-Map Component Module
+            drawTacticalRadarMinimapComponent();
+        }
+
+        // --- Top-Down Character Canvas Renderer Engine ---
+        function drawCharacterSpriteFrame(cx, cy, angle, r, color, label, hp, maxHp, legCycle, isHexaTitan) {
+            ctx.save();
+            ctx.translate(cx, cy);
+            ctx.rotate(angle);
+
+            // Walking Animation Foot Steps Displacement Matrix
+            let leftFootOffset = Math.sin(legCycle) * (r * 0.35);
+            let rightFootOffset = Math.cos(legCycle) * (r * 0.35);
+
+            ctx.fillStyle = "#1c2a39";
+            // Left Boot
+            ctx.fillRect(r * 0.2 + leftFootOffset, -r * 0.9, r * 0.4, r * 0.35);
+            // Right Boot
+            ctx.fillRect(r * 0.2 + rightFootOffset, r * 0.55, r * 0.4, r * 0.35);
+
+            // Double Combat Support Shoulders Extension
+            ctx.fillStyle = "#263238";
+            ctx.beginPath(); ctx.arc(0, -r*0.6, r*0.4, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(0, r*0.6, r*0.4, 0, Math.PI*2); ctx.fill();
+
+            // Main Body Core Shell
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
+            ctx.lineWidth = 3; ctx.strokeStyle = "#0d131a"; ctx.stroke();
+
+            // Hexa-Titan Core Mark Ring
+            if(isHexaTitan) {
+                ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4;
+                ctx.strokeRect(-r*0.4, -r*0.4, r*0.8, r*0.8);
+            }
+
+            // Heavy Rifle Barrel Weapon Pointer Line Vector
+            ctx.fillStyle = "#78909c";
+            ctx.fillRect(r * 0.4, -5, r * 1.1, 10);
+            ctx.strokeStyle = "#263238"; ctx.strokeRect(r * 0.4, -5, r * 1.1, 10);
+
+            ctx.restore();
+
+            // Outer Floating Overhead Information Stat Arrays
+            ctx.fillStyle = "#ffffff"; ctx.font = "bold 13px Segoe UI";
+            ctx.shadowBlur = 3; ctx.shadowColor = "black";
+            ctx.fillText(label, cx - (r * 1.3), cy - r - 15);
+            
+            // Health bar tracking plate mini
+            ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(cx - 25, cy - r - 8, 50, 5);
+            let hpPercentage = Math.max(0, hp / maxHp);
+            ctx.fillStyle = hpPercentage > 0.4 ? "#4caf50" : "#f44336";
+            ctx.fillRect(cx - 25, cy - r - 8, 50 * hpPercentage, 5);
+            ctx.shadowBlur = 0; // reset
+        }
+
+        // --- Touch Overlay Joystick Renderer ---
+        function drawTouchJoystickCircleElement(sx, sy, cx, cy, maxR) {
+            ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+            ctx.beginPath(); ctx.arc(sx, sy, maxR, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 2; ctx.stroke();
+
+            ctx.fillStyle = "rgba(30, 136, 229, 0.45)";
+            ctx.beginPath(); ctx.arc(cx, cy, 28, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.5; ctx.stroke();
+        }
+
+        // --- Tactical Radar Minimap Component Module (Preserved & Advanced) ---
+        function drawTacticalRadarMinimapComponent() {
+            let mSize = largeMap ? Math.min(canvas.width, canvas.height) * 0.82 : 160;
             let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 20;
             let mY = largeMap ? (canvas.height - mSize)/2 : 20;
             let ratio = mSize / world.w;
             
-            ctx.fillStyle = "rgba(9, 13, 18, 0.85)"; ctx.fillRect(mX, mY, mSize, mSize);
-            ctx.strokeStyle = "#243447"; ctx.lineWidth = 2; ctx.strokeRect(mX, mY, mSize, mSize);
+            ctx.fillStyle = "rgba(9, 13, 18, 0.88)"; ctx.fillRect(mX, mY, mSize, mSize);
+            ctx.strokeStyle = "#243447"; ctx.lineWidth = 2.5; ctx.strokeRect(mX, mY, mSize, mSize);
             
+            // Draw roads onto radar map space
+            ctx.fillStyle = "rgba(74, 59, 50, 0.5)";
+            roads.forEach(r => {
+                ctx.fillRect(mX + r.x*ratio, mY + r.y*ratio, r.w*ratio, r.h*ratio);
+            });
+
+            // Draw trees onto radar map space
+            ctx.fillStyle = "rgba(27, 77, 62, 0.6)";
+            trees.forEach(t => {
+                ctx.beginPath(); ctx.arc(mX + t.x*ratio, mY + t.y*ratio, Math.max(1.5, t.r*ratio), 0, Math.PI*2); ctx.fill();
+            });
+
+            // Draw complex layout colorized houses structure matrices inside minimap
             obstacles.forEach(obs => {
-                ctx.fillStyle = "rgba(87, 96, 111, 0.6)";
+                ctx.fillStyle = obs.color || "rgba(87, 96, 111, 0.6)";
                 ctx.fillRect(mX + obs.x*ratio, mY + obs.y*ratio, obs.w*ratio, obs.h*ratio);
-                ctx.fillStyle = "#ffb300";
+                
+                // Mini interactive door tracking sync marker inside radar
+                ctx.fillStyle = obs.door.isOpen ? "#00ff00" : "#ffd700";
                 ctx.fillRect(mX + obs.door.x*ratio, mY + obs.door.y*ratio, Math.max(2, obs.door.w*ratio), Math.max(2, obs.door.h*ratio));
             });
             
+            // Render entities nodes indicator markers
             ctx.fillStyle = "#1e88e5"; ctx.beginPath(); ctx.arc(mX + player.x*ratio, mY + player.y*ratio, 4, 0, Math.PI*2); ctx.fill();
-            ctx.fillStyle = "#e65100"; localBots.forEach(b => { if(b.hp>0) { ctx.beginPath(); ctx.arc(mX + b.x*ratio, mY + b.y*ratio, 2, 0, Math.PI*2); ctx.fill(); } });
-            ctx.fillStyle = "#ff1744"; for(let id in otherPlayers) { ctx.beginPath(); ctx.arc(mX + otherPlayers[id].x*ratio, mY + otherPlayers[id].y*ratio, 3, 0, Math.PI*2); ctx.fill(); }
+            
+            if(currentMode === "offline") {
+                localBots.forEach(b => {
+                    if(b.hp > 0) {
+                        ctx.fillStyle = b.type === "HEXA-TITAN" ? "#ff0000" : "#e65100";
+                        ctx.beginPath(); ctx.arc(mX + b.x*ratio, mY + b.y*ratio, b.type === "HEXA-TITAN" ? 3.5 : 2.5, 0, Math.PI*2); ctx.fill();
+                    }
+                });
+            } else {
+                for(let id in otherPlayers) {
+                    if(otherPlayers[id].hp > 0) {
+                        ctx.fillStyle = "#ff5252";
+                        ctx.beginPath(); ctx.arc(mX + otherPlayers[id].x*ratio, mY + otherPlayers[id].y*ratio, 2.5, 0, Math.PI*2); ctx.fill();
+                    }
+                }
+            }
         }
 
-        function loop() { 
-            update(); 
-            draw(); 
-            requestAnimationFrame(loop); 
+        // --- Premium Ingame Core Communication Chat Logic System ---
+        function triggerChatInputFieldSend() {
+            let field = document.getElementById("chat-input-field");
+            let msg = field.value.trim();
+            if(!msg) return;
+
+            if(currentMode === "offline") {
+                pushUserChatMessage(player.nickname, msg);
+                // Simulate interactive bot automated response trigger
+                setTimeout(() => {
+                    let liveBots = localBots.filter(b => b.hp > 0);
+                    if(liveBots.length > 0) {
+                        let luckyBot = liveBots[Math.floor(Math.random() * liveBots.length)];
+                        let rPhrase = BOT_CHAT_PHRASES[Math.floor(Math.random() * BOT_CHAT_PHRASES.length)];
+                        pushBotChatMessage(luckyBot.id, rPhrase);
+                    }
+                }, 1000);
+            } else {
+                socket.emit("sendRoomChatMessage", { text: msg });
+            }
+            field.value = "";
         }
 
-        window.onload = () => {
-            resize();
-            requestAnimationFrame(loop);
-        };
+        document.getElementById("chat-send-btn").addEventListener("click", triggerChatInputFieldSend);
+        
+        socket.on("receiveRoomChatMessage", (data) => {
+            if(data.senderId === socket.id) {
+                pushUserChatMessage(data.nickname, data.text);
+            } else {
+                pushEnemyChatMessage(data.nickname, data.text);
+            }
+        });
+
+        function pushUserChatMessage(sender, text) {
+            appendChatRowLayout(`<span class="chat-sender">${sender}: </span><span class="chat-text">${text}</span>`);
+        }
+        function pushBotChatMessage(botId, text) {
+            let tag = botId.includes("titan") ? "HEXA-TITAN AI" : "BOT DISPATCH";
+            appendChatRowLayout(`<span class="chat-sender bot">[${tag}]: </span><span class="chat-text" style="color:#ffb74d;">${text}</span>`);
+        }
+        function pushEnemyChatMessage(sender, text) {
+            appendChatRowLayout(`<span class="chat-sender enemy">[RIVAL] ${sender}: </span><span class="chat-text">${text}</span>`);
+        }
+        function pushSystemChatMessage(text) {
+            appendChatRowLayout(`<span class="chat-sender system">[HQ SYSTEM]: </span><span class="chat-text" style="color:#ffd700; font-weight:500;">${text}</span>`);
+        }
+
+        function appendChatRowLayout(htmlContent) {
+            let container = document.getElementById("chat-messages-container");
+            let row = document.createElement("div");
+            row.className = "chat-row";
+            row.innerHTML = htmlContent;
+            container.appendChild(row);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Automatic boot trigger sequence initialization
+        if(localStorage.getItem("ts_user_admin@gmail.com")) {
+            document.getElementById("auth-email").value = "admin@gmail.com";
+            document.getElementById("auth-name").value = "Commander";
+            document.getElementById("auth-pass").value = "123456";
+        }
     </script>
 </body>
 </html>
