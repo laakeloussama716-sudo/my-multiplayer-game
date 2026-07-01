@@ -58,11 +58,71 @@
         #ingame-popup { position: absolute; top: 75px; left: 240px; background: rgba(22, 32, 44, 0.95); border: 1px solid #243447; padding: 15px; border-radius: 10px; display: none; flex-direction: column; gap: 10px; z-index: 6; box-shadow: 0 8px 25px rgba(0,0,0,0.6); }
         
         .match-end-screen { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(9, 13, 18, 0.9); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:99; }
+
+        /* Premium Floating Chat Component Architecture */
+        #game-chat-box {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 340px;
+            height: 180px;
+            background: rgba(13, 19, 26, 0.85);
+            border: 1px solid #243447;
+            border-radius: 12px;
+            z-index: 8;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.5);
+            backdrop-filter: blur(6px);
+        }
+        #chat-messages-container {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            scroll-behavior: smooth;
+        }
+        .chat-row { line-height: 1.4; word-break: break-word; }
+        .chat-sender { font-weight: bold; color: #1e88e5; }
+        .chat-sender.system { color: #ffd700; }
+        .chat-sender.enemy { color: #ff5252; }
+        .chat-sender.bot { color: #ff9800; }
+        .chat-text { color: #eceff1; }
+        #chat-input-wrapper {
+            display: flex;
+            border-top: 1px solid #243447;
+            background: #090d12;
+        }
+        #chat-input-field {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 10px 12px;
+            color: white;
+            font-size: 13px;
+            outline: none;
+        }
+        #chat-send-btn {
+            background: #1565C0;
+            border: none;
+            color: white;
+            padding: 0 16px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #chat-send-btn:hover { background: #1e88e5; }
     </style>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
 
+    <!-- Genuine Secure Authentication Gateway -->
     <div id="auth-screen" class="screen-overlay" style="display: flex;">
         <div class="menu-card">
             <h2 id="auth-title">Account Gateway</h2>
@@ -75,6 +135,7 @@
         </div>
     </div>
 
+    <!-- Main Tactical Lobby Screen -->
     <div id="main-menu" class="screen-overlay">
         <div class="menu-card" style="width: 380px;">
             <h2>Tactical Lobby</h2>
@@ -91,6 +152,7 @@
         </div>
     </div>
 
+    <!-- Armory Weaponry Shop Screen -->
     <div id="shop-screen" class="screen-overlay">
         <div class="menu-card" style="width: 85%; max-width: 600px;">
             <h2 style="color:#ffd700; margin-bottom: 5px;">ARMORY MARKET</h2>
@@ -106,6 +168,7 @@
         </div>
     </div>
 
+    <!-- Mode Selector Gate -->
     <div id="mode-gate" class="screen-overlay">
         <div class="menu-card">
             <h2>Select Operations</h2>
@@ -117,6 +180,7 @@
         </div>
     </div>
 
+    <!-- Campaign Map Gate -->
     <div id="campaign-screen" class="screen-overlay">
         <div class="menu-card" style="width:85%; max-width:520px;">
             <h2>Campaign Stages</h2>
@@ -125,6 +189,7 @@
         </div>
     </div>
 
+    <!-- Online War Rooms Matchmaking Lobby -->
     <div id="online-lobby" class="screen-overlay">
         <div class="menu-card">
             <h2>War Rooms Lobby</h2>
@@ -137,6 +202,7 @@
         </div>
     </div>
 
+    <!-- 1v1 Queue Search Matchmaking Loader -->
     <div id="matchmaking-screen" class="screen-overlay">
         <div class="menu-card">
             <h2 style="color:#ffd700;" id="search-title">Searching Rival...</h2>
@@ -145,18 +211,30 @@
         </div>
     </div>
 
+    <!-- Heads Up Display UI -->
     <div id="hud">
         <div id="hud-name">Soldier</div>
         <div id="hp-bar-container"><div id="hp-bar"></div></div>
         <div id="gold-match-display">Gold: 0</div>
     </div>
 
+    <!-- Ingame Floating Settings -->
     <button class="btn-secondary" id="ingame-settings-btn">?</button>
     <div id="ingame-popup">
         <button class="btn-secondary" id="btn-game-resume">Resume Combat</button>
         <button class="btn-secondary" id="btn-game-quit" style="background: linear-gradient(135deg, #b71c1c 0%, #e53935 100%); border-color: #7f0000;">Quit Room</button>
     </div>
 
+    <!-- Interactive Tactical Chat Box Wrapper -->
+    <div id="game-chat-box">
+        <div id="chat-messages-container"></div>
+        <div id="chat-input-wrapper">
+            <input type="text" id="chat-input-field" placeholder="Type tactical message..." autocomplete="off">
+            <button id="chat-send-btn">SEND</button>
+        </div>
+    </div>
+
+    <!-- Match End Screens (Offline Mode Fallbacks) -->
     <div id="screen-lose" class="match-end-screen">
         <h1 style="color:#e53935; font-size:50px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); font-weight: 900; letter-spacing: 2px;">MISSION FAILED</h1>
         <button class="btn-premium" id="btn-lose-retry" style="margin-top: 20px; padding: 16px 40px;">REDEPLOY</button>
@@ -191,6 +269,18 @@
             { id: 0, name: "Recruit Vest", price: 0, reqStage: 1, protection: 0, desc: "Basic cloth uniform wrapper." },
             { id: 1, name: "Kevlar Plating", price: 600, reqStage: 8, protection: 2, desc: "Absorbs 2 units damage per shell." },
             { id: 2, name: "Quantum Shield", price: 2500, reqStage: 20, protection: 5, desc: "Advanced nano-magnetic force dynamic." }
+        ];
+
+        // Random phrases for conversational bot agents
+        const BOT_CHAT_PHRASES = [
+            "I'm scanning the perimeter for hostile forces!",
+            "Cover me! Moving past the central building complex.",
+            "Watch out! I spotted an enemy agent ahead.",
+            "This battle is intense, don't drop your guard!",
+            "Regroup near the main entrance door!",
+            "Negative, sector is currently compromised.",
+            "Affirmative! Engaging target immediately.",
+            "Need backup at the building compound!"
         ];
 
         // Auth Operations Guard Setup
@@ -237,6 +327,7 @@
             document.getElementById("user-display-name").innerText = account.nickname;
             document.getElementById("user-display-gold").innerText = account.gold + " G";
             document.getElementById("user-display-level").innerText = account.maxStage;
+            document.getElementById("game-chat-box").style.display = "none";
         }
 
         // Navigation Controllers Bridges (Strict Return to Tactical Lobby Main Menu Logic)
@@ -306,29 +397,67 @@
         let canvasAlertText = "";
         let canvasAlertTimer = 0;
 
-        // ???? ??????? ??????? ?????? ???? ?? ???? ????? (Strict Fixed Touch Positions Layout)
-        const leftJoystick = { active: false, startX: 110, startY: 0, currentX: 110, currentY: 0, touchId: null, maxRadius: 65 };
+        // ???? ??????? ??????? ?????? ?? ????? ??????? ?????? ???? ???? ???? ??? ???? ????????
+        // Left offset slightly changed to 60px, Right offset slightly changed to 60px from margins
+        const leftJoystick = { active: false, startX: 85, startY: 0, currentX: 85, currentY: 0, touchId: null, maxRadius: 65 };
         const rightJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 65 };
         let isMobileTouch = false;
         let touchShootInterval = 0;
 
         function updateJoystickLayout() {
-            // ????? ?????????? ??????? ???? ???? ????? ?????????
-            leftJoystick.startY = canvas.height - 120; 
+            // ????? ?????????? ??????? ???? ???? ?? ????? ????? ???? ?? ??????? ?????? ?????? ?? ?????? ????????
+            leftJoystick.startX = 95;
+            leftJoystick.startY = canvas.height - 105; 
             leftJoystick.currentX = leftJoystick.startX; 
             leftJoystick.currentY = leftJoystick.startY;
             
-            rightJoystick.startX = canvas.width - 110; 
-            rightJoystick.startY = canvas.height - 120; 
+            rightJoystick.startX = canvas.width - 95; 
+            rightJoystick.startY = canvas.height - 105; 
             rightJoystick.currentX = rightJoystick.startX; 
             rightJoystick.currentY = rightJoystick.startY;
         }
 
-        // Obstacles & Buildings mapping
+        // Structures / Houses data with detailed door locations and strict structural layout
         const obstacles = [
-            { x: 500, y: 500, w: 250, h: 250, walls: [{x: 500, y: 500, w: 250, h: 20},{x: 500, y: 500, w: 20, h: 250},{x: 730, y: 500, w: 20, h: 250},{x: 500, y: 730, w: 80, h: 20},{x: 670, y: 730, w: 80, h: 20}] },
-            { x: 2200, y: 900, w: 300, h: 200, walls: [{x: 2200, y: 900, w: 300, h: 20},{x: 2200, y: 900, w: 20, h: 200},{x: 2480, y: 900, w: 20, h: 200},{x: 2200, y: 1080, w: 100, h: 20},{x: 2400, y: 1080, w: 100, h: 20}] },
-            { x: 1400, y: 2500, w: 200, h: 300, walls: [{x: 1400, y: 2500, w: 200, h: 20},{x: 1400, y: 2500, w: 20, h: 300},{x: 1580, y: 2500, w: 20, h: 300},{x: 1400, y: 2780, w: 200, h: 20}] }
+            { 
+                id: "house_alpha",
+                name: "Command Base Alpha",
+                x: 500, y: 500, w: 250, h: 250, 
+                door: { x: 580, y: 730, w: 90, h: 20 },
+                walls: [
+                    {x: 500, y: 500, w: 250, h: 20}, // Top Wall
+                    {x: 500, y: 500, w: 20, h: 250}, // Left Wall
+                    {x: 730, y: 500, w: 20, h: 250}, // Right Wall
+                    {x: 500, y: 730, w: 80, h: 20},  // Bottom Left Wall Fragment
+                    {x: 670, y: 730, w: 80, h: 20}   // Bottom Right Wall Fragment
+                ] 
+            },
+            { 
+                id: "house_bravo",
+                name: "Supply Depot Bravo",
+                x: 2200, y: 900, w: 300, h: 200, 
+                door: { x: 2300, y: 1080, w: 100, h: 20 },
+                walls: [
+                    {x: 2200, y: 900, w: 300, h: 20}, // Top Wall
+                    {x: 2200, y: 900, w: 20, h: 200}, // Left Wall
+                    {x: 2480, y: 900, w: 20, h: 200}, // Right Wall
+                    {x: 2200, y: 1080, w: 100, h: 20}, // Bottom Left Wall Fragment
+                    {x: 2400, y: 1080, w: 100, h: 20}  // Bottom Right Wall Fragment
+                ] 
+            },
+            { 
+                id: "house_charlie",
+                name: "Barracks Compound",
+                x: 1400, y: 2500, w: 200, h: 300, 
+                door: { x: 1400, y: 2620, w: 20, h: 60 },
+                walls: [
+                    {x: 1400, y: 2500, w: 200, h: 20},  // Top Wall
+                    {x: 1400, y: 2780, w: 200, h: 20},  // Bottom Wall
+                    {x: 1580, y: 2500, w: 20, h: 300},  // Right Wall
+                    {x: 1400, y: 2500, w: 20, h: 120},  // Left Upper Wall Fragment
+                    {x: 1400, y: 2680, w: 20, h: 120}   // Left Lower Wall Fragment
+                ] 
+            }
         ];
 
         function checkCollision(nx, ny, r) {
@@ -363,6 +492,7 @@
             document.getElementById("hud").style.display = "none";
             document.getElementById("ingame-settings-btn").style.display = "none";
             document.getElementById("ingame-popup").style.display = "none";
+            document.getElementById("game-chat-box").style.display = "none";
             gameActive = false;
             showMainMenu(); 
         });
@@ -400,6 +530,59 @@
             socket.emit("joinCoopQueue", { nickname: account.nickname, email: account.email, stage: currentStage });
         });
 
+        // Chat UI functionality & message registration
+        function addChatMessage(sender, text, type = "player") {
+            const container = document.getElementById("chat-messages-container");
+            const msgRow = document.createElement("div");
+            msgRow.className = "chat-row";
+            
+            const senderSpan = document.createElement("span");
+            senderSpan.className = "chat-sender " + type;
+            senderSpan.innerText = sender + ": ";
+            
+            const textSpan = document.createElement("span");
+            textSpan.className = "chat-text";
+            textSpan.innerText = text;
+            
+            msgRow.appendChild(senderSpan);
+            msgRow.appendChild(textSpan);
+            container.appendChild(msgRow);
+            
+            container.scrollTop = container.scrollHeight;
+        }
+
+        // Handle chat submit trigger
+        function submitPlayerChat() {
+            const input = document.getElementById("chat-input-field");
+            const text = input.value.trim();
+            if(!text) return;
+            
+            // Render locally
+            addChatMessage(account.nickname, text, "player");
+            input.value = "";
+            
+            // If multiplayer emit via sockets
+            if(currentMode !== "offline") {
+                socket.emit("onlineChatPacket", { sender: account.nickname, msg: text });
+            } else {
+                // Trigger random simulated response from alive bots after short delay
+                setTimeout(() => {
+                    let activeBots = localBots.filter(b => b.hp > 0);
+                    if(activeBots.length > 0 && Math.random() > 0.3) {
+                        let randomBot = activeBots[Math.floor(Math.random() * activeBots.length)];
+                        let nameTag = randomBot.type === "merged_boss" ? "SUPER BOT X6" : "BOT SOLDIER";
+                        let phrase = BOT_CHAT_PHRASES[Math.floor(Math.random() * BOT_CHAT_PHRASES.length)];
+                        addChatMessage(nameTag, phrase, "bot");
+                    }
+                }, 1000 + Math.random() * 1200);
+            }
+        }
+
+        document.getElementById("chat-send-btn").addEventListener("click", submitPlayerChat);
+        document.getElementById("chat-input-field").addEventListener("keydown", (e) => {
+            if(e.key === "Enter") { submitPlayerChat(); e.stopPropagation(); }
+        });
+
         // Socket Receivers Hubs
         socket.on("match1v1Ready", (spawnPos) => {
             account.gold -= 70; saveAccount();
@@ -416,7 +599,6 @@
         });
 
         socket.on("stateUpdate", serverPlayers => {
-            // ????? ???? ???? ??????? ?????????? ??? ???? ???????? ???????
             otherPlayers = {};
             for(let id in serverPlayers) {
                 if(id !== player.id) { otherPlayers[id] = serverPlayers[id]; } 
@@ -426,12 +608,17 @@
 
         socket.on("bulletFired", bData => bullets.push(bData));
         socket.on("onlineKillAward", () => { account.gold += 10; saveAccount(); localKills++; });
+        
+        socket.on("receiveOnlineChat", data => {
+            if(gameActive) addChatMessage(data.sender, data.msg, "enemy");
+        });
 
         socket.on("tournamentWinner", (data) => {
             account.gold += data.prize; saveAccount();
             triggerCanvasAlert("YOU WIN! WON " + data.prize + "G", 120, () => {
                 document.getElementById("hud").style.display = "none";
                 document.getElementById("ingame-settings-btn").style.display = "none";
+                document.getElementById("game-chat-box").style.display = "none";
                 gameActive = false;
                 showMainMenu();
             });
@@ -441,6 +628,7 @@
             triggerCanvasAlert("GAME OVER", 120, () => {
                 document.getElementById("hud").style.display = "none";
                 document.getElementById("ingame-settings-btn").style.display = "none";
+                document.getElementById("game-chat-box").style.display = "none";
                 gameActive = false;
                 showMainMenu();
             });
@@ -463,7 +651,6 @@
 
         function initMatchEngine(serverSpawn = null) {
             gameActive = true; bullets = []; localBots = []; matchGold = 0; localKills = 0; largeMap = false;
-            // ????? ?????? ?????? ??????? ???????? ????? ???? ???? ???????? ????????
             otherPlayers = {}; 
             player.maxHp = 100; player.hp = 100;
             player.id = currentMode === "offline" ? "local" : socket.id;
@@ -472,7 +659,6 @@
             if (serverSpawn) { player.x = serverSpawn.x; player.y = serverSpawn.y; } 
             else { let p = getSafeSpawnCoords(player.r); player.x = p.x; player.y = p.y; }
 
-            // ????? ???????? ??? ??????? ?????? ?? ?????? ????? ?? ??? ???? ???? ?????
             camera.x = player.x - canvas.width / 2;
             camera.y = player.y - canvas.height / 2;
 
@@ -480,6 +666,11 @@
             document.getElementById("ingame-settings-btn").style.display = "flex";
             document.getElementById("hud-name").innerText = player.nickname;
             
+            // Activate and display tactical chat system
+            document.getElementById("chat-messages-container").innerHTML = "";
+            document.getElementById("game-chat-box").style.display = "flex";
+            addChatMessage("SYSTEM", "Tactical links established. You can talk with others safely.", "system");
+
             if(window.innerWidth < 1024 || 'ontouchstart' in window) {
                 isMobileTouch = true;
             }
@@ -497,6 +688,8 @@
         // Input Keyboard Listeners
         window.addEventListener("keydown", e => { 
             if (!gameActive) return; 
+            // Avoid moving while typing inside chat input box
+            if(document.activeElement === document.getElementById("chat-input-field")) return;
             keys[e.key.toLowerCase()] = true; 
             if(e.key.toLowerCase() === 'm') largeMap = !largeMap; 
         });
@@ -504,22 +697,22 @@
         window.addEventListener("mousemove", e => { mouse.x = e.clientX; mouse.y = e.clientY; });
         window.addEventListener("click", (e) => {
             if(!gameActive || canvasAlertTimer > 0 || isMobileTouch) return;
+            // Ignore if clicking on UI components
             if(e.clientX < 300 && e.clientY > window.innerHeight - 300) return;
+            if(e.clientY > window.innerHeight - 220 && e.clientX > window.innerWidth/2 - 180 && e.clientX < window.innerWidth/2 + 180) return;
             fireBullet();
         });
 
-        // ???? ????? ????? ????????? ??????? ??????? (Fixed Area Touch Matching Zone Logic)
+        // ???? ????? ????? ????????? ??????? ??????? ???????
         window.addEventListener("touchstart", e => {
             if(!gameActive) return;
             isMobileTouch = true;
             for(let t of e.changedTouches) {
-                // ??? ??????? ?????? ???????
                 let distToLeft = Math.hypot(t.clientX - leftJoystick.startX, t.clientY - leftJoystick.startY);
                 if(distToLeft < leftJoystick.maxRadius + 40 && leftJoystick.touchId === null) {
                     leftJoystick.active = true; leftJoystick.touchId = t.identifier;
                     leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY;
                 }
-                // ??? ??????? ?????? ???????
                 let distToRight = Math.hypot(t.clientX - rightJoystick.startX, t.clientY - rightJoystick.startY);
                 if(distToRight < rightJoystick.maxRadius + 40 && rightJoystick.touchId === null) {
                     rightJoystick.active = true; rightJoystick.touchId = t.identifier;
@@ -618,7 +811,6 @@
                 socket.emit("move", { x: player.x, y: player.y, angle: player.angle }); 
             }
 
-            // ???????? ????? ?????? ??? ?????? 100% (????? ?? ???? ?????? ???????? ??????? ????)
             camera.x = player.x - canvas.width / 2;
             camera.y = player.y - canvas.height / 2;
 
@@ -664,6 +856,7 @@
                     source.speed = 1.5;
                     source.damage = 60; 
                     for(let k = 1; k < 6; k++) { activeStandardBots[k].hp = 0; } 
+                    addChatMessage("SYSTEM WARNING", "Six enemy units fused into a SUPER BOT X6 entity!", "system");
                 }
 
                 localBots.forEach(bot => {
@@ -720,6 +913,7 @@
                     triggerCanvasAlert("GAME OVER", 120, () => {
                         document.getElementById("hud").style.display = "none";
                         document.getElementById("ingame-settings-btn").style.display = "none";
+                        document.getElementById("game-chat-box").style.display = "none";
                         showMainMenu();
                     });
                 }
@@ -757,9 +951,22 @@
             for(let x=0; x<world.w; x+=100) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,world.h); ctx.stroke(); }
             for(let y=0; y<world.h; y+=100) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(world.w,y); ctx.stroke(); }
 
+            // Draw Houses with Walls & Distinct Visible Entry Doors
             obstacles.forEach(obs => {
+                // Ground fill for house interior area
                 ctx.fillStyle = "rgba(44, 62, 80, 0.4)"; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-                ctx.fillStyle = "#57606f"; obs.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+                // Draw defensive structural walls
+                ctx.fillStyle = "#57606f"; 
+                obs.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
+                // Draw explicit glowing entry doors clearly marked
+                ctx.fillStyle = "#ffb300";
+                ctx.fillRect(obs.door.x, obs.door.y, obs.door.w, obs.door.h);
+                
+                // Text overlay label on structure base
+                ctx.fillStyle = "rgba(255,255,255,0.25)";
+                ctx.font = "12px sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(obs.name, obs.x + obs.w/2, obs.y + obs.h/2);
             });
 
             if (gameActive && player.hp > 0) {
@@ -783,13 +990,11 @@
 
             // ??? ??????? ?? ??????? ??????? ????? ??????? ??????
             if (isMobileTouch) {
-                // ???? ????? ?????? ???????
                 ctx.beginPath(); ctx.arc(leftJoystick.startX, leftJoystick.startY, leftJoystick.maxRadius, 0, Math.PI*2);
                 ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.lineWidth = 3; ctx.stroke();
                 ctx.beginPath(); ctx.arc(leftJoystick.currentX, leftJoystick.currentY, 24, 0, Math.PI*2);
                 ctx.fillStyle = leftJoystick.active ? "rgba(21, 101, 192, 0.4)" : "rgba(255,255,255,0.1)"; ctx.fill();
 
-                // ???? ??????? ???????? ?????? ???????
                 ctx.beginPath(); ctx.arc(rightJoystick.startX, rightJoystick.startY, rightJoystick.maxRadius, 0, Math.PI*2);
                 ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.lineWidth = 3; ctx.stroke();
                 ctx.beginPath(); ctx.arc(rightJoystick.currentX, rightJoystick.currentY, 24, 0, Math.PI*2);
@@ -803,7 +1008,7 @@
                 ctx.fillText(canvasAlertText, canvas.width/2, canvas.height/2);
             }
 
-            // ???? ??? ???? ?????
+            // ???? ??? ???? ????? ????? ???? ?????? ???????? ????? ???
             let mSize = largeMap ? Math.min(canvas.width*0.75, canvas.height*0.75) : 130;
             let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 20;
             let mY = largeMap ? (canvas.height - mSize)/2 : 20;
@@ -811,6 +1016,15 @@
             
             ctx.fillStyle = "rgba(9, 13, 18, 0.85)"; ctx.fillRect(mX, mY, mSize, mSize);
             ctx.strokeStyle = "#243447"; ctx.lineWidth = 2; ctx.strokeRect(mX, mY, mSize, mSize);
+            
+            // Draw Houses structures and doors inside minimap directly
+            obstacles.forEach(obs => {
+                ctx.fillStyle = "rgba(87, 96, 111, 0.6)";
+                ctx.fillRect(mX + obs.x*ratio, mY + obs.y*ratio, obs.w*ratio, obs.h*ratio);
+                // Mini door mark inside radar minimap
+                ctx.fillStyle = "#ffb300";
+                ctx.fillRect(mX + obs.door.x*ratio, mY + obs.door.y*ratio, Math.max(2, obs.door.w*ratio), Math.max(2, obs.door.h*ratio));
+            });
             
             ctx.fillStyle = "#1e88e5"; ctx.beginPath(); ctx.arc(mX + player.x*ratio, mY + player.y*ratio, 4, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = "#e65100"; localBots.forEach(b => { if(b.hp>0) { ctx.beginPath(); ctx.arc(mX + b.x*ratio, mY + b.y*ratio, 2, 0, Math.PI*2); ctx.fill(); } });
@@ -823,7 +1037,6 @@
             requestAnimationFrame(loop); 
         }
 
-        // ??????? ????? ?????? ?????? ??? ??????? ?????? ??? ??? ??? Loop ??? ????? F11
         window.onload = () => {
             resize();
             requestAnimationFrame(loop);
