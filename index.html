@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -8,7 +8,7 @@
         body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0d131a; font-family: sans-serif; user-select: none; touch-action: none; }
         canvas { display: block; }
         
-        /* ???? ????? ?????? */
+        /* Login Screen */
         #login-screen {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(13, 19, 26, 0.95); display: flex; flex-direction: column;
@@ -16,9 +16,9 @@
         }
         .login-box {
             background: #1a242f; padding: 30px; border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.5); text-align: center; width: 300px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); text-align: center; width: 280px;
         }
-        .login-box h2 { margin-bottom: 20px; color: #1565C0; }
+        .login-box h2 { margin-bottom: 20px; color: #1565C0; font-size: 22px; }
         .login-box input {
             width: 90%; padding: 10px; margin: 10px 0; border: none;
             border-radius: 5px; background: #0d131a; color: white; text-align: center;
@@ -27,8 +27,32 @@
             width: 98%; padding: 10px; background: #1565C0; color: white;
             border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px;
         }
-        .login-box button:hover { background: #1e88e5; }
-        #error-msg { color: #ff5252; font-size: 14px; margin-top: 10px; }
+        #error-msg { color: #ff5252; font-size: 13px; margin-top: 10px; }
+
+        /* UI Hud */
+        #hud { position: absolute; top: 15px; left: 15px; color: white; font-weight: bold; font-size: 16px; pointer-events: none; }
+        #hp-bar-container { width: 150px; height: 15px; background: #37474F; border-radius: 3px; margin-top: 5px; overflow: hidden; }
+        #hp-bar { width: 100%; height: 100%; background: #2e7d32; transition: width 0.1s ease; }
+
+        /* Settings Circular Menu - Responsive for Mobile */
+        #settings-toggle {
+            position: absolute; top: 15px; left: 180px; width: 35px; height: 35px;
+            background: #1a242f; color: white; border-radius: 50%; display: flex;
+            justify-content: center; align-items: center; cursor: pointer; font-weight: bold; border: 1px solid #37474F; z-index: 5;
+        }
+        #settings-menu {
+            position: absolute; top: 60px; left: 180px; background: #1a242f; padding: 10px;
+            border-radius: 8px; border: 1px solid #37474F; display: none; flex-direction: column; gap: 8px; z-index: 5; max-width: 120px;
+        }
+        .menu-btn { background: #37474F; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+        
+        /* Mobile Toggle Map Button */
+        #map-toggle-mobile {
+            position: absolute; top: 15px; right: 15px; width: 40px; height: 40px;
+            background: rgba(26, 36, 47, 0.8); color: white; border-radius: 5px;
+            display: none; justify-content: center; align-items: center; font-weight: bold; font-size: 14px; border: 1px solid #37474F; z-index: 5;
+        }
+        @media (max-width: 768px) { #map-toggle-mobile { display: flex; } }
     </style>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
@@ -36,13 +60,26 @@
 
     <div id="login-screen">
         <div class="login-box">
-            <h2>????? ?????? ?????</h2>
-            <input type="email" id="player-email" placeholder="???? ????? ?????????? (Gmail)" required>
-            <input type="text" id="player-name" placeholder="???? ???? ?? ?????? (Unique)" maxlength="12" required>
-            <button id="start-btn">???? ??????</button>
+            <h2>Game Login</h2>
+            <input type="email" id="player-email" placeholder="Enter your Gmail" required>
+            <input type="text" id="player-name" placeholder="Choose Nickname (Unique)" maxlength="12" required>
+            <button id="start-btn">Join Match</button>
             <div id="error-msg"></div>
         </div>
     </div>
+
+    <div id="hud">
+        <div id="player-hud-name">Player</div>
+        <div id="hp-bar-container"><div id="hp-bar"></div></div>
+    </div>
+
+    <div id="settings-toggle">?</div>
+    <div id="settings-menu">
+        <button class="menu-btn" id="btn-audio">Mute Audio</button>
+        <button class="menu-btn" id="btn-reset">Reset Character</button>
+    </div>
+
+    <div id="map-toggle-mobile">MAP</div>
 
     <canvas id="game"></canvas>
 
@@ -57,11 +94,13 @@
         resize();
         window.addEventListener("resize", resize);
 
-        // ??????? ?????? Render ????? ??
         const socket = io("https://my-online-game-1n7l.onrender.com");
 
         const keys = {};
-        window.onkeydown = e => keys[e.key.toLowerCase()] = true;
+        window.onkeydown = e => {
+            keys[e.key.toLowerCase()] = true;
+            if (e.key.toLowerCase() === 'm') showMap = !showMap; // Toggle Minimap via M key
+        };
         window.onkeyup = e => keys[e.key.toLowerCase()] = false;
 
         const world = { w: 4000, h: 4000 };
@@ -71,7 +110,7 @@
             x: Math.random() * 500 + 200,
             y: Math.random() * 500 + 200,
             r: 16,
-            speed: 6.5,
+            speed: 5.5,
             hp: 100,
             angle: 0,
             nickname: "",
@@ -83,70 +122,81 @@
         let otherPlayers = {};
         let bullets = [];
         let gameActive = false;
+        let showMap = true; // Minimap status
+        let audioMuted = false;
 
-        // --- ??????? ????? ?????? ??????? (Joystick) ??????? ---
-        const joystick = {
-            active: false,
-            startX: 0, startY: 0,
-            currentX: 0, currentY: 0,
-            touchId: null,
-            maxRadius: 50 // ???? ????? ??????? ??????? ????????
-        };
+        // Static Obstacles (Houses & Walls) from nice!!.html
+        const obstacles = [
+            { x: 400, y: 300, w: 120, h: 120, type: "house" },
+            { x: 800, y: 600, w: 200, h: 100, type: "wall" },
+            { x: 1200, y: 200, w: 150, h: 150, type: "house" },
+            { x: 600, y: 1200, w: 300, h: 60, type: "wall" }
+        ];
 
-        // ?? ?????? ?????? ????? ?? ???????
+        // AI Bots Implementation
+        let bots = [
+            { id: "bot1", x: 500, y: 600, r: 16, speed: 2, angle: 0, hp: 100 },
+            { id: "bot2", x: 1000, y: 400, r: 16, speed: 2, angle: 0, hp: 100 }
+        ];
+
+        // Mobile Controls Touch configuration
+        const joystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 45 };
+
+        // Toggle Settings Menu
+        const toggleBtn = document.getElementById("settings-toggle");
+        const menuBox = document.getElementById("settings-menu");
+        toggleBtn.addEventListener("click", () => menuBox.style.display = menuBox.style.display === "flex" ? "none" : "flex");
+        
+        document.getElementById("btn-audio").addEventListener("click", () => {
+            audioMuted = !audioMuted;
+            document.getElementById("btn-audio").innerText = audioMuted ? "Unmute Audio" : "Mute Audio";
+        });
+        document.getElementById("btn-reset").addEventListener("click", () => {
+            player.x = Math.random() * 500 + 200; player.y = Math.random() * 500 + 200; player.hp = 100;
+            socket.emit("move", { x: player.x, y: player.y, angle: player.angle });
+        });
+
+        // Mobile map toggle click listener
+        document.getElementById("map-toggle-mobile").addEventListener("click", () => { showMap = !showMap; });
+
+        // Connect Login Event
         document.getElementById("start-btn").addEventListener("click", () => {
             const email = document.getElementById("player-email").value.trim();
             const name = document.getElementById("player-name").value.trim();
-            const errorMsg = document.getElementById("error-msg");
-
             if (!email.includes("@") || name === "") {
-                errorMsg.innerText = "?????? ????? ????? ???? ???? ????!";
+                document.getElementById("error-msg").innerText = "Enter a valid Email and Name!";
                 return;
             }
-
-            player.nickname = name;
-            player.email = email;
-
-            // ????? ???????? ??????? ?????? ?? ?????
+            player.nickname = name; player.email = email;
             socket.emit("newPlayer", { x: player.x, y: player.y, angle: player.angle, nickname: player.nickname, email: player.email });
         });
 
         socket.on("nameAccepted", () => {
             document.getElementById("login-screen").style.display = "none";
-            player.id = socket.id;
-            gameActive = true;
+            document.getElementById("player-hud-name").innerText = player.nickname;
+            player.id = socket.id; gameActive = true;
         });
 
-        socket.on("nameRejected", (msg) => {
-            document.getElementById("error-msg").innerText = msg;
+        socket.on("nameRejected", msg => { document.getElementById("error-msg").innerText = msg; });
+        socket.on("stateUpdate", serverPlayers => { 
+            otherPlayers = serverPlayers; 
+            if(player.id && serverPlayers[player.id]) {
+                player.hp = serverPlayers[player.id].hp;
+                document.getElementById("hp-bar").style.width = player.hp + "%";
+            }
         });
+        socket.on("bulletFired", bulletData => { bullets.push(bulletData); });
 
-        socket.on("stateUpdate", (serverPlayers) => {
-            otherPlayers = serverPlayers;
-        });
-
-        socket.on("bulletFired", (bulletData) => {
-            bullets.push(bulletData);
-        });
-
-        // --- ???? ?????? ?????? (??????? ?????????) ?????? ---
+        // Touch Input Handlers for Mobile Devices
         window.addEventListener("touchstart", e => {
             if (!gameActive) return;
             for (let touch of e.changedTouches) {
-                // ??? ??? ????? ?? ????? ?????? ?????? ?? ??????? ???? ?????????
                 if (touch.clientX < canvas.width / 2 && touch.clientY > canvas.height / 2 && !joystick.active) {
-                    joystick.active = true;
-                    joystick.startX = touch.clientX;
-                    joystick.startY = touch.clientY;
-                    joystick.currentX = touch.clientX;
-                    joystick.currentY = touch.clientY;
-                    joystick.touchId = touch.identifier;
-                } else if (touch.clientX >= canvas.width / 2) {
-                    // ????? ?????? ?????? ?????? ????? ?????????
-                    let dx = touch.clientX + camera.x - player.x;
-                    let dy = touch.clientY + camera.y - player.y;
-                    player.angle = Math.atan2(dy, dx);
-                    fireBullet();
+                    joystick.active = true; joystick.startX = touch.clientX; joystick.startY = touch.clientY;
+                    joystick.currentX = touch.clientX; joystick.currentY = touch.clientY; joystick.touchId = touch.identifier;
+                } else if (touch.clientX >= canvas.width / 2 && touch.clientY > 60) {
+                    let dx = touch.clientX + camera.x - player.x; let dy = touch.clientY + camera.y - player.y;
+                    player.angle = Math.atan2(dy, dx); fireBullet();
                 }
             }
         });
@@ -155,11 +205,9 @@
             if (!gameActive) return;
             for (let touch of e.changedTouches) {
                 if (joystick.active && touch.identifier === joystick.touchId) {
-                    joystick.currentX = touch.clientX;
-                    joystick.currentY = touch.clientY;
+                    joystick.currentX = touch.clientX; joystick.currentY = touch.clientY;
                 } else if (touch.clientX >= canvas.width / 2) {
-                    let dx = touch.clientX + camera.x - player.x;
-                    let dy = touch.clientY + camera.y - player.y;
+                    let dx = touch.clientX + camera.x - player.x; let dy = touch.clientY + camera.y - player.y;
                     player.angle = Math.atan2(dy, dx);
                 }
             }
@@ -167,190 +215,196 @@
 
         window.addEventListener("touchend", e => {
             for (let touch of e.changedTouches) {
-                if (joystick.active && touch.identifier === joystick.touchId) {
-                    joystick.active = false;
-                    joystick.touchId = null;
-                }
+                if (joystick.active && touch.identifier === joystick.touchId) { joystick.active = false; joystick.touchId = null; }
             }
         });
 
-        window.addEventListener("mousemove", e => {
-            if (!gameActive) return;
-            mouse.x = e.clientX;
-            mouse.y = e.clientY;
-        });
-
-        window.addEventListener("click", () => {
-            if (!gameActive) return;
-            fireBullet();
-        });
+        window.addEventListener("mousemove", e => { if (!gameActive) return; mouse.x = e.clientX; mouse.y = e.clientY; });
+        window.addEventListener("click", e => { if (!gameActive || e.clientY < 120 && e.clientX < 300) return; fireBullet(); });
 
         function fireBullet() {
-            let bulletData = {
-                x: player.x + Math.cos(player.angle) * 20,
-                y: player.y + Math.sin(player.angle) * 20,
-                vx: Math.cos(player.angle) * 14,
-                vy: Math.sin(player.angle) * 14,
-                id: player.id
-            };
-            bullets.push(bulletData);
-            socket.emit("shoot", bulletData);
+            if(player.hp <= 0) return; // Prevent shooting if dead
+            let bulletData = { x: player.x + Math.cos(player.angle) * 20, y: player.y + Math.sin(player.angle) * 20, vx: Math.cos(player.angle) * 14, vy: Math.sin(player.angle) * 14, id: player.id };
+            bullets.push(bulletData); socket.emit("shoot", bulletData);
+        }
+
+        // Check Axis Aligned Bounding Box collisions
+        function checkCollision(nx, ny, r) {
+            for (let obs of obstacles) {
+                if (nx + r > obs.x && nx - r < obs.x + obs.w && ny + r > obs.y && ny - r < obs.y + obs.h) return true;
+            }
+            return false;
         }
 
         function update() {
-            if (!gameActive) return;
+            if (!gameActive || player.hp <= 0) return;
 
-            let moved = false;
-            let nx = player.x;
-            let ny = player.y;
+            let moved = false; let nx = player.x; let ny = player.y;
 
-            // 1. ?????? ??? ???????? (???????)
             if (keys["w"] || keys["arrowup"]) { ny -= player.speed; moved = true; }
             if (keys["s"] || keys["arrowdown"]) { ny += player.speed; moved = true; }
             if (keys["a"] || keys["arrowleft"]) { nx -= player.speed; moved = true; }
             if (keys["d"] || keys["arrowright"]) { nx += player.speed; moved = true; }
 
-            // 2. ?????? ??? ????? ?????? (??????)
             if (joystick.active) {
-                let dx = joystick.currentX - joystick.startX;
-                let dy = joystick.currentY - joystick.startY;
+                let dx = joystick.currentX - joystick.startX; let dy = joystick.currentY - joystick.startY;
                 let distance = Math.sqrt(dx * dx + dy * dy);
-
                 if (distance > 0) {
                     let angle = Math.atan2(dy, dx);
-                    // ???? ?????? ????? ??? ??? ??? ?????????
                     let currentSpeed = Math.min(player.speed, (distance / joystick.maxRadius) * player.speed);
-                    nx += Math.cos(angle) * currentSpeed;
-                    ny += Math.sin(angle) * currentSpeed;
-                    moved = true;
-                    
-                    // ?? ?????? ???? ????? ???????? ???? ????? ?????? ???????? ?? ?? ???? ??????
-                    player.angle = angle; 
+                    nx += Math.cos(angle) * currentSpeed; ny += Math.sin(angle) * currentSpeed; moved = true;
+                    player.angle = angle;
                 }
             }
 
-            player.x = Math.max(0, Math.min(world.w, nx));
-            player.y = Math.max(0, Math.min(world.h, ny));
+            // Apply movement only if no obstacle collision is detected
+            if (!checkCollision(nx, player.y, player.r)) player.x = Math.max(0, Math.min(world.w, nx));
+            if (!checkCollision(player.x, ny, player.r)) player.y = Math.max(0, Math.min(world.h, ny));
 
-            // ???????? ??????? ???????
             if (!joystick.active && (mouse.x !== 0 || mouse.y !== 0)) {
-                let dx = mouse.x + camera.x - player.x;
-                let dy = mouse.y + camera.y - player.y;
+                let dx = mouse.x + camera.x - player.x; let dy = mouse.y + camera.y - player.y;
                 player.angle = Math.atan2(dy, dx);
             }
 
-            if (moved && player.id) {
-                socket.emit("move", { x: player.x, y: player.y, angle: player.angle });
+            if (moved && player.id) { socket.emit("move", { x: player.x, y: player.y, angle: player.angle }); }
+
+            camera.x = player.x - canvas.width / 2; camera.y = player.y - canvas.height / 2;
+
+            // Bullets movement and collision logic
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let b = bullets[i]; b.x += b.vx; b.y += b.vy;
+                
+                // Bullet hit obstacles
+                if (checkCollision(b.x, b.y, 4) || b.x < 0 || b.y < 0 || b.x > world.w || b.y > world.h) {
+                    bullets.splice(i, 1); continue;
+                }
+
+                // Bullet hit local player from online enemies
+                if (b.id !== player.id && player.hp > 0) {
+                    let dist = Math.hypot(player.x - b.x, player.y - b.y);
+                    if (dist < player.r + 4) {
+                        player.hp = Math.max(0, player.hp - 10); // Clamp HP to 0 minimum
+                        document.getElementById("hp-bar").style.width = player.hp + "%";
+                        socket.emit("playerDamage", { id: player.id, damage: 10 });
+                        bullets.splice(i, 1);
+                    }
+                }
             }
 
-            camera.x = player.x - canvas.width / 2;
-            camera.y = player.y - canvas.height / 2;
+            // AI Bots tracking & obstacle avoidance behaviour
+            bots.forEach(bot => {
+                let targetX = player.x; let targetY = player.y;
+                let bdx = targetX - bot.x; let bdy = targetY - bot.y;
+                let bdist = Math.hypot(bdx, bdy);
 
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                let b = bullets[i];
-                b.x += b.vx; b.y += b.vy;
-                if (b.x < 0 || b.y < 0 || b.x > world.w || b.y > world.h) {
-                    bullets.splice(i, 1);
+                if (bdist < 400 && player.hp > 0) { // Aggro range
+                    bot.angle = Math.atan2(bdy, bdx);
+                    let bnx = bot.x + Math.cos(bot.angle) * bot.speed;
+                    let bny = bot.y + Math.sin(bot.angle) * bot.speed;
+
+                    // Obstacle avoidance navigation
+                    if (!checkCollision(bnx, bot.y, bot.r)) bot.x = bnx;
+                    else bot.y += (player.y > bot.y ? bot.speed : -bot.speed); // Slide along obstacle sides
+                    
+                    if (!checkCollision(bot.x, bny, bot.r)) bot.y = bny;
+                    else bot.x += (player.x > bot.x ? bot.speed : -bot.speed);
+                }
+            });
+        }
+
+        function drawHuman(x, y, r, angle, color, name, currentHp) {
+            if (currentHp <= 0) return; // Completely hides rendering if health hits 0
+            ctx.save(); ctx.translate(x, y);
+            
+            ctx.fillStyle = "white"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "center";
+            ctx.fillText(name, 0, -r - 12);
+
+            // Draw floating small life indicator bar
+            ctx.fillStyle = "red"; ctx.fillRect(-15, -r - 8, 30, 4);
+            ctx.fillStyle = "green"; ctx.fillRect(-15, -r - 8, 30 * (currentHp / 100), 4);
+
+            ctx.rotate(angle);
+            ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#212121"; ctx.fillRect(5, -5, r * 1.5, 6);
+            ctx.restore();
+        }
+
+        åfunction drawMinimap() {
+            if (!showMap) return;
+            // Adaptive design size for both computers and smaller screens
+            let mapSize = Math.min(130, canvas.width * 0.25);
+            let mapX = canvas.width - mapSize - 15; let mapY = 15;
+            let ratio = mapSize / world.w;
+
+            ctx.fillStyle = "rgba(13, 19, 26, 0.75)"; ctx.fillRect(mapX, mapY, mapSize, mapSize);
+            ctx.strokeStyle = "#37474F"; ctx.lineWidth = 2; ctx.strokeRect(mapX, mapY, mapSize, mapSize);
+
+            // Draw static structures on map
+            ctx.fillStyle = "rgba(255,255,255,0.2)";
+            obstacles.forEach(o => ctx.fillRect(mapX + o.x * ratio, mapY + o.y * ratio, o.w * ratio, o.h * ratio));
+
+            // Draw client local user dot indicator
+            if(player.hp > 0) {
+                ctx.fillStyle = "#1565C0"; ctx.beginPath(); ctx.arc(mapX + player.x * ratio, mapY + player.y * ratio, 3, 0, Math.PI*2); ctx.fill();
+            }
+            // Draw foreign network units dots
+            ctx.fillStyle = "#C62828";
+            for (let id in otherPlayers) {
+                let p = otherPlayers[id];
+                if (id !== player.id && p.hp > 0) {
+                    ctx.beginPath(); ctx.arc(mapX + p.x * ratio, mapY + p.y * ratio, 2.5, 0, Math.PI*2); ctx.fill();
                 }
             }
         }
 
-        function drawHuman(x, y, r, angle, color, name) {
-            ctx.save();
-            ctx.translate(x, y);
-            
-            // ??? ????? ??? ??? ??????
-            ctx.fillStyle = "white";
-            ctx.font = "bold 14px sans-serif";
-            ctx.textAlign = "center";
-            ctx.fillText(name, 0, -r - 10);
-
-            ctx.rotate(angle);
-            // ?????
-            ctx.fillStyle = color;
-            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-            // ??????
-            ctx.fillStyle = "#212121";
-            ctx.fillRect(5, -5, r * 1.5, 6);
-            ctx.restore();
-        }
-
-        // ??? ????? ?????? ??? ?????? ???? ?????? (??????? ??? ??? ?????)
         function drawJoystick() {
             if (!joystick.active) return;
-            
-            // ??????? ???????? ???????
-            ctx.beginPath();
-            ctx.arc(joystick.startX, joystick.startY, joystick.maxRadius, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-            ctx.fill();
-            ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
-            ctx.lineWidth = 2;
-            ctx.stroke();
+            ctx.beginPath(); ctx.arc(joystick.startX, joystick.startY, joystick.maxRadius, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.08)"; ctx.fill();
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.3)"; ctx.stroke();
 
-            // ???? ???? ??????? ???????? ???????
-            let dx = joystick.currentX - joystick.startX;
-            let dy = joystick.currentY - joystick.startY;
-            let distance = Math.sqrt(dx * dx + dy * dy);
-            let angle = Math.atan2(dy, dx);
-            
-            let travelX = joystick.startX;
-            let travelY = joystick.startY;
+            let dx = joystick.currentX - joystick.startX; let dy = joystick.currentY - joystick.startY;
+            let distance = Math.sqrt(dx * dx + dy * dy); let angle = Math.atan2(dy, dx);
+            let tx = joystick.startX + (distance > joystick.maxRadius ? Math.cos(angle) * joystick.maxRadius : dx);
+            let ty = joystick.startY + (distance > joystick.maxRadius ? Math.sin(angle) * joystick.maxRadius : dy);
 
-            if (distance > joystick.maxRadius) {
-                travelX += Math.cos(angle) * joystick.maxRadius;
-                travelY += Math.sin(angle) * joystick.maxRadius;
-            } else {
-                travelX = joystick.currentX;
-                travelY = joystick.currentY;
-            }
-
-            // ??????? ???????? ???????
-            ctx.beginPath();
-            ctx.arc(travelX, travelY, 20, 0, Math.PI * 2);
-            ctx.fillStyle = "rgba(21, 101, 192, 0.7)";
-            ctx.fill();
+            ctx.beginPath(); ctx.arc(tx, ty, 18, 0, Math.PI * 2); ctx.fillStyle = "rgba(21, 101, 192, 0.6)"; ctx.fill();
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.save();
-            ctx.translate(-camera.x, -camera.y);
+            ctx.save(); ctx.translate(-camera.x, -camera.y);
 
-            // ???????
-            ctx.fillStyle = "#37474F";
-            ctx.fillRect(0, 0, world.w, world.h);
+            // Tiled dark floor rendering background
+            ctx.fillStyle = "#1e272e"; ctx.fillRect(0, 0, world.w, world.h);
 
-            if (gameActive) {
-                // ??? ?????? ??????
-                drawHuman(player.x, player.y, player.r, player.angle, "#1565C0", player.nickname);
-            }
+            // Obstacles rendering block loop
+            obstacles.forEach(obs => {
+                ctx.fillStyle = obs.type === "house" ? "#4b6584" : "#778ca3";
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.strokeStyle = "#2f3640"; ctx.lineWidth = 3; ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+            });
 
-            // ??? ???????? ??????? ?? ??????? ??????? ?? ???????
+            if (gameActive) drawHuman(player.x, player.y, player.r, player.angle, "#1565C0", player.nickname, player.hp);
+
             for (let id in otherPlayers) {
                 if (id !== player.id) {
                     let p = otherPlayers[id];
-                    drawHuman(p.x, p.y, 16, p.angle, "#C62828", p.nickname || "???? ?????");
+                    drawHuman(p.x, p.y, 16, p.angle, "#C62828", p.nickname, p.hp);
                 }
             }
 
-            // ??? ??????
+            bots.forEach(bot => drawHuman(bot.x, bot.y, bot.r, bot.angle, "#d35400", "BOT", bot.hp));
+
             ctx.fillStyle = "#FFF176";
-            bullets.forEach(b => {
-                ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI*2); ctx.fill();
-            });
+            bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI*2); ctx.fill(); });
 
             ctx.restore();
-
-            // ??? ????????? ??? ????? ?????? (Screen Space)
             drawJoystick();
+            drawMinimap();
         }
 
-        function loop() {
-            update();
-            draw();
-            requestAnimationFrame(loop);
-        }
+        function loop() { update(); draw(); requestAnimationFrame(loop); }
         loop();
     </script>
 </body>
