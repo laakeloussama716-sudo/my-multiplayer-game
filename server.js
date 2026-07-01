@@ -32,16 +32,7 @@ let coopQueue = [];
 io.on('connection', (socket) => {
     console.log(`Soldier connected to network: ${socket.id}`);
 
-    // 1. ??????? ?????? ????????? (Chat)
-    socket.on('onlineChatPacket', (data) => {
-        if (data && data.msg) {
-            let cleanMsg = data.msg.trim().substring(0, 100);
-            io.emit('receiveOnlineChat', {
-                sender: data.sender || "Unknown Soldier",
-                msg: cleanMsg
-            });
-        }
-    });
+
 
     // 2. ???? ????? ?? ?????? 1v1
     socket.on('join1v1Queue', (userData) => {
