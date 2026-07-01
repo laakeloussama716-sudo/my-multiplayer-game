@@ -58,15 +58,11 @@
         #ingame-popup { position: absolute; top: 75px; left: 240px; background: rgba(22, 32, 44, 0.95); border: 1px solid #243447; padding: 15px; border-radius: 10px; display: none; flex-direction: column; gap: 10px; z-index: 6; box-shadow: 0 8px 25px rgba(0,0,0,0.6); }
         
         .match-end-screen { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(9, 13, 18, 0.9); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:99; }
-        
-        /* Mobile Touch Attack Mechanics overlay trigger */
-        #touch-fire-zone { position: absolute; bottom: 40px; right: 40px; width: 80px; height: 80px; background: rgba(255, 255, 255, 0.15); border: 3px solid rgba(255, 255, 255, 0.4); border-radius: 50%; z-index: 5; display: none; justify-content: center; align-items: center; font-weight: bold; color: rgba(255,255,255,0.7); font-size: 14px; text-transform: uppercase; }
     </style>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
 
-    <!-- Genuine Secure Authentication Gateway -->
     <div id="auth-screen" class="screen-overlay" style="display: flex;">
         <div class="menu-card">
             <h2 id="auth-title">Account Gateway</h2>
@@ -79,7 +75,6 @@
         </div>
     </div>
 
-    <!-- Main Tactical Lobby Screen -->
     <div id="main-menu" class="screen-overlay">
         <div class="menu-card" style="width: 380px;">
             <h2>Tactical Lobby</h2>
@@ -96,7 +91,6 @@
         </div>
     </div>
 
-    <!-- Armory Weaponry Shop Screen -->
     <div id="shop-screen" class="screen-overlay">
         <div class="menu-card" style="width: 85%; max-width: 600px;">
             <h2 style="color:#ffd700; margin-bottom: 5px;">ARMORY MARKET</h2>
@@ -112,7 +106,6 @@
         </div>
     </div>
 
-    <!-- Mode Selector Gate -->
     <div id="mode-gate" class="screen-overlay">
         <div class="menu-card">
             <h2>Select Operations</h2>
@@ -124,7 +117,6 @@
         </div>
     </div>
 
-    <!-- Campaign Map Gate -->
     <div id="campaign-screen" class="screen-overlay">
         <div class="menu-card" style="width:85%; max-width:520px;">
             <h2>Campaign Stages</h2>
@@ -133,7 +125,6 @@
         </div>
     </div>
 
-    <!-- Online War Rooms Matchmaking Lobby -->
     <div id="online-lobby" class="screen-overlay">
         <div class="menu-card">
             <h2>War Rooms Lobby</h2>
@@ -146,7 +137,6 @@
         </div>
     </div>
 
-    <!-- 1v1 Queue Search Matchmaking Loader -->
     <div id="matchmaking-screen" class="screen-overlay">
         <div class="menu-card">
             <h2 style="color:#ffd700;" id="search-title">Searching Rival...</h2>
@@ -155,24 +145,18 @@
         </div>
     </div>
 
-    <!-- Heads Up Display UI -->
     <div id="hud">
         <div id="hud-name">Soldier</div>
         <div id="hp-bar-container"><div id="hp-bar"></div></div>
         <div id="gold-match-display">Gold: 0</div>
     </div>
 
-    <!-- Ingame Floating Settings -->
     <button class="btn-secondary" id="ingame-settings-btn">?</button>
     <div id="ingame-popup">
         <button class="btn-secondary" id="btn-game-resume">Resume Combat</button>
         <button class="btn-secondary" id="btn-game-quit" style="background: linear-gradient(135deg, #b71c1c 0%, #e53935 100%); border-color: #7f0000;">Quit Room</button>
     </div>
 
-    <!-- Mobile Screen Controls Overlay Widgets -->
-    <div id="touch-fire-zone">FIRE</div>
-
-    <!-- Match End Screens (Offline Mode Fallbacks) -->
     <div id="screen-lose" class="match-end-screen">
         <h1 style="color:#e53935; font-size:50px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); font-weight: 900; letter-spacing: 2px;">MISSION FAILED</h1>
         <button class="btn-premium" id="btn-lose-retry" style="margin-top: 20px; padding: 16px 40px;">REDEPLOY</button>
@@ -246,7 +230,6 @@
         function saveAccount() { if(account) localStorage.setItem("ts_user_" + account.email, JSON.stringify(account)); }
         
         function showMainMenu() {
-            // ????? ?? ???????? ???? ????? ?????? ???????? ??????
             const menus = ["auth-screen", "shop-screen", "mode-gate", "campaign-screen", "online-lobby", "matchmaking-screen"];
             menus.forEach(m => document.getElementById(m).style.display = "none");
             
@@ -320,23 +303,23 @@
         let matchGold = 0;
         let localKills = 0;
 
-        // Overlay text canvas engine alerts variables
         let canvasAlertText = "";
         let canvasAlertTimer = 0;
 
-        // Mobile dual joysticks variables (?????? ???????? ???????? ???????)
-        const leftJoystick = { active: false, startX: 100, startY: 0, currentX: 100, currentY: 0, touchId: null, maxRadius: 60 };
-        const rightJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 60 };
+        // ???? ??????? ??????? ?????? ???? ?? ???? ????? (Strict Fixed Touch Positions Layout)
+        const leftJoystick = { active: false, startX: 110, startY: 0, currentX: 110, currentY: 0, touchId: null, maxRadius: 65 };
+        const rightJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 65 };
         let isMobileTouch = false;
         let touchShootInterval = 0;
 
         function updateJoystickLayout() {
-            leftJoystick.startY = canvas.height - 110; 
+            // ????? ?????????? ??????? ???? ???? ????? ?????????
+            leftJoystick.startY = canvas.height - 120; 
             leftJoystick.currentX = leftJoystick.startX; 
             leftJoystick.currentY = leftJoystick.startY;
             
             rightJoystick.startX = canvas.width - 110; 
-            rightJoystick.startY = canvas.height - 110; 
+            rightJoystick.startY = canvas.height - 120; 
             rightJoystick.currentX = rightJoystick.startX; 
             rightJoystick.currentY = rightJoystick.startY;
         }
@@ -380,7 +363,6 @@
             document.getElementById("hud").style.display = "none";
             document.getElementById("ingame-settings-btn").style.display = "none";
             document.getElementById("ingame-popup").style.display = "none";
-            document.getElementById("touch-fire-zone").style.display = "none";
             gameActive = false;
             showMainMenu(); 
         });
@@ -434,11 +416,12 @@
         });
 
         socket.on("stateUpdate", serverPlayers => {
+            // ????? ???? ???? ??????? ?????????? ??? ???? ???????? ???????
+            otherPlayers = {};
             for(let id in serverPlayers) {
                 if(id !== player.id) { otherPlayers[id] = serverPlayers[id]; } 
                 else { player.hp = serverPlayers[id].hp; }
             }
-            for(let id in otherPlayers) { if(!serverPlayers[id]) delete otherPlayers[id]; }
         });
 
         socket.on("bulletFired", bData => bullets.push(bData));
@@ -480,6 +463,8 @@
 
         function initMatchEngine(serverSpawn = null) {
             gameActive = true; bullets = []; localBots = []; matchGold = 0; localKills = 0; largeMap = false;
+            // ????? ?????? ?????? ??????? ???????? ????? ???? ???? ???????? ????????
+            otherPlayers = {}; 
             player.maxHp = 100; player.hp = 100;
             player.id = currentMode === "offline" ? "local" : socket.id;
             player.nickname = account.nickname;
@@ -487,19 +472,19 @@
             if (serverSpawn) { player.x = serverSpawn.x; player.y = serverSpawn.y; } 
             else { let p = getSafeSpawnCoords(player.r); player.x = p.x; player.y = p.y; }
 
-            camera.x = player.x; camera.y = player.y;
+            // ????? ???????? ??? ??????? ?????? ?? ?????? ????? ?? ??? ???? ???? ?????
+            camera.x = player.x - canvas.width / 2;
+            camera.y = player.y - canvas.height / 2;
 
             document.getElementById("hud").style.display = "block";
             document.getElementById("ingame-settings-btn").style.display = "flex";
             document.getElementById("hud-name").innerText = player.nickname;
             
-            if(window.innerWidth < 1024) {
+            if(window.innerWidth < 1024 || 'ontouchstart' in window) {
                 isMobileTouch = true;
-                document.getElementById("touch-fire-zone").style.display = "flex";
             }
             updateJoystickLayout();
 
-            // ????? ?????? ????????? ?? ??????? ??????? ?? ???????? ?? ???? ??? ???
             if (currentMode === "offline" || currentMode === "coop") {
                 let count = 4 + currentStage;
                 for(let i=0; i<count; i++) {
@@ -519,24 +504,25 @@
         window.addEventListener("mousemove", e => { mouse.x = e.clientX; mouse.y = e.clientY; });
         window.addEventListener("click", (e) => {
             if(!gameActive || canvasAlertTimer > 0 || isMobileTouch) return;
-            if(e.clientX < 300 && e.clientY > window.innerHeight - 300) return; // ????? ????? ???????? ??? ????? ??????
+            if(e.clientX < 300 && e.clientY > window.innerHeight - 300) return;
             fireBullet();
         });
 
-        // Mobile Advanced Touch Event Processing Architecture (???? ?????? ?????? ?????)
+        // ???? ????? ????? ????????? ??????? ??????? (Fixed Area Touch Matching Zone Logic)
         window.addEventListener("touchstart", e => {
             if(!gameActive) return;
             isMobileTouch = true;
-            document.getElementById("touch-fire-zone").style.display = "flex";
             for(let t of e.changedTouches) {
-                if(t.clientX < window.innerWidth / 2 && leftJoystick.touchId === null) {
+                // ??? ??????? ?????? ???????
+                let distToLeft = Math.hypot(t.clientX - leftJoystick.startX, t.clientY - leftJoystick.startY);
+                if(distToLeft < leftJoystick.maxRadius + 40 && leftJoystick.touchId === null) {
                     leftJoystick.active = true; leftJoystick.touchId = t.identifier;
-                    leftJoystick.startX = t.clientX; leftJoystick.startY = t.clientY;
                     leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY;
                 }
-                if(t.clientX >= window.innerWidth / 2 && rightJoystick.touchId === null) {
+                // ??? ??????? ?????? ???????
+                let distToRight = Math.hypot(t.clientX - rightJoystick.startX, t.clientY - rightJoystick.startY);
+                if(distToRight < rightJoystick.maxRadius + 40 && rightJoystick.touchId === null) {
                     rightJoystick.active = true; rightJoystick.touchId = t.identifier;
-                    rightJoystick.startX = t.clientX; rightJoystick.startY = t.clientY;
                     rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY;
                 }
             }
@@ -566,7 +552,6 @@
                     } else {
                         rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY;
                     }
-                    // ????? ????? ????? ?????? ??????? ?????? ????????
                     player.angle = Math.atan2(dy, dx);
                     if(touchShootInterval === 0) {
                         touchShootInterval = setInterval(() => { if(gameActive) fireBullet(); }, 180);
@@ -584,8 +569,6 @@
                 }
             }
         });
-
-        document.getElementById("touch-fire-zone").addEventListener("touchstart", (e) => { e.stopPropagation(); fireBullet(); });
 
         function fireBullet() {
             if(player.hp <= 0) return;
@@ -607,13 +590,11 @@
 
             let nx = player.x; let ny = player.y; let moved = false;
             
-            // ???? ????????
             if (keys["w"]) { ny -= player.speed; moved = true; }
             if (keys["s"]) { ny += player.speed; moved = true; }
             if (keys["a"]) { nx -= player.speed; moved = true; }
             if (keys["d"]) { nx += player.speed; moved = true; }
 
-            // ???? ????? ??????
             if (leftJoystick.active) {
                 let dx = leftJoystick.currentX - leftJoystick.startX; 
                 let dy = leftJoystick.currentY - leftJoystick.startY;
@@ -626,7 +607,6 @@
                 }
             }
 
-            // ????? ????? ?????? ????????? ??? ?? ??? ??? ??? ?????? ??????
             if (!rightJoystick.active && !isMobileTouch && (mouse.x !== 0 || mouse.y !== 0)) {
                 player.angle = Math.atan2(mouse.y - canvas.height/2, mouse.x - canvas.width/2);
             }
@@ -638,14 +618,14 @@
                 socket.emit("move", { x: player.x, y: player.y, angle: player.angle }); 
             }
 
-            // ?????? ?????? ????? ?? ??????? ?????? ???? ???? ?????? ?????
-            camera.x += (player.x - canvas.width / 2 - camera.x) * 0.1;
-            camera.y += (player.y - canvas.height / 2 - camera.y) * 0.1;
+            // ???????? ????? ?????? ??? ?????? 100% (????? ?? ???? ?????? ???????? ??????? ????)
+            camera.x = player.x - canvas.width / 2;
+            camera.y = player.y - canvas.height / 2;
 
             document.getElementById("hp-bar").style.width = (player.hp / player.maxHp * 100) + "%";
             document.getElementById("gold-match-display").innerText = "Gold Bank: " + account.gold + " G";
 
-            // ????? ?????? ??????? ??? 30 ???? ???? 10 ????? ??? ????
+            // ????? ??????
             for (let i = bullets.length - 1; i >= 0; i--) {
                 let b = bullets[i]; b.x += b.vx; b.y += b.vy;
                 if (checkCollision(b.x, b.y, 4)) { bullets.splice(i, 1); continue; }
@@ -664,7 +644,7 @@
                             bot.hp = Math.max(0, bot.hp - b.damage); bullets.splice(i, 1);
                             if(bot.hp <= 0) { 
                                 matchGold += 20; 
-                                account.gold += 10; // ?? ???? ???? 10 ????? ?????
+                                account.gold += 10; 
                                 saveAccount(); 
                             }
                         }
@@ -672,9 +652,8 @@
                 }
             }
 
-            // ???? ??? ????? ??????? ?????? ???????? ??? ??????? ??????? ??? ?? ????
+            // ???? ??????? ?????? ??????? X6
             if (currentMode === "offline" || currentMode === "coop") {
-                // ???? ??? ??? ??? ???? 6 ????? ?? ??? ????? ???????? ???? ????? ???? 6 ?????
                 let activeStandardBots = localBots.filter(b => b.hp > 0 && b.type === "standard");
                 if (activeStandardBots.length >= 6) {
                     let source = activeStandardBots[0];
@@ -683,8 +662,8 @@
                     source.hp = 200;
                     source.maxHp = 200;
                     source.speed = 1.5;
-                    source.damage = 60; // 6 ????? ?????
-                    for(let k = 1; k < 6; k++) { activeStandardBots[k].hp = 0; } // ????? ?????? ????????
+                    source.damage = 60; 
+                    for(let k = 1; k < 6; k++) { activeStandardBots[k].hp = 0; } 
                 }
 
                 localBots.forEach(bot => {
@@ -697,9 +676,8 @@
                         let bnx = bot.x + Math.cos(bot.angle) * bot.speed;
                         let bny = bot.y + Math.sin(bot.angle) * bot.speed;
                         
-                        // ?????? ?????? ????????? ???????? ??? ?????? ??????? ??? ??? ??????
                         if (checkCollision(bnx, bot.y, bot.r)) {
-                            bot.angle += Math.PI / 2; // ?????? 90 ???? ????? ??????
+                            bot.angle += Math.PI / 2; 
                             bnx = bot.x + Math.cos(bot.angle) * bot.speed;
                         }
                         if (checkCollision(bot.x, bny, bot.r)) {
@@ -752,7 +730,6 @@
             if (curHp <= 0) return;
             ctx.save(); ctx.translate(x, y);
             
-            // Name Tag & Bars
             ctx.fillStyle = isBoss ? "#ff1744" : "white"; 
             ctx.font = isBoss ? "bold 14px sans-serif" : "bold 12px sans-serif"; 
             ctx.textAlign = "center"; 
@@ -761,12 +738,10 @@
             ctx.fillStyle = "#c62828"; ctx.fillRect(-20, -r - 8, 40, 5);
             ctx.fillStyle = "#2e7d32"; ctx.fillRect(-20, -r - 8, 40 * (curHp / maxHp), 5);
             
-            // Base Graphics Rotation
             ctx.rotate(angle); 
             ctx.fillStyle = color; 
             ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
             
-            // Gun Draw
             ctx.fillStyle = "#111"; 
             ctx.fillRect(5, -4, r * 1.4, 8); 
             ctx.restore();
@@ -776,21 +751,17 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save(); ctx.translate(-camera.x, -camera.y);
             
-            // ??????? ??????? ?????
             ctx.fillStyle = "#111a24"; ctx.fillRect(0, 0, world.w, world.h);
             
-            // ???? ?????? ???????
             ctx.strokeStyle = "rgba(255,255,255,0.03)"; ctx.lineWidth = 2;
             for(let x=0; x<world.w; x+=100) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,world.h); ctx.stroke(); }
             for(let y=0; y<world.h; y+=100) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(world.w,y); ctx.stroke(); }
 
-            // ??????? ??????? ????????
             obstacles.forEach(obs => {
                 ctx.fillStyle = "rgba(44, 62, 80, 0.4)"; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
                 ctx.fillStyle = "#57606f"; obs.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
             });
 
-            // ??? ????????? ????????? ????????
             if (gameActive && player.hp > 0) {
                 drawHuman(player.x, player.y, player.r, player.angle, "#1565C0", player.nickname, player.hp, player.maxHp);
             }
@@ -806,26 +777,25 @@
                 }
             });
 
-            // ??????
             ctx.fillStyle = "#ffd700"; 
             bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI*2); ctx.fill(); });
             ctx.restore();
 
-            // ??? ????? ???????? ??????? ?????? ??? ????? ??????
-            if (leftJoystick.active) {
+            // ??? ??????? ?? ??????? ??????? ????? ??????? ??????
+            if (isMobileTouch) {
+                // ???? ????? ?????? ???????
                 ctx.beginPath(); ctx.arc(leftJoystick.startX, leftJoystick.startY, leftJoystick.maxRadius, 0, Math.PI*2);
-                ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 3; ctx.stroke();
-                ctx.beginPath(); ctx.arc(leftJoystick.currentX, leftJoystick.currentY, 25, 0, Math.PI*2);
-                ctx.fillStyle = "rgba(21, 101, 192, 0.4)"; ctx.fill();
-            }
-            if (rightJoystick.active) {
+                ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.lineWidth = 3; ctx.stroke();
+                ctx.beginPath(); ctx.arc(leftJoystick.currentX, leftJoystick.currentY, 24, 0, Math.PI*2);
+                ctx.fillStyle = leftJoystick.active ? "rgba(21, 101, 192, 0.4)" : "rgba(255,255,255,0.1)"; ctx.fill();
+
+                // ???? ??????? ???????? ?????? ???????
                 ctx.beginPath(); ctx.arc(rightJoystick.startX, rightJoystick.startY, rightJoystick.maxRadius, 0, Math.PI*2);
-                ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 3; ctx.stroke();
-                ctx.beginPath(); ctx.arc(rightJoystick.currentX, rightJoystick.currentY, 25, 0, Math.PI*2);
-                ctx.fillStyle = "rgba(198, 40, 40, 0.4)"; ctx.fill();
+                ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.lineWidth = 3; ctx.stroke();
+                ctx.beginPath(); ctx.arc(rightJoystick.currentX, rightJoystick.currentY, 24, 0, Math.PI*2);
+                ctx.fillStyle = rightJoystick.active ? "rgba(198, 40, 40, 0.4)" : "rgba(255,255,255,0.1)"; ctx.fill();
             }
 
-            // ???? ???? ????????? ???????? ??????? ???? ??? Canvas
             if(canvasAlertTimer > 0) {
                 ctx.fillStyle = "rgba(13, 19, 26, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.fillStyle = canvasAlertText.includes("WIN") ? "#4caf50" : "#ef5350";
@@ -833,7 +803,7 @@
                 ctx.fillText(canvasAlertText, canvas.width/2, canvas.height/2);
             }
 
-            // ??????? ??????? (Minimap) ???????? ???? M
+            // ???? ??? ???? ?????
             let mSize = largeMap ? Math.min(canvas.width*0.75, canvas.height*0.75) : 130;
             let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 20;
             let mY = largeMap ? (canvas.height - mSize)/2 : 20;
@@ -842,11 +812,8 @@
             ctx.fillStyle = "rgba(9, 13, 18, 0.85)"; ctx.fillRect(mX, mY, mSize, mSize);
             ctx.strokeStyle = "#243447"; ctx.lineWidth = 2; ctx.strokeRect(mX, mY, mSize, mSize);
             
-            // ??? ???? ?????? ??? ?????
             ctx.fillStyle = "#1e88e5"; ctx.beginPath(); ctx.arc(mX + player.x*ratio, mY + player.y*ratio, 4, 0, Math.PI*2); ctx.fill();
-            // ???????
             ctx.fillStyle = "#e65100"; localBots.forEach(b => { if(b.hp>0) { ctx.beginPath(); ctx.arc(mX + b.x*ratio, mY + b.y*ratio, 2, 0, Math.PI*2); ctx.fill(); } });
-            // ??????? ???????
             ctx.fillStyle = "#ff1744"; for(let id in otherPlayers) { ctx.beginPath(); ctx.arc(mX + otherPlayers[id].x*ratio, mY + otherPlayers[id].y*ratio, 3, 0, Math.PI*2); ctx.fill(); }
         }
 
@@ -855,7 +822,12 @@
             draw(); 
             requestAnimationFrame(loop); 
         }
-        loop();
+
+        // ??????? ????? ?????? ?????? ??? ??????? ?????? ??? ??? ??? Loop ??? ????? F11
+        window.onload = () => {
+            resize();
+            requestAnimationFrame(loop);
+        };
     </script>
 </body>
 </html>
