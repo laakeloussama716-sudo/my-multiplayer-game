@@ -2,16 +2,47 @@
 <html lang="ar">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Top-Down Shooter: Online Tactical Souls</title>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0d131a; font-family: sans-serif; user-select: none; }
+        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0d131a; font-family: sans-serif; user-select: none; touch-action: none; }
         canvas { display: block; }
+        
+        /* ???? ????? ?????? */
+        #login-screen {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(13, 19, 26, 0.95); display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 10; color: white;
+        }
+        .login-box {
+            background: #1a242f; padding: 30px; border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.5); text-align: center; width: 300px;
+        }
+        .login-box h2 { margin-bottom: 20px; color: #1565C0; }
+        .login-box input {
+            width: 90%; padding: 10px; margin: 10px 0; border: none;
+            border-radius: 5px; background: #0d131a; color: white; text-align: center;
+        }
+        .login-box button {
+            width: 98%; padding: 10px; background: #1565C0; color: white;
+            border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-top: 10px;
+        }
+        .login-box button:hover { background: #1e88e5; }
+        #error-msg { color: #ff5252; font-size: 14px; margin-top: 10px; }
     </style>
-    <!-- ??????? ????? Socket.io ?????? ?????????? -->
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
+
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>????? ?????? ?????</h2>
+            <input type="email" id="player-email" placeholder="???? ????? ?????????? (Gmail)" required>
+            <input type="text" id="player-name" placeholder="???? ???? ?? ?????? (Unique)" maxlength="12" required>
+            <button id="start-btn">???? ??????</button>
+            <div id="error-msg"></div>
+        </div>
+    </div>
 
     <canvas id="game"></canvas>
 
@@ -26,9 +57,8 @@
         resize();
         window.addEventListener("resize", resize);
 
-        // --- ??????? ?????? ????????? ---
-        // ?????? ??? ?????? ????? ??????? ????? ?? ??? ???? (????: https://my-game-server.onrender.com)
- const socket = io("https://my-online-game-1n7l.onrender.com");
+        // ??????? ?????? Render ????? ??
+        const socket = io("https://my-online-game-1n7l.onrender.com");
 
         const keys = {};
         window.onkeydown = e => keys[e.key.toLowerCase()] = true;
@@ -36,7 +66,6 @@
 
         const world = { w: 4000, h: 4000 };
         
-        // ?????? ?????? ????? ??
         const player = {
             id: null,
             x: Math.random() * 500 + 200,
@@ -45,40 +74,118 @@
             speed: 6.5,
             hp: 100,
             angle: 0,
-            walkCycle: 0
+            nickname: "",
+            email: ""
         };
 
         let camera = { x: 0, y: 0 };
         let mouse = { x: 0, y: 0 };
-        
-        // ?????? ?????? ???????? ??????? ???????? ?? ???????
         let otherPlayers = {};
         let bullets = [];
+        let gameActive = false;
 
-        // ??? ???? ??????? ????????
-        socket.on("connect", () => {
-            player.id = socket.id;
-            // ????? ?????? ?????? ?????? ???????
-            socket.emit("newPlayer", { x: player.x, y: player.y, angle: player.angle });
+        // --- ??????? ????? ?????? ??????? (Joystick) ??????? ---
+        const joystick = {
+            active: false,
+            startX: 0, startY: 0,
+            currentX: 0, currentY: 0,
+            touchId: null,
+            maxRadius: 50 // ???? ????? ??????? ??????? ????????
+        };
+
+        // ?? ?????? ?????? ????? ?? ???????
+        document.getElementById("start-btn").addEventListener("click", () => {
+            const email = document.getElementById("player-email").value.trim();
+            const name = document.getElementById("player-name").value.trim();
+            const errorMsg = document.getElementById("error-msg");
+
+            if (!email.includes("@") || name === "") {
+                errorMsg.innerText = "?????? ????? ????? ???? ???? ????!";
+                return;
+            }
+
+            player.nickname = name;
+            player.email = email;
+
+            // ????? ???????? ??????? ?????? ?? ?????
+            socket.emit("newPlayer", { x: player.x, y: player.y, angle: player.angle, nickname: player.nickname, email: player.email });
         });
 
-        // ??????? ??????? ??????? ????? ???????? ?? ???????
+        socket.on("nameAccepted", () => {
+            document.getElementById("login-screen").style.display = "none";
+            player.id = socket.id;
+            gameActive = true;
+        });
+
+        socket.on("nameRejected", (msg) => {
+            document.getElementById("error-msg").innerText = msg;
+        });
+
         socket.on("stateUpdate", (serverPlayers) => {
             otherPlayers = serverPlayers;
         });
 
-        // ??????? ?????? ?????? ?? ???????? ???????
         socket.on("bulletFired", (bulletData) => {
             bullets.push(bulletData);
         });
 
+        // --- ???? ?????? ?????? (??????? ?????????) ?????? ---
+        window.addEventListener("touchstart", e => {
+            if (!gameActive) return;
+            for (let touch of e.changedTouches) {
+                // ??? ??? ????? ?? ????? ?????? ?????? ?? ??????? ???? ?????????
+                if (touch.clientX < canvas.width / 2 && touch.clientY > canvas.height / 2 && !joystick.active) {
+                    joystick.active = true;
+                    joystick.startX = touch.clientX;
+                    joystick.startY = touch.clientY;
+                    joystick.currentX = touch.clientX;
+                    joystick.currentY = touch.clientY;
+                    joystick.touchId = touch.identifier;
+                } else if (touch.clientX >= canvas.width / 2) {
+                    // ????? ?????? ?????? ?????? ????? ?????????
+                    let dx = touch.clientX + camera.x - player.x;
+                    let dy = touch.clientY + camera.y - player.y;
+                    player.angle = Math.atan2(dy, dx);
+                    fireBullet();
+                }
+            }
+        });
+
+        window.addEventListener("touchmove", e => {
+            if (!gameActive) return;
+            for (let touch of e.changedTouches) {
+                if (joystick.active && touch.identifier === joystick.touchId) {
+                    joystick.currentX = touch.clientX;
+                    joystick.currentY = touch.clientY;
+                } else if (touch.clientX >= canvas.width / 2) {
+                    let dx = touch.clientX + camera.x - player.x;
+                    let dy = touch.clientY + camera.y - player.y;
+                    player.angle = Math.atan2(dy, dx);
+                }
+            }
+        });
+
+        window.addEventListener("touchend", e => {
+            for (let touch of e.changedTouches) {
+                if (joystick.active && touch.identifier === joystick.touchId) {
+                    joystick.active = false;
+                    joystick.touchId = null;
+                }
+            }
+        });
+
         window.addEventListener("mousemove", e => {
+            if (!gameActive) return;
             mouse.x = e.clientX;
             mouse.y = e.clientY;
         });
 
         window.addEventListener("click", () => {
-            // ????? ????? ?????? ??????? ??????? ??? ???? ??????
+            if (!gameActive) return;
+            fireBullet();
+        });
+
+        function fireBullet() {
             let bulletData = {
                 x: player.x + Math.cos(player.angle) * 20,
                 y: player.y + Math.sin(player.angle) * 20,
@@ -88,49 +195,76 @@
             };
             bullets.push(bulletData);
             socket.emit("shoot", bulletData);
-        });
+        }
 
         function update() {
+            if (!gameActive) return;
+
             let moved = false;
             let nx = player.x;
             let ny = player.y;
 
+            // 1. ?????? ??? ???????? (???????)
             if (keys["w"] || keys["arrowup"]) { ny -= player.speed; moved = true; }
             if (keys["s"] || keys["arrowdown"]) { ny += player.speed; moved = true; }
             if (keys["a"] || keys["arrowleft"]) { nx -= player.speed; moved = true; }
             if (keys["d"] || keys["arrowright"]) { nx += player.speed; moved = true; }
 
+            // 2. ?????? ??? ????? ?????? (??????)
+            if (joystick.active) {
+                let dx = joystick.currentX - joystick.startX;
+                let dy = joystick.currentY - joystick.startY;
+                let distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance > 0) {
+                    let angle = Math.atan2(dy, dx);
+                    // ???? ?????? ????? ??? ??? ??? ?????????
+                    let currentSpeed = Math.min(player.speed, (distance / joystick.maxRadius) * player.speed);
+                    nx += Math.cos(angle) * currentSpeed;
+                    ny += Math.sin(angle) * currentSpeed;
+                    moved = true;
+                    
+                    // ?? ?????? ???? ????? ???????? ???? ????? ?????? ???????? ?? ?? ???? ??????
+                    player.angle = angle; 
+                }
+            }
+
             player.x = Math.max(0, Math.min(world.w, nx));
             player.y = Math.max(0, Math.min(world.h, ny));
 
-            let dx = mouse.x + camera.x - player.x;
-            let dy = mouse.y + camera.y - player.y;
-            player.angle = Math.atan2(dy, dx);
+            // ???????? ??????? ???????
+            if (!joystick.active && (mouse.x !== 0 || mouse.y !== 0)) {
+                let dx = mouse.x + camera.x - player.x;
+                let dy = mouse.y + camera.y - player.y;
+                player.angle = Math.atan2(dy, dx);
+            }
 
-            if (moved) player.walkCycle += 0.25;
-
-            // ????? ?????? ??????? ??????? ?????
-            if (player.id) {
+            if (moved && player.id) {
                 socket.emit("move", { x: player.x, y: player.y, angle: player.angle });
             }
 
             camera.x = player.x - canvas.width / 2;
             camera.y = player.y - canvas.height / 2;
 
-            // ????? ???? ??????
             for (let i = bullets.length - 1; i >= 0; i--) {
                 let b = bullets[i];
-                b.x += b.vx;
-                b.y += b.vy;
+                b.x += b.vx; b.y += b.vy;
                 if (b.x < 0 || b.y < 0 || b.x > world.w || b.y > world.h) {
                     bullets.splice(i, 1);
                 }
             }
         }
 
-        function drawHuman(x, y, r, angle, color) {
+        function drawHuman(x, y, r, angle, color, name) {
             ctx.save();
             ctx.translate(x, y);
+            
+            // ??? ????? ??? ??? ??????
+            ctx.fillStyle = "white";
+            ctx.font = "bold 14px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText(name, 0, -r - 10);
+
             ctx.rotate(angle);
             // ?????
             ctx.fillStyle = color;
@@ -141,24 +275,62 @@
             ctx.restore();
         }
 
+        // ??? ????? ?????? ??? ?????? ???? ?????? (??????? ??? ??? ?????)
+        function drawJoystick() {
+            if (!joystick.active) return;
+            
+            // ??????? ???????? ???????
+            ctx.beginPath();
+            ctx.arc(joystick.startX, joystick.startY, joystick.maxRadius, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255, 255, 255, 0.4)";
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // ???? ???? ??????? ???????? ???????
+            let dx = joystick.currentX - joystick.startX;
+            let dy = joystick.currentY - joystick.startY;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            let angle = Math.atan2(dy, dx);
+            
+            let travelX = joystick.startX;
+            let travelY = joystick.startY;
+
+            if (distance > joystick.maxRadius) {
+                travelX += Math.cos(angle) * joystick.maxRadius;
+                travelY += Math.sin(angle) * joystick.maxRadius;
+            } else {
+                travelX = joystick.currentX;
+                travelY = joystick.currentY;
+            }
+
+            // ??????? ???????? ???????
+            ctx.beginPath();
+            ctx.arc(travelX, travelY, 20, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(21, 101, 192, 0.7)";
+            ctx.fill();
+        }
+
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
             ctx.save();
             ctx.translate(-camera.x, -camera.y);
 
-            // ????? ???????
+            // ???????
             ctx.fillStyle = "#37474F";
             ctx.fillRect(0, 0, world.w, world.h);
 
-            // ??? ?????? ????? ?? (?????? ??????)
-            drawHuman(player.x, player.y, player.r, player.angle, "#1565C0");
+            if (gameActive) {
+                // ??? ?????? ??????
+                drawHuman(player.x, player.y, player.r, player.angle, "#1565C0", player.nickname);
+            }
 
-            // ??? ???????? ??????? ???????? ???????? (?????? ??????)
+            // ??? ???????? ??????? ?? ??????? ??????? ?? ???????
             for (let id in otherPlayers) {
                 if (id !== player.id) {
                     let p = otherPlayers[id];
-                    drawHuman(p.x, p.y, 16, p.angle, "#C62828");
+                    drawHuman(p.x, p.y, 16, p.angle, "#C62828", p.nickname || "???? ?????");
                 }
             }
 
@@ -169,6 +341,9 @@
             });
 
             ctx.restore();
+
+            // ??? ????????? ??? ????? ?????? (Screen Space)
+            drawJoystick();
         }
 
         function loop() {
