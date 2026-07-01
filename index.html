@@ -53,7 +53,7 @@
         #hp-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #2e7d32, #4caf50); transition: width 0.1s ease; }
         #gold-match-display { margin-top: 8px; font-size: 16px; color: #ffd700; font-weight: bold; text-shadow: 1px 1px 2px black; }
 
-        /* Ingame Settings Floating Panels */
+        /* Ingame Settings Floating Panels - Modern Gear Icon Customization */
         #ingame-settings-btn { 
             position: absolute; 
             top: 20px; 
@@ -73,6 +73,7 @@
         }
         #ingame-settings-btn:hover { transform: rotate(45deg); }
         
+        /* Custom SVG Gear inside Button */
         #ingame-settings-btn::before {
             content: "";
             width: 22px;
@@ -91,6 +92,7 @@
 
         #ingame-popup { position: absolute; top: 75px; left: 240px; background: rgba(22, 32, 44, 0.95); border: 1px solid #243447; padding: 15px; border-radius: 10px; display: none; flex-direction: column; gap: 10px; z-index: 6; box-shadow: 0 8px 25px rgba(0,0,0,0.6); }
         
+        /* Mobile Door Trigger Overlay Button */
         #mobile-door-prompt {
             position: absolute;
             bottom: 120px;
@@ -109,9 +111,72 @@
             transform: scale(0);
             transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
-        #mobile-door-prompt::before { content: "F"; font-size: 24px; color: white; font-weight: bold; }
+        #mobile-door-prompt::before {
+            content: "?";
+            font-size: 28px;
+            color: white;
+        }
 
         .match-end-screen { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(9, 13, 18, 0.9); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:99; }
+
+        /* Premium Floating Chat Component Architecture */
+        #game-chat-box {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 340px;
+            height: 180px;
+            background: rgba(13, 19, 26, 0.85);
+            border: 1px solid #243447;
+            border-radius: 12px;
+            z-index: 8;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.5);
+            backdrop-filter: blur(6px);
+        }
+        #chat-messages-container {
+            flex: 1;
+            padding: 10px;
+            overflow-y: auto;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            scroll-behavior: smooth;
+        }
+        .chat-row { line-height: 1.4; word-break: break-word; }
+        .chat-sender { font-weight: bold; color: #1e88e5; }
+        .chat-sender.system { color: #ffd700; }
+        .chat-sender.enemy { color: #ff5252; }
+        .chat-sender.bot { color: #ff9800; }
+        .chat-text { color: #eceff1; }
+        #chat-input-wrapper {
+            display: flex;
+            border-top: 1px solid #243447;
+            background: #090d12;
+        }
+        #chat-input-field {
+            flex: 1;
+            background: transparent;
+            border: none;
+            padding: 10px 12px;
+            color: white;
+            font-size: 13px;
+            outline: none;
+        }
+        #chat-send-btn {
+            background: #1565C0;
+            border: none;
+            color: white;
+            padding: 0 16px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        #chat-send-btn:hover { background: #1e88e5; }
     </style>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
@@ -194,7 +259,7 @@
     <div id="matchmaking-screen" class="screen-overlay">
         <div class="menu-card">
             <h2 style="color:#ffd700;" id="search-title">Searching Rival...</h2>
-            <div style="margin:25px 0; font-size:18px; font-weight: bold; color: #eceff1;" id="matchmaking-timer">Waiting for Players...</div>
+            <div style="margin:25px 0; font-size:18px; font-weight: bold; color: #eceff1;" id="matchmaking-timer">Waiting for Player 2...</div>
             <button class="btn-secondary" id="btn-cancel-matchmaking" style="width:100%;">Cancel Search</button>
         </div>
     </div>
@@ -212,6 +277,14 @@
     </div>
 
     <div id="mobile-door-prompt"></div>
+
+    <div id="game-chat-box">
+        <div id="chat-messages-container"></div>
+        <div id="chat-input-wrapper">
+            <input type="text" id="chat-input-field" placeholder="Type tactical message..." autocomplete="off">
+            <button id="chat-send-btn">SEND</button>
+        </div>
+    </div>
 
     <div id="screen-lose" class="match-end-screen">
         <h1 style="color:#e53935; font-size:50px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); font-weight: 900; letter-spacing: 2px;">MISSION FAILED</h1>
@@ -247,6 +320,17 @@
             { id: 0, name: "Recruit Vest", price: 0, reqStage: 1, protection: 0, desc: "Basic cloth uniform wrapper." },
             { id: 1, name: "Kevlar Plating", price: 600, reqStage: 8, protection: 2, desc: "Absorbs 2 units damage per shell." },
             { id: 2, name: "Quantum Shield", price: 2500, reqStage: 20, protection: 5, desc: "Advanced nano-magnetic force dynamic." }
+        ];
+
+        const BOT_CHAT_PHRASES = [
+            "I'm scanning the perimeter for hostile forces!",
+            "Cover me! Moving past the central building complex.",
+            "Watch out! I spotted an enemy agent ahead.",
+            "This battle is intense, don't drop your guard!",
+            "Regroup near the main entrance door!",
+            "Negative, sector is currently compromised.",
+            "Affirmative! Engaging target immediately.",
+            "Need backup at the building compound!"
         ];
 
         // Auth Operations Guard Setup
@@ -288,22 +372,44 @@
         function showMainMenu() {
             const menus = ["auth-screen", "shop-screen", "mode-gate", "campaign-screen", "online-lobby", "matchmaking-screen"];
             menus.forEach(m => document.getElementById(m).style.display = "none");
-            
             document.getElementById("main-menu").style.display = "flex";
             document.getElementById("user-display-name").innerText = account.nickname;
             document.getElementById("user-display-gold").innerText = account.gold + " G";
             document.getElementById("user-display-level").innerText = account.maxStage;
+            document.getElementById("game-chat-box").style.display = "none";
         }
 
-        document.getElementById("btn-switch-account").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("auth-screen").style.display = "flex"; });
-        document.getElementById("btn-goto-play").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
-        
+        document.getElementById("btn-switch-account").addEventListener("click", () => {
+            document.getElementById("main-menu").style.display = "none";
+            document.getElementById("auth-screen").style.display = "flex";
+        });
+        document.getElementById("btn-goto-play").addEventListener("click", () => {
+            document.getElementById("main-menu").style.display = "none";
+            document.getElementById("mode-gate").style.display = "flex";
+        });
         document.getElementById("btn-back-gate").addEventListener("click", () => { showMainMenu(); });
-        document.getElementById("btn-gate-offline").addEventListener("click", () => { document.getElementById("mode-gate").style.display = "none"; document.getElementById("campaign-screen").style.display = "flex"; buildCampaignGrid(); });
-        document.getElementById("btn-back-campaign").addEventListener("click", () => { document.getElementById("campaign-screen").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
-        document.getElementById("btn-gate-online").addEventListener("click", () => { document.getElementById("mode-gate").style.display = "none"; document.getElementById("online-lobby").style.display = "flex"; });
-        document.getElementById("btn-back-lobby").addEventListener("click", () => { document.getElementById("online-lobby").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
-        document.getElementById("btn-goto-shop").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("shop-screen").style.display = "flex"; renderShop(); });
+        document.getElementById("btn-gate-offline").addEventListener("click", () => {
+            document.getElementById("mode-gate").style.display = "none";
+            document.getElementById("campaign-screen").style.display = "flex";
+            buildCampaignGrid();
+        });
+        document.getElementById("btn-back-campaign").addEventListener("click", () => {
+            document.getElementById("campaign-screen").style.display = "none";
+            document.getElementById("mode-gate").style.display = "flex";
+        });
+        document.getElementById("btn-gate-online").addEventListener("click", () => {
+            document.getElementById("mode-gate").style.display = "none";
+            document.getElementById("online-lobby").style.display = "flex";
+        });
+        document.getElementById("btn-back-lobby").addEventListener("click", () => {
+            document.getElementById("online-lobby").style.display = "none";
+            document.getElementById("mode-gate").style.display = "flex";
+        });
+        document.getElementById("btn-goto-shop").addEventListener("click", () => {
+            document.getElementById("main-menu").style.display = "none";
+            document.getElementById("shop-screen").style.display = "flex";
+            renderShop();
+        });
         document.getElementById("btn-back-shop").addEventListener("click", () => { showMainMenu(); });
 
         function renderShop() {
@@ -335,888 +441,743 @@
             let grid = document.getElementById("stages-grid"); grid.innerHTML = "";
             for (let i = 1; i <= 100; i++) {
                 let disabled = i > account.maxStage ? "opacity: 0.3; pointer-events:none;" : "";
-                grid.innerHTML += `<button class="btn-secondary" style="${disabled}" onclick="startOfflineMission(${i})">${i}</button>`;
+                grid.innerHTML += `<button class="btn-secondary" style="${disabled} padding:10px; font-size:12px;" onclick="startOfflineCampaign(${i})">S-${i}</button>`;
             }
         }
 
-        // --- Core High-Performance Engine Architecture ---
-        const socket = io("https://my-online-game-1n7l.onrender.com");
-        const keys = {};
-        const mouse = { x: 0, y: 0 };
-        const world = { w: 4000, h: 4000 };
-        
-        let currentMode = "offline"; 
+        // --- Core Engine Gameplay Architectures ---
+        let socket = null;
+        let gameState = "MENU"; // MENU, PLAYING
+        let gameMode = "OFFLINE"; // OFFLINE, ON_1V1, ON_BR, ON_COOP
         let currentStage = 1;
-        let gameActive = false;
-        let largeMap = false;
+        let matchGoldReward = 0;
+
+        const world = { w: 3200, h: 3200 };
+        const player = { x: 400, y: 400, r: 22, speed: 5.5, angle: 0, hp: 100, maxHp: 100, goldEarned: 0 };
         
-        let player = { id: null, x: 2000, y: 2000, r: 18, speed: 7.5, hp: 100, maxHp: 100, angle: 0, nickname: "", legCycle: 0, isMoving: false };
-        let camera = { x: 2000, y: 2000 };
-        let otherPlayers = {};
-        let bullets = [];
+        let keys = {};
+        let mouse = { x: 0, y: 0 };
+        let obstacles = [];
         let localBots = [];
-        let matchGold = 0;
-        let localKills = 0;
+        let bullets = [];
+        let bloodSplats = [];
+        let networkPlayers = {};
 
-        let canvasAlertText = "";
-        let canvasAlertTimer = 0;
+        // Large map layout modifier toggle switch
+        let largeMap = false;
 
-        const leftJoystick = { active: false, startX: 85, startY: 0, currentX: 85, currentY: 0, touchId: null, maxRadius: 65 };
-        const rightJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 65 };
-        let isMobileTouch = false;
-        let touchShootInterval = 0;
+        // Joystick Interface Structures
+        let isTouchDevice = false;
+        let stickActive = false;
+        let stickStart = { x: 0, y: 0 };
+        let stickMove = { x: 0, y: 0 };
+        let joyLayout = { x: 100, y: 100, r: 55 };
 
         function updateJoystickLayout() {
-            leftJoystick.startX = 95;
-            leftJoystick.startY = canvas.height - 105; 
-            leftJoystick.currentX = leftJoystick.startX; 
-            leftJoystick.currentY = leftJoystick.startY;
-            
-            rightJoystick.startX = canvas.width - 95; 
-            rightJoystick.startY = canvas.height - 105; 
-            rightJoystick.currentX = rightJoystick.startX; 
-            rightJoystick.currentY = rightJoystick.startY;
-
-            let btn = document.getElementById("ingame-settings-btn");
-            if (isMobileTouch || window.innerWidth < 768) {
-                btn.style.left = "initial";
-                btn.style.right = "20px";
-                btn.style.top = "180px"; 
-                btn.style.opacity = "0.35"; 
-            } else {
-                btn.style.left = "240px";
-                btn.style.right = "initial";
-                btn.style.top = "20px";
-                btn.style.opacity = "1";
-            }
+            joyLayout.x = 110;
+            joyLayout.y = canvas.height - 110;
         }
 
-        const obstacles = [
-            { 
-                id: "house_alpha", name: "Command Base Alpha", x: 500, y: 500, w: 260, h: 260, color: "#9e2a2b", roofColor: "#bd3a42",
-                door: { x: 580, y: 760, w: 90, h: 16, isOpen: false, angle: 0, side: "bottom" },
-                walls: [
-                    {x: 500, y: 500, w: 260, h: 20}, {x: 500, y: 500, w: 20, h: 260},
-                    {x: 740, y: 500, w: 20, h: 260}, {x: 500, y: 740, w: 80, h: 20}, {x: 670, y: 740, w: 80, h: 20}
-                ] 
-            },
-            { 
-                id: "house_bravo", name: "Supply Depot Bravo", x: 2200, y: 900, w: 320, h: 220, color: "#2e5a88", roofColor: "#3b6e9c",
-                door: { x: 2320, y: 1120, w: 90, h: 16, isOpen: false, angle: 0, side: "bottom" },
-                walls: [
-                    {x: 2200, y: 900, w: 320, h: 20}, {x: 2200, y: 900, w: 20, h: 220},
-                    {x: 2500, y: 900, w: 20, h: 220}, {x: 2200, y: 1100, w: 120, h: 20}, {x: 2410, y: 1100, w: 110, h: 20}
-                ] 
-            },
-            { 
-                id: "house_charlie", name: "Barracks Compound", x: 1400, y: 2500, w: 220, h: 320, color: "#3a506b", roofColor: "#5bc0be",
-                door: { x: 1400, y: 2620, w: 16, h: 80, isOpen: false, angle: 0, side: "left" },
-                walls: [
-                    {x: 1400, y: 2500, w: 220, h: 20}, {x: 1400, y: 2800, w: 220, h: 20},
-                    {x: 1600, y: 2500, w: 20, h: 320}, {x: 1400, y: 2500, w: 20, h: 120}, {x: 1400, y: 2700, w: 20, h: 120}
-                ] 
-            },
-            { 
-                id: "house_delta", name: "Sub-Station Delta", x: 3100, y: 400, w: 240, h: 240, color: "#415a77", roofColor: "#778da9",
-                door: { x: 3190, y: 400, w: 70, h: 16, isOpen: false, angle: 0, side: "top" },
-                walls: [
-                    {x: 3100, y: 400, w: 90, h: 20}, {x: 3260, y: 400, w: 80, h: 20},
-                    {x: 3100, y: 400, w: 20, h: 240}, {x: 3320, y: 400, w: 20, h: 240}, {x: 3100, y: 620, w: 240, h: 20}
-                ] 
-            },
-            { 
-                id: "house_echo", name: "Research Lab Echo", x: 800, y: 1600, w: 360, h: 200, color: "#2d6a4f", roofColor: "#40916c",
-                door: { x: 1160, y: 1660, w: 16, h: 70, isOpen: false, angle: 0, side: "right" },
-                walls: [
-                    {x: 800, y: 1600, w: 360, h: 20}, {x: 800, y: 1780, w: 360, h: 20},
-                    {x: 800, y: 1600, w: 20, h: 200}, {x: 1140, y: 1600, w: 20, h: 60}, {x: 1140, y: 1730, w: 20, h: 70}
-                ] 
-            },
-            { 
-                id: "house_foxtrot", name: "Security Post Center", x: 2500, y: 2900, w: 200, h: 200, color: "#6f4e37", roofColor: "#b85042",
-                door: { x: 2500, y: 2960, w: 16, h: 60, isOpen: false, angle: 0, side: "left" },
-                walls: [
-                    {x: 2500, y: 2900, w: 200, h: 20}, {x: 2500, y: 3080, w: 200, h: 20},
-                    {x: 2680, y: 2900, w: 20, h: 200}, {x: 2500, y: 2900, w: 20, h: 60}, {x: 2500, y: 3020, w: 20, h: 80}
-                ] 
-            },
-            { 
-                id: "house_gamma", name: "Vanguard Hub Gamma", x: 1200, y: 1100, w: 240, h: 240, color: "#3d348b", roofColor: "#7678ed",
-                door: { x: 1280, y: 1340, w: 80, h: 16, isOpen: false, angle: 0, side: "bottom" },
-                walls: [
-                    {x: 1200, y: 1100, w: 240, h: 20}, {x: 1200, y: 1100, w: 20, h: 240},
-                    {x: 1420, y: 1100, w: 20, h: 240}, {x: 1200, y: 1320, w: 80, h: 20}, {x: 1360, y: 1320, w: 80, h: 20}
-                ] 
-            },
-            { 
-                id: "house_hotel", name: "Arsenal Outpost Hotel", x: 2800, y: 1900, w: 280, h: 240, color: "#4a5759", roofColor: "#dedbd2",
-                door: { x: 2800, y: 1980, w: 16, h: 80, isOpen: false, angle: 0, side: "left" },
-                walls: [
-                    {x: 2800, y: 1900, w: 280, h: 20}, {x: 2800, y: 2120, w: 280, h: 20},
-                    {x: 3060, y: 1900, w: 20, h: 240}, {x: 2800, y: 1900, w: 20, h: 80}, {x: 2800, y: 2060, w: 20, h: 80}
-                ] 
+        window.addEventListener("keydown", e => { 
+            keys[e.key.toLowerCase()] = true; 
+            if(e.key.toLowerCase() === 'm' && gameState === "PLAYING") { largeMap = !largeMap; }
+        });
+        window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+        
+        // CORRECTION DE LA POSITION DE LA SOURIS (DÉPENDANCE CENTRALE DU JOUEUR CORRIGÉE)
+        //         window.addEventListener("mousemove", e => {
+            mouse.x = e.clientX;
+            mouse.y = e.clientY;
+            if(gameState === "PLAYING") {
+                // Le joueur étant strictement au centre de l'écran, l'angle calculé ne souffre d'aucun décalage
+                let dx = mouse.x - (canvas.width / 2);
+                let dy = mouse.y - (canvas.height / 2);
+                player.angle = Math.atan2(dy, dx);
             }
-        ];
-
-        const roads = [
-            { x: 0, y: 1950, w: 4000, h: 100 }, 
-            { x: 1950, y: 0, w: 100, h: 4000 }
-        ];
-
-        const trees = [];
-        function generateTreeEcosystem() {
-            trees.length = 0;
-            let attempts = 0;
-            while(trees.length < 65 && attempts < 2000) {
-                let tx = Math.random() * (world.w - 100) + 50;
-                let ty = Math.random() * (world.h - 100) + 50;
-                let size = Math.random() * 15 + 25; 
-                
-                let overlap = false;
-                for(let obs of obstacles) {
-                    if(tx + size > obs.x - 40 && tx - size < obs.x + obs.w + 40 && ty + size > obs.y - 40 && ty - size < obs.y + obs.h + 40) {
-                        overlap = true; break;
-                    }
-                }
-                for(let r of roads) {
-                    if(tx + size > r.x && tx - size < r.x + r.w && ty + size > r.y && ty - size < r.y + r.h) {
-                        overlap = true; break;
-                    }
-                }
-                if(!overlap) {
-                    trees.push({ x: tx, y: ty, r: size, seed: Math.random() * 100 });
-                }
-                attempts++;
-            }
-        }
-        generateTreeEcosystem();
-
-        function checkCollision(nx, ny, r) {
-            if (nx - r < 0 || nx + r > world.w || ny - r < 0 || ny + r > world.h) return true;
-            for (let obs of obstacles) {
-                for(let wall of obs.walls) {
-                    if (nx + r > wall.x && nx - r < wall.x + wall.w && ny + r > wall.y && ny - r < wall.y + wall.h) return true;
-                }
-                if(!obs.door.isOpen) {
-                    let d = obs.door;
-                    if(nx + r > d.x && nx - r < d.x + d.w && ny + r > d.y && ny - r < d.y + d.h) return true;
-                }
-            }
-            return false;
-        }
-
-        function getSafeSpawnCoords(radius) {
-            let rx, ry, attempts = 0;
-            while(attempts < 1500) {
-                rx = Math.random() * (world.w - 400) + 200;
-                ry = Math.random() * (world.h - 400) + 200;
-                let insideBoundaries = false;
-                
-                for (let obs of obstacles) {
-                    if (rx + radius > obs.x - 30 && rx - radius < obs.x + obs.w + 30 && ry + radius > obs.y - 30 && ry - radius < obs.y + obs.h + 30) {
-                        insideBoundaries = true;
-                        break;
-                    }
-                }
-                if(!insideBoundaries && !checkCollision(rx, ry, radius)) {
-                    return { x: rx, y: ry };
-                }
-                attempts++;
-            }
-            return { x: 2000, y: 2000 };
-        }
-
-        let proximalDoorRef = null;
-
-        function checkDoorProximity() {
-            proximalDoorRef = null;
-            let closestDist = 75; 
-            
-            for(let obs of obstacles) {
-                let doorWorldX = obs.door.x + obs.door.w/2;
-                let doorWorldY = obs.door.y + obs.door.h/2;
-                let dist = Math.hypot(player.x - doorWorldX, player.y - doorWorldY);
-                if(dist < closestDist) {
-                    closestDist = dist;
-                    proximalDoorRef = obs.door;
-                }
-            }
-
-            let promptElement = document.getElementById("mobile-door-prompt");
-            if(proximalDoorRef) {
-                promptElement.style.display = "flex";
-                setTimeout(() => promptElement.style.transform = "scale(1)", 10);
-            } else {
-                promptElement.style.transform = "scale(0)";
-                setTimeout(() => promptElement.style.display = "none", 200);
-            }
-        }
-
-        function toggleDoorState(door) {
-            if(!door) return;
-            door.isOpen = !door.isOpen;
-            triggerAlertNotification(door.isOpen ? "Door Opened (F)" : "Door Closed (F)");
-            
-            if(currentMode === "online" && socket.connected) {
-                socket.emit("syncMapDoorEvent", { doorX: door.x, doorY: door.y, isOpen: door.isOpen });
-            }
-        }
-
-        document.getElementById("mobile-door-prompt").addEventListener("touchstart", (e) => {
-            e.preventDefault();
-            if(proximalDoorRef) toggleDoorState(proximalDoorRef);
         });
 
+        window.addEventListener("mousedown", e => {
+            if(gameState !== "PLAYING") return;
+            if(e.button === 0) fireActivePlayerBullet();
+        });
+
+        // Touch Input Handlers Architecture
+        window.addEventListener("touchstart", e => {
+            isTouchDevice = true;
+            for(let t of e.changedTouches) {
+                if(t.clientX < canvas.width / 2 && !stickActive) {
+                    stickActive = true;
+                    stickStart.x = t.clientX;
+                    stickStart.y = t.clientY;
+                    stickMove.x = t.clientX;
+                    stickMove.y = t.clientY;
+                } else if(t.clientX >= canvas.width / 2) {
+                    // Mobile auto-aim close enemies or touch directional fire trigger sequence
+                    let dx = t.clientX - (canvas.width / 2);
+                    let dy = t.clientY - (canvas.height / 2);
+                    player.angle = Math.atan2(dy, dx);
+                    fireActivePlayerBullet();
+                }
+            }
+        });
+
+        window.addEventListener("touchmove", e => {
+            if(!stickActive) return;
+            for(let t of e.touches) {
+                if(t.clientX < canvas.width / 2) {
+                    stickMove.x = t.clientX;
+                    stickMove.y = t.clientY;
+                }
+            }
+        });
+
+        window.addEventListener("touchend", e => {
+            if(e.touches.length === 0) { stickActive = false; }
+        });
+
+        // Setup Obstacles and Doors
+        function initObstaclesWorld() {
+            obstacles = [
+                { x: 500, y: 500, w: 250, h: 250, door: { x: 500, y: 600, w: 10, h: 50, open: false } },
+                { x: 1200, y: 300, w: 400, h: 250, door: { x: 1400, y: 540, w: 60, h: 10, open: false } },
+                { x: 2000, y: 800, w: 300, h: 300, door: { x: 2000, y: 920, w: 10, h: 60, open: false } },
+                { x: 800, y: 1500, w: 350, h: 350, door: { x: 950, y: 1840, w: 70, h: 10, open: false } },
+                { x: 2100, y: 1800, w: 450, h: 300, door: { x: 2100, y: 1900, w: 10, h: 70, open: false } }
+            ];
+        }
+
+        function startOfflineCampaign(stageId) {
+            currentStage = stageId;
+            gameMode = "OFFLINE";
+            document.getElementById("campaign-screen").style.display = "none";
+            launchGameSession();
+            
+            // Build stage enemies bot count factor scale
+            let botCount = 4 + Math.floor(stageId * 0.5);
+            localBots = [];
+            for(let i=0; i<botCount; i++) {
+                let subType = (i % 3 === 0) ? "elite" : "grunt";
+                localBots.push(createBotEntity(`Target AI-${i+1}`, subType));
+            }
+            clearChatLogs();
+            pushSystemChatMessage(`CAMPAIGN STAGE ${stageId} INITIALIZED. WIPE OUT ALL THREATS!`);
+        }
+
+        function createBotEntity(name, type) {
+            let rx = Math.random() * (world.w - 200) + 100;
+            let ry = Math.random() * (world.h - 200) + 100;
+            let hpMax = type==="elite"? 200 : 80;
+            return {
+                id: "bot_" + Math.random().toString(36).substr(2, 5),
+                name: name, type: type, x: rx, y: ry, r: type==="elite"? 28 : 20,
+                hp: hpMax, maxHp: hpMax, speed: type==="elite"? 2.8 : 3.6,
+                angle: 0, lastShot: 0, nextChatTime: Date.now() + Math.random()*15000,
+                mergeCount: 1, originalSpeed: type==="elite"? 2.8 : 3.6
+            };
+        }
+
+        function launchGameSession() {
+            gameState = "PLAYING";
+            player.x = world.w / 2;
+            player.y = world.h / 2;
+            player.hp = 100;
+            player.goldEarned = 0;
+            bullets = [];
+            bloodSplats = [];
+            initObstaclesWorld();
+            
+            document.getElementById("hud").style.display = "block";
+            document.getElementById("hud-name").innerText = account.nickname;
+            document.getElementById("ingame-settings-btn").style.display = "flex";
+            document.getElementById("game-chat-box").style.display = "flex";
+            resize();
+        }
+
+        // Nettoyer l'historique du chat lors de nouvelles sessions
+        function clearChatLogs() {
+            document.getElementById("chat-messages-container").innerHTML = "";
+        }
+
+        function pushSystemChatMessage(text) {
+            appendChatRowLayout(`<span class="chat-sender system">[HQ SYSTEM]: </span><span class="chat-text" style="color:#ffd700; font-weight:500;">${text}</span>`);
+        }
+        function pushBotChatMessage(botId, text) {
+            let tag = botId.includes("titan") ? "HEXA-TITAN AI" : "BOT DISPATCH";
+            appendChatRowLayout(`<span class="chat-sender bot">[${tag}]: </span><span class="chat-text" style="color:#ffb74d;">${text}</span>`);
+        }
+        function pushEnemyChatMessage(sender, text) {
+            appendChatRowLayout(`<span class="chat-sender enemy">[RIVAL] ${sender}: </span><span class="chat-text">${text}</span>`);
+        }
+
+        function appendChatRowLayout(htmlContent) {
+            let container = document.getElementById("chat-messages-container");
+            let row = document.createElement("div");
+            row.className = "chat-row";
+            row.innerHTML = htmlContent;
+            container.appendChild(row);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        document.getElementById("chat-send-btn").addEventListener("click", broadcastLocalChatMessage);
+        document.getElementById("chat-input-field").addEventListener("keydown", e => {
+            if(e.key === 'Enter') broadcastLocalChatMessage();
+        });
+
+        function broadcastLocalChatMessage() {
+            let field = document.getElementById("chat-input-field");
+            let msg = field.value.trim();
+            if(!msg) return;
+            appendChatRowLayout(`<span class="chat-sender">${account.nickname}: </span><span class="chat-text">${msg}</span>`);
+            if(socket && socket.connected) {
+                socket.emit("sendChatMessage", msg);
+            }
+            field.value = "";
+        }
+
+        function fireActivePlayerBullet() {
+            let dmgFactor = WEAPONS_DATA[account.weapon].dmg;
+            let b = {
+                owner: "player", x: player.x + Math.cos(player.angle)*25, y: player.y + Math.sin(player.angle)*25,
+                vx: Math.cos(player.angle)*14, vy: Math.sin(player.angle)*14, r: 5, damage: dmgFactor
+            };
+            bullets.push(b);
+            if(socket && socket.connected) {
+                socket.emit("shoot", { x: b.x, y: b.y, vx: b.vx, vy: b.vy, damage: b.damage });
+            }
+        }
+
+        // In-game Settings Controllers
         document.getElementById("ingame-settings-btn").addEventListener("click", () => {
             let pop = document.getElementById("ingame-popup");
-            pop.style.display = pop.style.display === "flex" ? "none" : "flex";
+            pop.style.display = (pop.style.display === "flex") ? "none" : "flex";
         });
-        document.getElementById("btn-game-resume").addEventListener("click", () => document.getElementById("ingame-popup").style.display = "none");
+        document.getElementById("btn-game-resume").addEventListener("click", () => {
+            document.getElementById("ingame-popup").style.display = "none";
+        });
         document.getElementById("btn-game-quit").addEventListener("click", () => {
-            if(currentMode !== 'offline') socket.emit("leaveQueue");
+            document.getElementById("ingame-popup").style.display = "none";
+            exitSessionToLobby();
+        });
+
+        function exitSessionToLobby() {
+            gameState = "MENU";
+            if(socket) { socket.disconnect(); socket = null; }
             document.getElementById("hud").style.display = "none";
             document.getElementById("ingame-settings-btn").style.display = "none";
-            document.getElementById("ingame-popup").style.display = "none";
-            gameActive = false;
+            document.getElementById("game-chat-box").style.display = "none";
+            document.getElementById("screen-win").style.display = "none";
+            document.getElementById("screen-lose").style.display = "none";
             showMainMenu();
-        });
-        
+        }
+
         document.getElementById("btn-lose-retry").addEventListener("click", () => {
-            document.getElementById("screen-lose").style.display="none";
-            initMatchEngine();
+            document.getElementById("screen-lose").style.display = "none";
+            if(gameMode === "OFFLINE") startOfflineCampaign(currentStage);
+            else exitSessionToLobby();
         });
         document.getElementById("btn-win-cont").addEventListener("click", () => {
-            document.getElementById("screen-win").style.display="none";
-            currentStage++;
-            initMatchEngine();
+            document.getElementById("screen-win").style.display = "none";
+            exitSessionToLobby();
         });
 
-        window.startOfflineMission = function(lvl) {
-            currentStage = lvl; currentMode = "offline";
-            document.getElementById("campaign-screen").style.display = "none";
-            initMatchEngine();
-        };
+        // --- Matchmaking Connections Network Hub ---
+        let matchmakingTimerInterval = null;
+        let matchmakingSeconds = 0;
 
-        document.getElementById("btn-match-1v1").addEventListener("click", () => {
-            if(account.gold < 70) { alert("Insufficient Gold for 1v1 Duel! Need 70 G."); return; }
+        document.getElementById("btn-match-1v1").addEventListener("click", () => triggerOnlineQueue("1v1"));
+        document.getElementById("btn-match-br").addEventListener("click", () => triggerOnlineQueue("br30"));
+        document.getElementById("btn-match-coop").addEventListener("click", () => triggerOnlineQueue("coop"));
+        document.getElementById("btn-cancel-matchmaking").addEventListener("click", cancelMatchmakingSearch);
+
+        function triggerOnlineQueue(modeType) {
+            let cost = modeType==="1v1"? 70 : (modeType==="br30"? 30 : 0);
+            if(account.gold < cost) { alert("Insufficient Gold Reserves for deployment fee!"); return; }
+            
+            account.gold -= cost; saveAccount();
             document.getElementById("online-lobby").style.display = "none";
             document.getElementById("matchmaking-screen").style.display = "flex";
-            socket.emit("join1v1Queue", { nickname: account.nickname, email: account.email });
-        });
-        document.getElementById("btn-match-br").addEventListener("click", () => {
-            if(account.gold < 30) { alert("Insufficient Balance fee for War Room 30!"); return; }
-            document.getElementById("online-lobby").style.display = "none";
-            document.getElementById("matchmaking-screen").style.display = "flex";
-            socket.emit("joinBRQueue", { nickname: account.nickname, email: account.email });
-        });
-        document.getElementById("btn-match-coop").addEventListener("click", () => {
-            document.getElementById("online-lobby").style.display = "none";
-            document.getElementById("matchmaking-screen").style.display = "flex";
-            socket.emit("joinCoopQueue", { nickname: account.nickname, email: account.email });
-        });
-        document.getElementById("btn-cancel-matchmaking").addEventListener("click", () => {
-            socket.emit("leaveQueue");
+            document.getElementById("search-title").innerText = `Joining ${modeType.toUpperCase()} Airspace...`;
+            
+            matchmakingSeconds = 0;
+            document.getElementById("matchmaking-timer").innerText = "Connecting to server...";
+            matchmakingTimerInterval = setInterval(() => {
+                matchmakingSeconds++;
+                document.getElementById("matchmaking-timer").innerText = `Time elapsed: ${matchmakingSeconds}s | Looking for players...`;
+            }, 1000);
+
+            // Connect Socket safely to prevent leaks
+            if(socket) socket.disconnect();
+            socket = io("http://localhost:3000", { reconnection: false });
+
+            socket.on("connect", () => {
+                socket.emit("joinQueue", { mode: modeType, nickname: account.nickname, email: account.email });
+            });
+
+            socket.on("matchFound", (data) => {
+                clearInterval(matchmakingTimerInterval);
+                document.getElementById("matchmaking-screen").style.display = "none";
+                gameMode = modeType === "1v1" ? "ON_1V1" : (modeType === "br30" ? "ON_BR" : "ON_COOP");
+                launchGameSession();
+                pushSystemChatMessage(`CONNECTED SUCCESSFUL. ROOM ID: ${data.roomId}`);
+            });
+
+            socket.on("stateUpdate", (serverPlayers) => {
+                networkPlayers = serverPlayers;
+            });
+
+            socket.on("bulletFired", (bData) => {
+                bullets.push({
+                    owner: "enemy", x: bData.x, y: bData.y, vx: bData.vx, vy: bData.vy, r: 5, damage: bData.damage
+                });
+            });
+
+            socket.on("receiveChatMessage", (data) => {
+                pushEnemyChatMessage(data.sender, data.text);
+            });
+
+            socket.on("roomTerminated", (msg) => {
+                alert(msg); exitSessionToLobby();
+            });
+
+            socket.on("connect_error", () => {
+                clearInterval(matchmakingTimerInterval);
+                alert("Could not link with Multiplayer Master Server Node. Offline redirection active.");
+                cancelMatchmakingSearch();
+            });
+        }
+
+        function cancelMatchmakingSearch() {
+            clearInterval(matchmakingTimerInterval);
+            if(socket) { socket.emit("leaveQueue"); socket.disconnect(); socket = null; }
             document.getElementById("matchmaking-screen").style.display = "none";
             document.getElementById("online-lobby").style.display = "flex";
-        });
-
-        // --- Socket Multiplayer Event Link ---
-        socket.on("matchFound", (data) => {
-            document.getElementById("matchmaking-screen").style.display = "none";
-            currentMode = "online";
-            player.id = socket.id;
-            
-            // ????? ???????? ??????? ??? ??? ?????? ????? ??? ???? ??????
-            if(data && data.spawnPosition) {
-                player.x = data.spawnPosition.x;
-                player.y = data.spawnPosition.y;
-            }
-            initMatchEngine();
-        });
-
-        socket.on("gameUpdate", (state) => {
-            if(!gameActive || currentMode !== "online") return;
-            
-            // ????? ????????? ?? ????????? ?????? ??????
-            bullets = state.bullets || [];
-            
-            if(state.doorsState) {
-                state.doorsState.forEach(sd => {
-                    let d = obstacles.find(o => o.door.x === sd.doorX && o.door.y === sd.doorY);
-                    if(d) d.door.isOpen = sd.isOpen;
-                });
-            }
-
-            for(let id in state.players) {
-                if(id === player.id) {
-                    player.hp = state.players[id].hp;
-                    matchGold = state.players[id].gold;
-                    // ?????? ???????? ??????? ?? ?????? ???? ???????? ?? ???????
-                    if(state.players[id].x && state.players[id].y) {
-                        player.x = state.players[id].x;
-                        player.y = state.players[id].y;
-                    }
-                } else {
-                    otherPlayers[id] = state.players[id];
-                }
-            }
-            for(let id in otherPlayers) {
-                if(!state.players[id]) delete otherPlayers[id];
-            }
-        });
-
-        // ??????? ??? ????? ????? ?? ??????? ?????????
-        socket.on("bulletFired", (bData) => {
-            if(currentMode === "online") {
-                bullets.push(bData);
-            }
-        });
-
-        function initMatchEngine() {
-            resize();
-            gameActive = true;
-            largeMap = false;
-            bullets = [];
-            otherPlayers = {};
-            localBots = [];
-            localKills = 0;
-            matchGold = 0;
-            
-            if(currentMode === "offline") {
-                let pSpawn = getSafeSpawnCoords(player.r);
-                player.x = pSpawn.x; player.y = pSpawn.y;
-            }
-            player.hp = 100; player.nickname = account.nickname;
-            camera.x = player.x; camera.y = player.y;
-
-            document.getElementById("hud").style.display = "block";
-            document.getElementById("hud-name").innerText = player.nickname;
-            document.getElementById("ingame-settings-btn").style.display = "flex";
-
-            if (currentMode === "offline") {
-                let botCount = 4 + Math.min(10, Math.floor(currentStage / 2));
-                for(let i=0; i<botCount; i++) {
-                    let bSpawn = getSafeSpawnCoords(16);
-                    localBots.push({
-                        id: "bot_" + i + "_" + Math.floor(Math.random()*10000),
-                        x: bSpawn.x, y: bSpawn.y, r: 16,
-                        speed: 2.8 + Math.min(2.5, currentStage * 0.15),
-                        hp: 60 + (currentStage * 8), maxHp: 60 + (currentStage * 8),
-                        type: i % 3 === 0 ? "elite" : "grunt",
-                        shootCooldown: 0, angle: 0, 
-                        isMergedUnit: false, mergeFactor: 1
-                    });
-                }
-                triggerAlertNotification("STAGE " + currentStage + " - ELIMINATE ALL BOTS");
-            }
-            
-            generateTreeEcosystem();
-            window.requestAnimationFrame(gameLoop);
+            showMainMenu();
         }
 
-        function triggerAlertNotification(text) {
-            canvasAlertText = text;
-            canvasAlertTimer = 110;
-        }
-
-        function processBotHexaMergingSystem() {
-            if(currentMode !== "offline") return;
-
-            let liveBots = localBots.filter(b => b.hp > 0 && !b.isMergedUnit);
-            let gruntGroup = liveBots.filter(b => b.type === "grunt");
-            let eliteGroup = liveBots.filter(b => b.type === "elite");
-
-            if(gruntGroup.length >= 6) { attemptClusterMerge(gruntGroup); }
-            if(eliteGroup.length >= 6) { attemptClusterMerge(eliteGroup); }
-        }
-
-        function attemptClusterMerge(subGroup) {
-            for(let i=0; i<subGroup.length; i++) {
-                let leader = subGroup[i];
-                let cluster = [leader];
-                
-                for(let j=0; j<subGroup.length; j++) {
-                    if(i === j) continue;
-                    let distance = Math.hypot(leader.x - subGroup[j].x, leader.y - subGroup[j].y);
-                    if(distance < 380) { 
-                        cluster.push(subGroup[j]);
-                        if(cluster.length === 6) break;
-                    }
-                }
-
-                if(cluster.length === 6) {
-                    leader.isMergedUnit = true;
-                    leader.mergeFactor = 6;
-                    leader.type = "HEXA-TITAN";
-                    leader.maxHp *= 6;
-                    leader.hp = leader.maxHp;
-                    leader.r = 35; 
-                    leader.speed *= 1.35; 
-                    
-                    cluster.forEach((b, index) => {
-                        if(index > 0) b.hp = 0; 
-                    });
-
-                    triggerAlertNotification("?? WAR WARNING: 6 BOTS MERGED INTO HEXA-TITAN!");
-                    break;
-                }
-            }
-        }
-
-        window.addEventListener("keydown", (e) => {
-            let key = e.key.toLowerCase();
-            keys[key] = true;
-            if (key === "m") largeMap = !largeMap;
-            if (key === "f") {
-                if(proximalDoorRef) toggleDoorState(proximalDoorRef);
-            }
-        });
-        window.addEventListener("keyup", (e) => { keys[e.key.toLowerCase()] = false; });
-        
-        window.addEventListener("mousemove", (e) => {
-            if(!isMobileTouch) {
-                mouse.x = e.clientX; mouse.y = e.clientY;
-            }
-        });
-        window.addEventListener("mousedown", (e) => {
-            if(!isMobileTouch && gameActive && player.hp > 0) {
-                triggerWeaponFireAction();
-            }
-        });
-
-        window.addEventListener("touchstart", (e) => {
-            isMobileTouch = true;
-            for(let t of e.changedTouches) {
-                if(t.clientX < window.innerWidth / 2) {
-                    if(!leftJoystick.active) {
-                        leftJoystick.active = true;
-                        leftJoystick.touchId = t.identifier;
-                        leftJoystick.startX = t.clientX; leftJoystick.startY = t.clientY;
-                        leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY;
-                    }
-                } else {
-                    if(t.clientX > window.innerWidth - 90 && t.clientY < 240) continue;
-                    if(proximalDoorRef && t.clientX > window.innerWidth - 120 && t.clientY > window.innerHeight - 220) continue;
-
-                    if(!rightJoystick.active) {
-                        rightJoystick.active = true;
-                        rightJoystick.touchId = t.identifier;
-                        rightJoystick.startX = t.clientX; rightJoystick.startY = t.clientY;
-                        rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY;
-                        
-                        touchShootInterval = setInterval(() => {
-                            if(gameActive && player.hp > 0) triggerWeaponFireAction();
-                        }, 180);
-                    }
-                }
-            }
-        }, { passive: false });
-
-        window.addEventListener("touchmove", (e) => {
-            for(let t of e.touches) {
-                if(leftJoystick.active && t.identifier === leftJoystick.touchId) {
-                    let dx = t.clientX - leftJoystick.startX;
-                    let dy = t.clientY - leftJoystick.startY;
-                    let dist = Math.hypot(dx, dy);
-                    if(dist > leftJoystick.maxRadius) {
-                        leftJoystick.currentX = leftJoystick.startX + (dx/dist)*leftJoystick.maxRadius;
-                        leftJoystick.currentY = leftJoystick.startY + (dy/dist)*leftJoystick.maxRadius;
-                    } else {
-                        leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY;
-                    }
-                }
-                if(rightJoystick.active && t.identifier === rightJoystick.touchId) {
-                    let dx = t.clientX - rightJoystick.startX;
-                    let dy = t.clientY - rightJoystick.startY;
-                    let dist = Math.hypot(dx, dy);
-                    if(dist > rightJoystick.maxRadius) {
-                        rightJoystick.currentX = rightJoystick.startX + (dx/dist)*rightJoystick.maxRadius;
-                        rightJoystick.currentY = rightJoystick.startY + (dy/dist)*rightJoystick.maxRadius;
-                    } else {
-                        rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY;
-                    }
-                }
-            }
-        }, { passive: false });
-
-        window.addEventListener("touchend", (e) => {
-            for(let t of e.changedTouches) {
-                if(leftJoystick.active && t.identifier === leftJoystick.touchId) {
-                    leftJoystick.active = false; leftJoystick.touchId = null;
-                    updateJoystickLayout();
-                }
-                if(rightJoystick.active && t.identifier === rightJoystick.touchId) {
-                    rightJoystick.active = false; rightJoystick.touchId = null;
-                    clearInterval(touchShootInterval);
-                    updateJoystickLayout();
-                }
-            }
-        });
-
-        function triggerWeaponFireAction() {
-            let activeWep = WEAPONS_DATA[account.weapon];
-            let targetAngle = player.angle;
-
-            if(currentMode === "offline") {
-                bullets.push({
-                    owner: player.id, x: player.x, y: player.y,
-                    vx: Math.cos(targetAngle) * 15, vy: Math.sin(targetAngle) * 15,
-                    dmg: activeWep.dmg, r: 5, color: account.weapon === 2 ? "#00ffff" : "#ffd700"
-                });
-            } else {
-                // ????? ??????? ?????? ??? ??????? ?? ??? ????????? ??????? ???????
-                socket.emit("fireBullet", { x: player.x, y: player.y, angle: targetAngle, dmg: activeWep.dmg });
-            }
-        }
-
-        function gameLoop() {
-            if(!gameActive) return;
-            updateTickPhysics();
+        // --- Core Loops: Calculations and Mechanics Updates ---
+        function loop() {
+            updateGameplayMechanics();
             renderGraphicsFrame();
-            window.requestAnimationFrame(gameLoop);
+            requestAnimationFrame(loop);
         }
 
-        function updateTickPhysics() {
-            if(player.hp <= 0) return;
+        function updateGameplayMechanics() {
+            if (gameState !== "PLAYING") return;
 
-            if(isMobileTouch && rightJoystick.active) {
-                player.angle = Math.atan2(rightJoystick.currentY - rightJoystick.startY, rightJoystick.currentX - rightJoystick.startX);
-            } else if (!isMobileTouch) {
-                let worldMouseX = mouse.x + camera.x - canvas.width/2;
-                let worldMouseY = mouse.y + camera.y - canvas.height/2;
-                player.angle = Math.atan2(worldMouseY - player.y, worldMouseX - player.x);
-            }
+            // 1. CALCUL DU PROTOCOLE DE MOUVEMENT DE L'ACTEUR LOCAL
+            let moveX = 0;
+            let moveY = 0;
 
-            let moveX = 0; let moveY = 0;
-            if(leftJoystick.active) {
-                moveX = (leftJoystick.currentX - leftJoystick.startX) / leftJoystick.maxRadius;
-                moveY = (leftJoystick.currentY - leftJoystick.startY) / leftJoystick.maxRadius;
-            } else {
-                if (keys["w"] || keys["z"] || keys["arrowup"]) moveY = -1;
-                if (keys["s"] || keys["arrowdown"]) moveY = 1;
-                if (keys["a"] || keys["q"] || keys["arrowleft"]) moveX = -1;
-                if (keys["d"] || keys["arrowright"]) moveX = 1;
-            }
-
-            player.isMoving = (moveX !== 0 || moveY !== 0);
-            if(player.isMoving) {
-                let length = Math.hypot(moveX, moveY);
-                let speedMod = player.speed;
-                let nx = player.x + (moveX / length) * speedMod;
-                let ny = player.y + (moveY / length) * speedMod;
-
-                if(!checkCollision(nx, player.y, player.r)) player.x = nx;
-                if(!checkCollision(player.x, ny, player.r)) player.y = ny;
-                
-                player.legCycle += 0.22;
-            }
-
-            checkDoorProximity();
-
-            // ????? ???????? ?????? ??? ?????? ???? ???????? ???????
-            camera.x += (player.x - camera.x) * 0.1;
-            camera.y += (player.y - camera.y) * 0.1;
-
-            if(currentMode === "offline") {
-                if(Math.random() < 0.015) processBotHexaMergingSystem();
-
-                bullets.forEach((b, index) => {
-                    b.x += b.vx; b.y += b.vy;
-                    
-                    if(checkCollision(b.x, b.y, b.r)) {
-                        bullets.splice(index, 1); return;
-                    }
-
-                    if(b.owner === player.id) {
-                        localBots.forEach(bot => {
-                            if(bot.hp > 0 && Math.hypot(b.x - bot.x, b.y - bot.y) < bot.r + b.r) {
-                                bot.hp -= b.dmg;
-                                bullets.splice(index, 1);
-                                if(bot.hp <= 0) {
-                                    localKills++;
-                                    let bonus = bot.isMergedUnit ? 180 : 30;
-                                    matchGold += bonus;
-                                    checkMatchVictoryCondition();
-                                }
-                            }
-                        });
-                    } else {
-                        if(Math.hypot(b.x - player.x, b.y - player.y) < player.r + b.r) {
-                            let prot = ARMORS_DATA[account.armor].protection;
-                            let finalDmg = Math.max(2, b.dmg - prot);
-                            player.hp -= finalDmg;
-                            bullets.splice(index, 1);
-                            if(player.hp <= 0) triggerDefeatState();
-                        }
-                    }
-                });
-
-                localBots.forEach(bot => {
-                    if(bot.hp <= 0) return;
-
-                    let distToPlayer = Math.hypot(player.x - bot.x, player.y - bot.y);
-                    bot.angle = Math.atan2(player.y - bot.y, player.x - bot.x);
-
-                    if(distToPlayer < 950) {
-                        let bx = bot.x + Math.cos(bot.angle) * bot.speed;
-                        let by = bot.y + Math.sin(bot.angle) * bot.speed;
-
-                        if(!checkCollision(bx, by, bot.r)) {
-                            bot.x = bx; bot.y = by;
-                        } else {
-                            let slideX = bot.x + Math.cos(bot.angle + Math.PI/2) * bot.speed;
-                            let slideY = bot.y + Math.sin(bot.angle + Math.PI/2) * bot.speed;
-                            if(!checkCollision(slideX, slideY, bot.r)) {
-                                bot.x = slideX; bot.y = slideY;
-                            } else {
-                                bot.x -= Math.cos(bot.angle) * bot.speed * 0.5;
-                                bot.y -= Math.sin(bot.angle) * bot.speed * 0.5;
-                            }
-                        }
-
-                        bot.shootCooldown--;
-                        if(bot.shootCooldown <= 0 && distToPlayer < 450) {
-                            bot.shootCooldown = bot.isMergedUnit ? 18 : 45; 
-                            bullets.push({
-                                owner: bot.id, x: bot.x, y: bot.y,
-                                vx: Math.cos(bot.angle) * 11, vy: Math.sin(bot.angle) * 11,
-                                dmg: bot.isMergedUnit ? 25 : 8, r: bot.isMergedUnit ? 8 : 4, color: "#ff3d00"
-                            });
-                        }
-                    }
-                });
-            } else {
-                // ????? ???????? ?????? ??????? ??? ??????? ????? ???? ???????? ?????? ?????
-                socket.emit("playerInput", { x: player.x, y: player.y, angle: player.angle, isMoving: player.isMoving, legCycle: player.legCycle });
-            }
-
-            document.getElementById("hp-bar").style.width = Math.max(0, player.hp) + "%";
-            document.getElementById("gold-match-display").innerText = "Gold: " + matchGold;
-        }
-
-        function checkMatchVictoryCondition() {
-            if(currentMode !== "offline") return;
-            let alive = localBots.filter(b => b.hp > 0);
-            if(alive.length === 0) {
-                gameActive = false;
-                account.gold += matchGold;
-                if(currentStage === account.maxStage && account.maxStage < 100) {
-                    account.maxStage++;
+            if (isTouchDevice && stickActive) {
+                let dx = stickMove.x - stickStart.x;
+                let dy = stickMove.y - stickStart.y;
+                let dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist > 0) {
+                    moveX = dx / dist;
+                    moveY = dy / dist;
                 }
-                saveAccount();
-                document.getElementById("screen-win").style.display = "flex";
+            } else {
+                if (keys['w'] || keys['z'] || keys['arrowup']) moveY = -1;
+                if (keys['s'] || keys['arrowdown']) moveY = 1;
+                if (keys['a'] || keys['q'] || keys['arrowleft']) moveX = -1;
+                if (keys['d'] || keys['arrowright']) moveX = 1;
             }
+
+            // Normalisation pour éviter l'accélération diagonale
+            if (moveX !== 0 && moveY !== 0) {
+                moveX *= 0.7071;
+                moveY *= 0.7071;
+            }
+
+            let nextX = player.x + moveX * player.speed;
+            let nextY = player.y + moveY * player.speed;
+
+            // Application des collisions contre les structures géométriques de la carte
+            //             obstacles.forEach(obs => {
+                // Épaississement virtuel autour de l'obstacle pour le rayon du joueur
+                let pad = player.r;
+                if (nextX + pad > obs.x && nextX - pad < obs.x + obs.w &&
+                    player.y + pad > obs.y && player.y - pad < obs.y + obs.h) {
+                    nextX = player.x; // Bloquer X
+                }
+                if (player.x + pad > obs.x && player.x - pad < obs.x + obs.w &&
+                    nextY + pad > obs.y && nextY - pad < obs.y + obs.h) {
+                    nextY = player.y; // Bloquer Y
+                }
+
+                // Vérification de la proximité immédiate de la porte (Door Prompt Overlay Activation)
+                let d = obs.door;
+                let distToDoor = Math.hypot(player.x - (d.x + d.w/2), player.y - (d.y + d.h/2));
+                let prompt = document.getElementById("mobile-door-prompt");
+                if (distToDoor < 90) {
+                    prompt.style.display = "flex";
+                    prompt.style.transform = "scale(1)";
+                    if (keys['e']) d.open = true;
+                } else {
+                    // Masquage progressif s'il s'éloigne
+                    if (distToDoor > 150) { prompt.style.transform = "scale(0)"; }
+                }
+            });
+
+            // Confinement strict à l'intérieur des frontières du monde (World Bounds clamping)
+            player.x = Math.max(player.r, Math.min(world.w - player.r, nextX));
+            player.y = Math.max(player.r, Math.min(world.h - player.r, nextY));
+
+            // Envoi de la position actuelle au serveur si en ligne
+            if (socket && socket.connected) {
+                socket.emit("updatePlayerState", { x: player.x, y: player.y, angle: player.angle });
+            }
+
+            // 2. TACTICAL HEXA-BOTS BOT MERGING MERGE INTELLIGENCE
+            // Fusionnement quand 6 bots identiques se touchent
+            let mergeGroups = {};
+            localBots.forEach(b => {
+                if (b.hp <= 0) return;
+                if (!mergeGroups[b.type]) mergeGroups[b.type] = [];
+                mergeGroups[b.type].push(b);
+            });
+
+            for (let type in mergeGroups) {
+                let list = mergeGroups[type];
+                if (list.length >= 6) {
+                    // Déclenchement de la fusion : On prend le premier bot comme réceptacle de la puissance globale
+                    let titan = list[0];
+                    titan.mergeCount += list.length - 1; 
+                    titan.type = "titan_" + type;
+                    titan.name = `HEXA-TITAN ${type.toUpperCase()}`;
+                    titan.r = 55; // Croissance visuelle massive
+                    titan.maxHp = 1200;
+                    titan.hp = 1200;
+                    titan.speed = titan.originalSpeed * 0.75; // Légèrement plus lent mais destructeur
+                    
+                    // Nettoyage des 5 autres sous-unités consommées par le cœur
+                    for(let k = 1; k < list.length; k++) {
+                        list[k].hp = 0; 
+                    }
+                    pushBotChatMessage(titan.id, "CRITICAL ALERT: 6 Sub-units synchronized. Hexa-Titan Entity formed! Absolute force engaged.");
+                }
+            }
+
+            // 3. IA PATHFINDING DE NAVIGATION ET COMPORTEMENT DES BOT LOCALES
+            localBots.forEach(b => {
+                if(b.hp <= 0) return;
+
+                // Chat autonome aléatoire des bots tactiques
+                if (Date.now() > b.nextChatTime) {
+                    let randPhrase = BOT_CHAT_PHRASES[Math.floor(Math.random() * BOT_CHAT_PHRASES.length)];
+                    pushBotChatMessage(b.id, randPhrase);
+                    b.nextChatTime = Date.now() + 15000 + Math.random()*20000;
+                }
+
+                let targetX = player.x;
+                let targetY = player.y;
+
+                let dx = targetX - b.x;
+                let dy = targetY - b.y;
+                let dist = Math.hypot(dx, dy);
+
+                // Algorithme d'évitement d'obstacles intégré pour empêcher les bots de se coincer
+                //                 let pathX = dx / (dist || 1);
+                let pathY = dy / (dist || 1);
+
+                obstacles.forEach(obs => {
+                    let pad = b.r + 15;
+                    // Test de prédiction de collision imminente sur la boîte englobante
+                    if (b.x + pathX*b.speed + pad > obs.x && b.x + pathX*b.speed - pad < obs.x + obs.w &&
+                        b.y + pathY*b.speed + pad > obs.y && b.y + pathY*b.speed - pad < obs.y + obs.h) {
+                        // Inversion vectorielle perpendiculaire pour contourner le mur
+                        let temp = pathX;
+                        pathX = -pathY;
+                        pathY = temp;
+                    }
+                });
+
+                b.x += pathX * b.speed;
+                b.y += pathY * b.speed;
+                b.angle = Math.atan2(dy, dx);
+
+                // Cadence de tir de l'intelligence artificielle hostile
+                if (dist < 450 && Date.now() - b.lastShot > 1100) {
+                    bullets.push({
+                        owner: "bot", x: b.x + Math.cos(b.angle)*22, y: b.y + Math.sin(b.angle)*22,
+                        vx: Math.cos(b.angle)*7.5, vy: Math.sin(b.angle)*7.5, r: 5, damage: b.type.includes("titan")? 25 : 8
+                    });
+                    b.lastShot = Date.now();
+                }
+            });
+
+            // 4. BALISTIQUE ET TRAJECTOIRES DES BALLES DE COMBAT
+            for (let i = bullets.length - 1; i >= 0; i--) {
+                let blt = bullets[i];
+                blt.x += blt.vx;
+                blt.y += blt.vy;
+
+                // Destruction de la munition si elle heurte les limites physiques du monde
+                if(blt.x<0 || blt.x>world.w || blt.y<0 || blt.y>world.h) {
+                    bullets.splice(i, 1); continue;
+                }
+
+                // Collision de la balle contre les murs occultants solides
+                let hitObstacle = false;
+                for (let obs of obstacles) {
+                    if (blt.x > obs.x && blt.x < obs.x + obs.w && blt.y > obs.y && blt.y < obs.y + obs.h) {
+                        hitObstacle = true; break;
+                    }
+                }
+                if (hitObstacle) { bullets.splice(i, 1); continue; }
+
+                // Gestion des impacts selon l'allégeance de la source
+                if (blt.owner === "player") {
+                    for (let b of localBots) {
+                        if (b.hp > 0 && Math.hypot(blt.x - b.x, blt.y - b.y) < b.r) {
+                            b.hp -= blt.damage;
+                            createBloodSplatParticle(b.x, b.y);
+                            if (b.hp <= 0) {
+                                let reward = b.type.includes("titan") ? 350 : 60;
+                                player.goldEarned += reward;
+                                account.gold += reward; saveAccount();
+                                pushSystemChatMessage(`ELIMINATED TARGET: +${reward} GOLD GRANTED.`);
+                            }
+                            bullets.splice(i, 1); break;
+                        }
+                    }
+                } else if (blt.owner === "bot" || blt.owner === "enemy") {
+                    if (Math.hypot(blt.x - player.x, blt.y - player.y) < player.r) {
+                        // Application de l'armure de protection achetée à l'armurerie
+                        let proto = ARMORS_DATA[account.armor].protection;
+                        let finalDmg = Math.max(1, blt.damage - proto);
+                        player.hp -= finalDmg;
+                        createBloodSplatParticle(player.x, player.y);
+                        
+                        // Envoi de la notification de dégâts au serveur en ligne
+                        if (socket && socket.connected) {
+                            socket.emit("takeDamage", { damage: finalDmg });
+                        }
+                        
+                        bullets.splice(i, 1);
+                        if (player.hp <= 0) { triggerMatchResolutionFailure(); }
+                    }
+                }
+            }
+
+            // Evaluation finale des conditions de victoire en mode unitaire hors ligne
+            if (gameMode === "OFFLINE" && localBots.length > 0 && localBots.every(b => b.hp <= 0)) {
+                triggerMatchResolutionVictory();
+            }
+
+            // Dynamic Update Interface Panels
+            document.getElementById("hp-bar").style.width = `${Math.max(0, player.hp)}%`;
+            document.getElementById("gold-match-display").innerText = `Gold: ${player.goldEarned} | Total: ${account.gold}`;
         }
 
-        function triggerDefeatState() {
-            gameActive = false;
-            account.gold += Math.floor(matchGold * 0.4); 
-            saveAccount();
+        function createBloodSplatParticle(x, y) {
+            bloodSplats.push({
+                x: x + (Math.random()*20-10), y: y + (Math.random()*20-10),
+                r: Math.random()*12 + 6, alpha: 0.85
+            });
+        }
+
+        function triggerMatchResolutionVictory() {
+            gameState = "MENU";
+            if (currentStage === account.maxStage) {
+                account.maxStage++; saveAccount();
+            }
+            document.getElementById("screen-win").style.display = "flex";
+        }
+
+        function triggerMatchResolutionFailure() {
+            gameState = "MENU";
             document.getElementById("screen-lose").style.display = "flex";
         }
 
+        // --- Core Rendering Engine Engine Architecture ---
+        // RENDU DE TOUS LES ÉLÉMENTS DU JEU COMPLÈTEMENT CORRIGÉ
         function renderGraphicsFrame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            // CORRECTION CRITIQUE DES COORDONNÉES DE LA CAMÉRA
+            // Calculer la translation pour bloquer STRICTEMENT le joueur au milieu exact du Canvas
+            let cameraX = canvas.width / 2 - player.x;
+            let cameraY = canvas.height / 2 - player.y;
+
             ctx.save();
-            // ???????? ????? ???? ????? ??? ???? ?????? ??????
-            ctx.translate(canvas.width/2 - camera.x, canvas.height/2 - camera.y);
+            ctx.translate(cameraX, cameraY);
 
-            ctx.fillStyle = "#1e3512"; 
-            ctx.fillRect(0, 0, world.w, world.h);
-
-            ctx.fillStyle = "#4a3b32"; 
-            roads.forEach(r => { ctx.fillRect(r.x, r.y, r.w, r.h); });
-
-            ctx.fillStyle = "rgba(46, 82, 27, 0.4)";
-            for(let i=0; i<world.w; i+=250) {
-                for(let j=0; j<world.h; j+=250) {
-                    ctx.fillRect(i + 15, j + 45, 12, 4);
-                    ctx.fillRect(i + 80, j + 140, 6, 8);
-                }
+            // 1. Dessiner la grille de fond du simulateur tactique (Tactical Floor Grid)
+            ctx.strokeStyle = "#16222f";
+            ctx.lineWidth = 1;
+            const gridSize = 80;
+            for (let x = 0; x < world.w; x += gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, world.h); ctx.stroke();
+            }
+            for (let y = 0; y < world.h; y += gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(world.w, y); ctx.stroke();
             }
 
-            trees.forEach(t => {
-                ctx.fillStyle = "rgba(10, 20, 5, 0.45)";
-                ctx.beginPath(); ctx.arc(t.x + 8, t.y + 12, t.r * 1.1, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = "#5c4033";
-                ctx.beginPath(); ctx.arc(t.x, t.y, t.r * 0.3, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = "#1b4d3e";
-                ctx.beginPath(); ctx.arc(t.x, t.y, t.r, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = "#2c6b4f";
-                ctx.beginPath(); ctx.arc(t.x - t.r*0.15, t.y - t.r*0.15, t.r * 0.8, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = "#388e3c";
-                ctx.beginPath(); ctx.arc(t.x - t.r*0.25, t.y - t.r*0.25, t.r * 0.5, 0, Math.PI*2); ctx.fill();
+            // Bordures physiques extérieures de l'arène de combat
+            ctx.strokeStyle = "#1e88e5"; ctx.lineWidth = 6;
+            ctx.strokeRect(0, 0, world.w, world.h);
+
+            // 2. Dessiner les éclaboussures de sang (Blood Splats Background Elements)
+            bloodSplats.forEach(s => {
+                ctx.fillStyle = `rgba(183, 28, 28, ${s.alpha})`;
+                ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
             });
 
+            // 3. Dessiner les bâtiments structures (Obstacles géométriques)
             obstacles.forEach(obs => {
-                ctx.fillStyle = obs.color || "#1c2a39";
+                // Toit du bunker fortifié
+                ctx.fillStyle = "#2c3d52";
                 ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-                ctx.fillStyle = obs.roofColor || "#2d3f55";
-                ctx.fillRect(obs.x + 16, obs.y + 16, obs.w - 32, obs.h - 32);
-                ctx.fillStyle = "rgba(9, 13, 18, 0.4)";
-                ctx.fillRect(obs.x + 20, obs.y + 20, obs.w - 40, obs.h - 40);
-                ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4;
+                ctx.strokeStyle = "#3e5775"; ctx.lineWidth = 3;
                 ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
 
-                ctx.save();
+                // Portes intérieures interactives
                 let d = obs.door;
-                ctx.translate(d.x, d.y);
-                if(d.isOpen) {
-                    if(d.side === "bottom" || d.side === "top") ctx.rotate(-Math.PI / 2);
-                    else ctx.rotate(Math.PI / 2);
-                }
-                ctx.fillStyle = "#ffd700"; 
-                ctx.fillRect(0, 0, d.w, d.h);
-                ctx.strokeStyle = "#000"; ctx.lineWidth = 1.5;
-                ctx.strokeRect(0, 0, d.w, d.h);
-                ctx.restore();
-
-                ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
-                ctx.font = "bold 11px Arial";
-                ctx.fillText(obs.name, obs.x + 25, obs.y - 8);
+                ctx.fillStyle = d.open ? "rgba(76, 175, 80, 0.3)" : "#ffb300";
+                ctx.fillRect(d.x, d.y, d.w, d.h);
             });
 
+            // 4. Dessiner les projectiles (Bullets)
             bullets.forEach(b => {
-                ctx.fillStyle = b.color || "#ffd700";
+                ctx.fillStyle = b.owner === "player" ? "#64b5f6" : "#ff8a65";
                 ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
             });
 
-            if(currentMode === "offline") {
-                localBots.forEach(b => {
-                    if(b.hp <= 0) return;
-                    drawCharacterSpriteFrame(b.x, b.y, b.angle, b.r, b.type === "HEXA-TITAN" ? "#ff1744" : "#ff9100", b.nickname || "Hostile Bot", b.hp, b.maxHp, b.legCycle, b.isMergedUnit);
-                });
-            } else {
-                for(let id in otherPlayers) {
-                    let op = otherPlayers[id];
-                    // ??? ????????? ??????? ????? ?? ??????? ??????? ?????????
-                    drawCharacterSpriteFrame(op.x, op.y, op.angle, op.r, "#f50057", op.nickname || "Rival", op.hp, 100, op.legCycle, false);
-                }
+            // 5. Dessiner les bots locaux hostiles (AI Entities)
+            localBots.forEach(b => {
+                if (b.hp <= 0) return;
+                ctx.save();
+                ctx.translate(b.x, b.y);
+                ctx.rotate(b.angle);
+
+                // Couleur du corps du bot (Devient violet intense pour les Titans fusionnés)
+                ctx.fillStyle = b.type.includes("titan") ? "#4a148c" : (b.type === "elite" ? "#e65100" : "#d32f2f");
+                ctx.beginPath(); ctx.arc(0, 0, b.r, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
+
+                // Direction du canon d'arme du bot
+                ctx.fillStyle = "#1e272c";
+                ctx.fillRect(0, -5, b.r + 12, 10);
+                ctx.restore();
+
+                // Barre de points de vie au-dessus du bot (Lifebar Indicator)
+                let barW = b.r * 2;
+                ctx.fillStyle = "rgba(0,0,0,0.6)";
+                ctx.fillRect(b.x - b.r, b.y - b.r - 14, barW, 6);
+                ctx.fillStyle = "#ff5252";
+                ctx.fillRect(b.x - b.r, b.y - b.r - 14, barW * (b.hp / b.maxHp), 6);
+                
+                // Affichage du nom et du multiplicateur de fusion (Merge Count Multiplier)
+                ctx.fillStyle = "#ffffff"; ctx.font = "bold 11px Arial"; ctx.textBaseline = "bottom"; ctx.textAlign = "center";
+                let tagStr = b.mergeCount > 1 ? `${b.name} (x${b.mergeCount})` : b.name;
+                ctx.fillText(tagStr, b.x, b.y - b.r - 18);
+            });
+
+            // 6. Rendu des joueurs du réseau connecté (Multiplayer Online Network Avatars)
+            for (let id in networkPlayers) {
+                if (id === socket?.id) continue; // Skip matching local view
+                let np = networkPlayers[id];
+                if (np.hp <= 0) continue;
+
+                ctx.save();
+                ctx.translate(np.x, np.y);
+                ctx.rotate(np.angle);
+                ctx.fillStyle = "#c2185b";
+                ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "#212121"; ctx.fillRect(0, -5, 32, 10);
+                ctx.restore();
+
+                ctx.fillStyle = "#ff4081"; ctx.font = "12px Arial"; ctx.textAlign = "center";
+                ctx.fillText(np.nickname, np.x, np.y - 34);
             }
 
-            if(player.hp > 0) {
-                drawCharacterSpriteFrame(player.x, player.y, player.angle, player.r, "#00e5ff", player.nickname, player.hp, player.maxHp, player.legCycle, false);
-            }
-
-            ctx.restore();
-
-            if(canvasAlertTimer > 0) {
-                canvasAlertTimer--;
-                ctx.fillStyle = "rgba(235, 77, 75, " + Math.min(1, canvasAlertTimer/25) + ")";
-                ctx.font = "black 24px Segoe UI"; ctx.textAlign = "center";
-                ctx.fillText(canvasAlertText, canvas.width/2, 130);
-                ctx.textAlign = "left"; 
-            }
-
-            if(isMobileTouch) {
-                drawTouchJoystickCircleElement(leftJoystick.startX, leftJoystick.startY, leftJoystick.currentX, leftJoystick.currentY, leftJoystick.maxRadius);
-                drawTouchJoystickCircleElement(rightJoystick.startX, rightJoystick.startY, rightJoystick.currentX, rightJoystick.currentY, rightJoystick.maxRadius);
-            }
-
-            drawTacticalRadarMinimapComponent();
-        }
-
-        function drawCharacterSpriteFrame(cx, cy, angle, r, color, label, hp, maxHp, legCycle, isHexaTitan) {
+            // 7. RENDU FINAL DE L'ACTEUR LOCAL (PLAYER) [STRICTEMENT AU CENTRE DE L'ÉCRAN REQUIS]
             ctx.save();
-            ctx.translate(cx, cy);
-            ctx.rotate(angle);
+            ctx.translate(player.x, player.y);
+            ctx.rotate(player.angle);
 
-            let leftFootOffset = Math.sin(legCycle) * (r * 0.35);
-            let rightFootOffset = Math.cos(legCycle) * (r * 0.35);
+            // Base circulaire de la tenue de combat
+            ctx.fillStyle = "#1e88e5"; 
+            ctx.beginPath(); ctx.arc(0, 0, player.r, 0, Math.PI*2); ctx.fill();
+            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3; ctx.stroke();
 
-            ctx.fillStyle = "#1c2a39";
-            ctx.fillRect(r * 0.2 + leftFootOffset, -r * 0.9, r * 0.4, r * 0.35);
-            ctx.fillRect(r * 0.2 + rightFootOffset, r * 0.55, r * 0.4, r * 0.35);
-
-            ctx.fillStyle = "#263238";
-            ctx.beginPath(); ctx.arc(0, -r*0.6, r*0.4, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(0, r*0.6, r*0.4, 0, Math.PI*2); ctx.fill();
-
-            ctx.fillStyle = color;
-            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
-            ctx.lineWidth = 3; ctx.strokeStyle = "#0d131a"; ctx.stroke();
-
-            if(isHexaTitan) {
-                ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4;
-                ctx.strokeRect(-r*0.4, -r*0.4, r*0.8, r*0.8);
-            }
-
-            ctx.fillStyle = "#78909c";
-            ctx.fillRect(r * 0.4, -5, r * 1.1, 10);
-            ctx.strokeStyle = "#263238"; ctx.strokeRect(r * 0.4, -5, r * 1.1, 10);
+            // Rendu visuel de l'arme équipée tenue en main
+            ctx.fillStyle = "#37474f";
+            let weaponId = account.weapon;
+            if(weaponId === 0) ctx.fillRect(0, -4, 30, 8); // Pistol Basic Length
+            else if(weaponId === 1) ctx.fillRect(0, -6, 42, 12); // Rifle Assault Length
+            else ctx.fillRect(0, -8, 48, 16); // Plasma Cannon Massive Core
 
             ctx.restore();
 
-            ctx.fillStyle = "#ffffff"; ctx.font = "bold 13px Segoe UI";
-            ctx.shadowBlur = 3; ctx.shadowColor = "black";
-            ctx.fillText(label, cx - (r * 1.3), cy - r - 15);
-            
-            ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(cx - 25, cy - r - 8, 50, 5);
-            let hpPercentage = Math.max(0, hp / maxHp);
-            ctx.fillStyle = hpPercentage > 0.4 ? "#4caf50" : "#f44336";
-            ctx.fillRect(cx - 25, cy - r - 8, 50 * hpPercentage, 5);
-            ctx.shadowBlur = 0; 
+            ctx.restore(); // Fin de la translation de la caméra
+
+            // 8. COUCHE D'INTERFACE GRAPHIQUE RADAR (MINIMAP HUD SYSTEM)
+            renderOverlayRadarMinimap();
+
+            // 9. RENDER MOBILE JOYSTICK ONSCREEN INTERFACE GESTURE
+            if (isTouchDevice && stickActive) {
+                ctx.save();
+                ctx.fillStyle = "rgba(255,255,255,0.08)";
+                ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 2;
+                ctx.beginPath(); ctx.arc(stickStart.x, stickStart.y, joyLayout.r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
+
+                ctx.fillStyle = "rgba(30, 136, 229, 0.6)";
+                ctx.beginPath(); ctx.arc(stickMove.x, stickMove.y, 24, 0, Math.PI*2); ctx.fill();
+                ctx.restore();
+            }
         }
 
-        function drawTouchJoystickCircleElement(sx, sy, cx, cy, maxR) {
-            ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
-            ctx.beginPath(); ctx.arc(sx, sy, maxR, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 2; ctx.stroke();
-
-            ctx.fillStyle = "rgba(30, 136, 229, 0.45)";
-            ctx.beginPath(); ctx.arc(cx, cy, 28, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.5; ctx.stroke();
-        }
-
-        function drawTacticalRadarMinimapComponent() {
-            let mSize = largeMap ? Math.min(canvas.width, canvas.height) * 0.82 : 160;
+        // --- Rendu du Mini-radar de Combat Supérieur Droit ---
+        function renderOverlayRadarMinimap() {
+            let mSize = largeMap ? Math.min(canvas.width, canvas.height) * 0.75 : 170;
             let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 20;
             let mY = largeMap ? (canvas.height - mSize)/2 : 20;
             let ratio = mSize / world.w;
             
-            ctx.fillStyle = "rgba(9, 13, 18, 0.88)"; ctx.fillRect(mX, mY, mSize, mSize);
-            ctx.strokeStyle = "#243447"; ctx.lineWidth = 2.5; ctx.strokeRect(mX, mY, mSize, mSize);
+            ctx.fillStyle = "rgba(9, 13, 18, 0.85)"; ctx.fillRect(mX, mY, mSize, mSize);
+            ctx.strokeStyle = "#243447"; ctx.lineWidth = 2; ctx.strokeRect(mX, mY, mSize, mSize);
             
-            ctx.fillStyle = "rgba(74, 59, 50, 0.5)";
-            roads.forEach(r => { ctx.fillRect(mX + r.x*ratio, mY + r.y*ratio, r.w*ratio, r.h*ratio); });
-
-            ctx.fillStyle = "rgba(27, 77, 62, 0.6)";
-            trees.forEach(t => {
-                ctx.beginPath(); ctx.arc(mX + t.x*ratio, mY + t.y*ratio, Math.max(1.5, t.r*ratio), 0, Math.PI*2); ctx.fill();
-            });
-
+            // Dessin des structures géométriques à l'intérieur de la carte radar mini
             obstacles.forEach(obs => {
-                ctx.fillStyle = obs.color || "rgba(87, 96, 111, 0.6)";
+                ctx.fillStyle = "rgba(87, 96, 111, 0.6)";
                 ctx.fillRect(mX + obs.x*ratio, mY + obs.y*ratio, obs.w*ratio, obs.h*ratio);
-                ctx.fillStyle = obs.door.isOpen ? "#00ff00" : "#ffd700";
+                
+                // Marqueur de porte jaune miniature
+                ctx.fillStyle = "#ffb300";
                 ctx.fillRect(mX + obs.door.x*ratio, mY + obs.door.y*ratio, Math.max(2, obs.door.w*ratio), Math.max(2, obs.door.h*ratio));
             });
             
+            // Position du joueur local (Flèche bleue fixe ou point focal centré)
             ctx.fillStyle = "#1e88e5"; ctx.beginPath(); ctx.arc(mX + player.x*ratio, mY + player.y*ratio, 4, 0, Math.PI*2); ctx.fill();
             
-            if(currentMode === "offline") {
-                localBots.forEach(b => {
-                    if(b.hp > 0) {
-                        ctx.fillStyle = b.type === "HEXA-TITAN" ? "#ff0000" : "#e65100";
-                        ctx.beginPath(); ctx.arc(mX + b.x*ratio, mY + b.y*ratio, b.type === "HEXA-TITAN" ? 3.5 : 2.5, 0, Math.PI*2); ctx.fill();
-                    }
-                });
-            } else {
-                for(let id in otherPlayers) {
-                    if(otherPlayers[id].hp > 0) {
-                        ctx.fillStyle = "#ff5252";
-                        ctx.beginPath(); ctx.arc(mX + otherPlayers[id].x*ratio, mY + otherPlayers[id].y*ratio, 2.5, 0, Math.PI*2); ctx.fill();
-                    }
-                }
-            }
+            // Positions des menaces bots locales sur le radar (Points rouges)
+            ctx.fillStyle = "#e65100"; 
+            localBots.forEach(b => { 
+                if(b.hp > 0) { 
+                    ctx.beginPath(); ctx.arc(mX + b.x*ratio, mY + b.y*ratio, b.type.includes("titan")? 4 : 2, 0, Math.PI*2); ctx.fill(); 
+                } 
+            });
         }
 
+        // Mobile door manual pointer action click hook
+        document.getElementById("mobile-door-prompt").addEventListener("click", () => {
+            obstacles.forEach(obs => {
+                let dist = Math.hypot(player.x - (obs.door.x + obs.door.w/2), player.y - (obs.door.y + obs.door.h/2));
+                if(dist < 120) obs.door.open = true;
+            });
+        });
+
+        // --- Initialisation automatique du démarrage ---
         if(localStorage.getItem("ts_user_admin@gmail.com")) {
             document.getElementById("auth-email").value = "admin@gmail.com";
             document.getElementById("auth-name").value = "Commander";
             document.getElementById("auth-pass").value = "123456";
         }
+
+        // Start Clock Engine Loop
+        loop();
     </script>
 </body>
 </html>
