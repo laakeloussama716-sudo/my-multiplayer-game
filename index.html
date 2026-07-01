@@ -260,7 +260,6 @@
             { id: 2, name: "Quantum Shield", price: 2500, reqStage: 20, protection: 5, desc: "Advanced nano-magnetic force dynamic." }
         ];
 
-        // Random phrases for conversational bot agents
         const BOT_CHAT_PHRASES = [
             "I'm scanning the perimeter for hostile forces!",
             "Cover me! Moving past the central building complex.",
@@ -319,7 +318,6 @@
             document.getElementById("game-chat-box").style.display = "none";
         }
 
-        // Navigation Controllers Bridges (Strict Return to Tactical Lobby Main Menu Logic)
         document.getElementById("btn-switch-account").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("auth-screen").style.display = "flex"; });
         document.getElementById("btn-goto-play").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
         
@@ -375,7 +373,7 @@
         let gameActive = false;
         let largeMap = false;
         
-        // SPEED FIXED: Speed boosted by +25% (From 6.0 to 7.5)
+        // SPEED FIXED: 7.5 (+25% faster)
         let player = { id: null, x: 2000, y: 2000, r: 18, speed: 7.5, hp: 100, maxHp: 100, angle: 0, nickname: "", legCycle: 0, isMoving: false };
         let camera = { x: 2000, y: 2000 };
         let otherPlayers = {};
@@ -508,7 +506,6 @@
 
         window.startOfflineMission = function(lvl) { currentStage = lvl; currentMode = "offline"; document.getElementById("campaign-screen").style.display = "none"; initMatchEngine(); };
 
-        // 1v1 Room Matchmaking Queue Actions
         document.getElementById("btn-match-1v1").addEventListener("click", () => {
             if(account.gold < 70) { alert("Insufficient Gold for 1v1 Duel! Need 70 G."); return; }
             document.getElementById("online-lobby").style.display = "none";
@@ -522,7 +519,6 @@
             document.getElementById("online-lobby").style.display = "flex";
         });
 
-        // BR 30 Rooms direct actions
         document.getElementById("btn-match-br").addEventListener("click", () => {
             if(account.gold < 30) { alert("Insufficient Gold for War Room 30! Need 30 G."); return; }
             account.gold -= 30; saveAccount();
@@ -530,7 +526,6 @@
             socket.emit("joinBR30Direct", { nickname: account.nickname, email: account.email });
         });
 
-        // CO-OP Multi-stage server setups
         document.getElementById("btn-match-coop").addEventListener("click", () => {
             document.getElementById("online-lobby").style.display = "none";
             socket.emit("joinCoopQueue", { nickname: account.nickname, email: account.email, stage: currentStage });
@@ -557,18 +552,21 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // CHAT FIXED: Packet synced with correct Server packet name "chatMessage"
+        // CHAT ENGINE REWORKED FOR 100% RELIABILITY
         function submitPlayerChat() {
             const input = document.getElementById("chat-input-field");
             const text = input.value.trim();
             if(!text) return;
             
             if(currentMode !== "offline") {
-                // Sent to server via unified event string
-                socket.emit("chatMessage", { sender: account.nickname, msg: text });
-                // Show locally instantly
-                addChatMessage(account.nickname, text, "player");
+                // We send both 'msg' and 'message' fields to satisfy any server implementation perfectly
+                socket.emit("chatMessage", { 
+                    sender: account.nickname, 
+                    msg: text,
+                    message: text
+                });
             } else {
+                // Local echo only on offline mode
                 addChatMessage(account.nickname, text, "player");
                 setTimeout(() => {
                     let activeBots = localBots.filter(b => b.hp > 0);
@@ -623,10 +621,17 @@
         socket.on("bulletFired", bData => bullets.push(bData));
         socket.on("onlineKillAward", () => { account.gold += 10; saveAccount(); localKills++; });
         
-        // CHAT FIXED: Standardized receiver handling incoming messages perfectly
+        // GLOBAL SYNC CHAT RECEIVER: Handles all inbound chats reliably and paints correctly
         socket.on("chatMessage", data => {
-            if(gameActive && data.sender !== account.nickname) {
-                addChatMessage(data.sender, data.msg, "enemy");
+            if(gameActive && data && data.sender) {
+                let actualMsg = data.message || data.msg || "";
+                if(actualMsg) {
+                    let chatType = "enemy";
+                    if(data.sender === account.nickname) {
+                        chatType = "player";
+                    }
+                    addChatMessage(data.sender, actualMsg, chatType);
+                }
             }
         });
 
@@ -698,13 +703,11 @@
                 let count = 4 + currentStage;
                 for(let i=0; i<count; i++) {
                     let b = getSafeSpawnCoords(16);
-                    // SPEED FIXED: Bots speeds synchronized smoothly (+25% buffed from 2.2 to 2.75)
                     localBots.push({ id: "bot_"+i, type: "standard", x: b.x, y: b.y, r: 16, speed: 2.75, hp: 35, maxHp: 35, fireCooldown: Math.random()*50, legCycle: 0, isMoving: true });
                 }
             }
         }
 
-        // Input Keyboard Listeners
         window.addEventListener("keydown", e => { 
             if (!gameActive) return; 
             if(document.activeElement === document.getElementById("chat-input-field")) return;
@@ -818,7 +821,7 @@
 
             player.isMoving = moved;
             if(player.isMoving) {
-                player.legCycle += 0.35; // Legs step cycles frequency tuned realistically
+                player.legCycle += 0.35;
             } else {
                 player.legCycle = 0;
             }
@@ -874,7 +877,7 @@
                     source.r = 35;
                     source.hp = 200;
                     source.maxHp = 200;
-                    source.speed = 1.88; // Boss speed amplified +25% proportionally (from 1.5 to 1.88)
+                    source.speed = 1.88;
                     source.damage = 60; 
                     for(let k = 1; k < 6; k++) { activeStandardBots[k].hp = 0; } 
                     addChatMessage("SYSTEM WARNING", "Six enemy units fused into a SUPER BOT X6 entity!", "system");
@@ -946,12 +949,10 @@
             }
         }
 
-        // DESIGN REWORK: Highly realistic soldiers with ground shadow drop mapping layouts
         function drawHuman(x, y, r, angle, color, name, curHp, maxHp, isBoss = false, legCycle = 0, isMoving = false) {
             if (curHp <= 0) return;
             ctx.save();
             
-            // 1. Reality Depth Ground Shadow
             ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
             ctx.shadowBlur = 12;
             ctx.shadowOffsetX = 5;
@@ -959,7 +960,6 @@
             
             ctx.translate(x, y);
             
-            // Text and status elements rendered without inheriting shadow
             ctx.save();
             ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
             ctx.fillStyle = isBoss ? "#ff1744" : "white"; 
@@ -973,15 +973,11 @@
             
             ctx.rotate(angle); 
 
-            // 2. Realistic Leg Walking Cycles Architecture
             if (isMoving) {
                 let leftLegOffset = Math.sin(legCycle) * 8;
                 let rightLegOffset = Math.sin(legCycle + Math.PI) * 8;
-
-                ctx.fillStyle = "#2c3e50"; // Military tactical boots color
-                // Left Boot
+                ctx.fillStyle = "#2c3e50";
                 ctx.fillRect(-10 + leftLegOffset, -r + 2, 9, 6);
-                // Right Boot
                 ctx.fillRect(-10 + rightLegOffset, r - 8, 9, 6);
             } else {
                 ctx.fillStyle = "#2c3e50";
@@ -989,20 +985,16 @@
                 ctx.fillRect(-8, r - 7, 7, 5);
             }
             
-            // 3. Main Player Vest & Base Torso
             ctx.fillStyle = color; 
             ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
             
-            // Outer tactical armor lines outline
             ctx.strokeStyle = "rgba(0,0,0,0.4)";
             ctx.lineWidth = 2.5;
             ctx.stroke();
 
-            // Premium Inner Camouflage Layer Accent Ring
             ctx.beginPath(); ctx.arc(0, 0, r * 0.6, 0, Math.PI * 2);
             ctx.fillStyle = "rgba(255,255,255,0.12)"; ctx.fill();
 
-            // 4. Heavy weapon barrel execution
             ctx.fillStyle = "#1e272e"; 
             ctx.fillRect(4, -5, r * 1.45, 10); 
             ctx.strokeStyle = "#718093"; ctx.lineWidth = 1; ctx.strokeRect(4, -5, r * 1.45, 10);
@@ -1034,13 +1026,11 @@
             });
 
             if (gameActive && player.hp > 0) {
-                // Realistic Tactical Blue Color Scheme
                 drawHuman(player.x, player.y, player.r, player.angle, "#273c75", player.nickname, player.hp, player.maxHp, false, player.legCycle, player.isMoving);
             }
             
             for (let id in otherPlayers) { 
                 let p = otherPlayers[id]; 
-                // Realistic Enemy Dark Red Scheme
                 drawHuman(p.x, p.y, 18, p.angle, "#7f1d1d", p.nickname, p.hp, p.maxHp, false, p.legCycle, p.isMoving); 
             }
             
@@ -1048,7 +1038,6 @@
                 if(bot.type === "merged_boss") {
                     drawHuman(bot.x, bot.y, bot.r, bot.angle, "#9c0517", "SUPER BOT X6", bot.hp, bot.maxHp, true, bot.legCycle, bot.isMoving);
                 } else {
-                    // Realistic Bot Camouflage Gray Scheme
                     drawHuman(bot.x, bot.y, bot.r, bot.angle, "#353b48", "BOT SOLDIER", bot.hp, bot.maxHp, false, bot.legCycle, bot.isMoving);
                 }
             });
