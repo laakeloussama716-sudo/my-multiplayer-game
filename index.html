@@ -3,149 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tactical Souls: Tournament Edition</title>
+    <title>Tactical Souls: Ultimate Combat Arena</title>
     <style>
-        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0d131a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; touch-action: none; color: white; }
-        canvas { display: block; }
+        body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0d131a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; touch-action: none; color: white; width: 100%; height: 100%; }
+        canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
         
+        /* Premium Core UI Designs */
         .btn-premium {
             background: linear-gradient(135deg, #1565C0 0%, #1e88e5 100%);
-            border: 1px solid #0d47a1; color: white; padding: 12px 24px;
+            border: 1px solid #0d47a1; color: white; padding: 14px 28px;
             font-weight: bold; border-radius: 8px; cursor: pointer;
             box-shadow: 0 4px 15px rgba(21, 101, 192, 0.4), inset 0 1px 2px rgba(255,255,255,0.3);
-            text-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: all 0.2s ease;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5); transition: all 0.2s ease; font-size: 15px; letter-spacing: 0.5px;
         }
         .btn-premium:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(21, 101, 192, 0.6); }
-        .btn-secondary { background: linear-gradient(135deg, #37474F 0%, #455A64 100%); border: 1px solid #263238; border-radius: 8px; color: white; padding: 10px 20px; font-weight: bold; cursor: pointer; }
-
-        .screen-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #0d131a; display: flex; justify-content: center; align-items: center; z-index: 10; }
-        .menu-card { background: #16202c; padding: 30px; border-radius: 12px; border: 1px solid #243447; text-align: center; width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
-        .menu-card input { width: 90%; padding: 10px; margin: 8px 0; border: none; border-radius: 6px; background: #090d12; color: white; text-align: center; border: 1px solid #243447; }
+        .btn-premium:active { transform: translateY(1px); }
         
+        .btn-secondary { 
+            background: linear-gradient(135deg, #37474F 0%, #455A64 100%); 
+            border: 1px solid #263238; border-radius: 8px; color: white; 
+            padding: 12px 24px; font-weight: bold; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-secondary:hover { background: #455A64; }
+
+        .screen-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: radial-gradient(circle, #1a2634 0%, #0d131a 100%); display: flex; justify-content: center; align-items: center; z-index: 10; }
+        .menu-card { background: rgba(22, 32, 44, 0.95); padding: 35px; border-radius: 16px; border: 1px solid #243447; text-align: center; width: 350px; box-shadow: 0 15px 35px rgba(0,0,0,0.8); backdrop-filter: blur(8px); }
+        .menu-card h2 { margin-top: 0; margin-bottom: 20px; font-size: 24px; color: #1e88e5; text-transform: uppercase; letter-spacing: 1px; }
+        .menu-card input { width: 92%; padding: 12px; margin: 10px 0; border: none; border-radius: 6px; background: #090d12; color: white; text-align: center; border: 1px solid #243447; font-size: 14px; }
+        .menu-card input:focus { border-color: #1e88e5; outline: none; }
+        
+        /* Layout Displays State */
         #main-menu, #shop-screen, #mode-gate, #campaign-screen, #online-lobby, #matchmaking-screen { display: none; }
-        .stats-banner { background: #1c2a39; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: left; }
         
-        .shop-container { display: flex; gap: 20px; max-width: 90%; overflow-x: auto; padding: 10px; }
-        .shop-item { background: #16202c; padding: 15px; border-radius: 10px; border: 1px solid #243447; min-width: 140px; text-align: center; }
-        .grid-levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; max-height: 300px; overflow-y: auto; padding: 10px; }
-
-        #hud { position: absolute; top: 15px; left: 15px; pointer-events: none; display: none; z-index: 4; }
-        #hp-bar-container { width: 160px; height: 16px; background: #263238; border-radius: 4px; overflow: hidden; margin-top: 5px; border: 1px solid #37474F; }
-        #hp-bar { width: 100%; height: 100%; background: #2e7d32; }
-        #gold-match-display { margin-top: 5px; font-size: 18px; color: #ffd700; text-shadow: 1px 1px 2px black; }
-
-        #ingame-settings-btn { position: absolute; top: 15px; left: 200px; width: 36px; height: 36px; border-radius: 50%; display: none; justify-content: center; align-items: center; z-index: 5; }
-        #ingame-popup { position: absolute; top: 65px; left: 200px; background: #16202c; border: 1px solid #243447; padding: 12px; border-radius: 8px; display: none; flex-direction: column; gap: 8px; z-index: 5; }
+        .stats-banner { background: #1c2a39; padding: 14px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; text-align: left; border: 1px solid #2d3f55; line-height: 1.6; }
+        .stats-banner div { font-weight: 500; color: #b0bec5; }
+        .stats-banner span { color: #fff; font-weight: bold; float: right; }
         
-        .match-end-screen { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(13,19,26,0.85); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:9; }
+        .shop-container { display: flex; gap: 15px; max-width: 100%; overflow-x: auto; padding: 10px 5px; margin-bottom: 15px; border-bottom: 1px solid #243447; }
+        .shop-item { background: #111a24; padding: 15px; border-radius: 10px; border: 1px solid #243447; min-width: 150px; text-align: center; flex-shrink: 0; }
+        .shop-item h4 { margin: 0 0 10px 0; font-size: 15px; color: #eceff1; }
+        .shop-item p { margin: 0 0 12px 0; font-size: 12px; color: #819ca9; }
+        
+        .grid-levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; max-height: 280px; overflow-y: auto; padding: 10px; background: #090d12; border-radius: 8px; border: 1px solid #243447; }
+        
+        /* HUD Style Architecture */
+        #hud { position: absolute; top: 20px; left: 20px; pointer-events: none; display: none; z-index: 5; background: rgba(13, 19, 26, 0.75); padding: 12px; border-radius: 8px; border: 1px solid #243447; backdrop-filter: blur(4px); }
+        #hud-name { font-weight: bold; font-size: 16px; color: #fff; margin-bottom: 6px; text-shadow: 1px 1px 2px black; }
+        #hp-bar-container { width: 180px; height: 16px; background: #263238; border-radius: 4px; overflow: hidden; border: 1px solid #37474F; position: relative; }
+        #hp-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #2e7d32, #4caf50); transition: width 0.1s ease; }
+        #gold-match-display { margin-top: 8px; font-size: 16px; color: #ffd700; font-weight: bold; text-shadow: 1px 1px 2px black; }
+
+        /* Ingame Settings Floating Panels */
+        #ingame-settings-btn { position: absolute; top: 20px; left: 240px; width: 42px; height: 42px; border-radius: 50%; display: none; justify-content: center; align-items: center; z-index: 6; font-size: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+        #ingame-popup { position: absolute; top: 75px; left: 240px; background: rgba(22, 32, 44, 0.95); border: 1px solid #243447; padding: 15px; border-radius: 10px; display: none; flex-direction: column; gap: 10px; z-index: 6; box-shadow: 0 8px 25px rgba(0,0,0,0.6); }
+        
+        .match-end-screen { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(9, 13, 18, 0.9); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:99; }
+        
+        /* Mobile Touch Attack Mechanics overlay trigger */
+        #touch-fire-zone { position: absolute; bottom: 40px; right: 40px; width: 80px; height: 80px; background: rgba(255, 255, 255, 0.15); border: 3px solid rgba(255, 255, 255, 0.4); border-radius: 50%; z-index: 5; display: none; justify-content: center; align-items: center; font-weight: bold; color: rgba(255,255,255,0.7); font-size: 14px; text-transform: uppercase; }
     </style>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
 
-    <!-- Genuine Secure Authentication Screen -->
+    <!-- Genuine Secure Authentication Gateway -->
     <div id="auth-screen" class="screen-overlay" style="display: flex;">
         <div class="menu-card">
             <h2 id="auth-title">Account Gateway</h2>
-            <input type="email" id="auth-email" placeholder="Gmail Address">
-            <input type="text" id="auth-name" placeholder="Unique Nickname">
-            <input type="password" id="auth-pass" placeholder="Secure Password">
+            <input type="email" id="auth-email" placeholder="Gmail Address" value="">
+            <input type="text" id="auth-name" placeholder="Unique Nickname" value="">
+            <input type="password" id="auth-pass" placeholder="Secure Password" value="">
             <button class="btn-premium" id="btn-auth-submit" style="width:100%; margin-top:10px;">Login / Register</button>
-            <button class="btn-secondary" id="btn-toggle-auth" style="width:100%; margin-top:8px; font-size:12px; background:none; border:none; color:#1e88e5;">Need a new account? Register here</button>
-            <div id="auth-error" style="color:#ff5252; margin-top:10px; font-size:12px;"></div>
+            <button class="btn-secondary" id="btn-toggle-auth" style="width:100%; margin-top:12px; font-size:12px; background:none; border:none; color:#1e88e5; text-decoration: underline;">Need a new account? Register here</button>
+            <div id="auth-error" style="color:#ff5252; margin-top:12px; font-size:13px; font-weight: 500;"></div>
         </div>
     </div>
 
-    <!-- Main Game Menu Lobby -->
+    <!-- Main Tactical Lobby Screen -->
     <div id="main-menu" class="screen-overlay">
-        <div class="menu-card" style="width: 360px;">
+        <div class="menu-card" style="width: 380px;">
             <h2>Tactical Lobby</h2>
             <div class="stats-banner">
-                <div id="user-display-name">Name: -</div>
-                <div id="user-display-gold">Gold: 0 Coin</div>
-                <div id="user-display-level">Max Stage: 1</div>
+                <div>Soldier Name: <span id="user-display-name">-</span></div>
+                <div style="margin-top: 8px;">Gold Reserve: <span id="user-display-gold" style="color: #ffd700;">0 G</span></div>
+                <div style="margin-top: 8px;">Max Cleared Stage: <span id="user-display-level" style="color: #4caf50;">1</span></div>
             </div>
-            <div style="display:flex; flex-direction:column; gap:12px;">
-                <button class="btn-premium" id="btn-goto-play">START MATCH</button>
+            <div style="display:flex; flex-direction:column; gap:14px;">
+                <button class="btn-premium" id="btn-goto-play">LAUNCH OPERATION</button>
                 <button class="btn-secondary" id="btn-goto-shop">ARMORY SHOP</button>
-                <button class="btn-secondary" id="btn-switch-account" style="background:#c62828;">Log Out</button>
+                <button class="btn-secondary" id="btn-switch-account" style="background: linear-gradient(135deg, #b71c1c 0%, #e53935 100%); border-color: #7f0000;">Log Out Account</button>
             </div>
         </div>
     </div>
 
-    <!-- Armory Shop Screen -->
+    <!-- Armory Weaponry Shop Screen -->
     <div id="shop-screen" class="screen-overlay">
-        <h2 style="color:#ffd700;">ARMORY MARKET</h2>
-        <h3 id="shop-gold-title">Your Gold: 0</h3>
-        <div class="shop-container" id="weapons-rack"></div>
-        <div class="shop-container" id="armors-rack"></div>
-        <button class="btn-premium" id="btn-back-shop" style="margin-top:20px;">Return to Menu</button>
+        <div class="menu-card" style="width: 85%; max-width: 600px;">
+            <h2 style="color:#ffd700; margin-bottom: 5px;">ARMORY MARKET</h2>
+            <p id="shop-gold-title" style="margin: 0 0 20px 0; font-size: 16px; color: #ffd700; font-weight: bold;">Your Balance: 0 G</p>
+            
+            <h3 style="text-align: left; font-size: 15px; color: #1e88e5; margin: 10px 0;">Primary Weapons</h3>
+            <div class="shop-container" id="weapons-rack"></div>
+            
+            <h3 style="text-align: left; font-size: 15px; color: #1e88e5; margin: 10px 0;">Tactical Vests</h3>
+            <div class="shop-container" id="armors-rack"></div>
+            
+            <button class="btn-premium" id="btn-back-shop" style="margin-top:15px; width: 100%;">Return to Tactical Lobby</button>
+        </div>
     </div>
 
-    <!-- Mode Selection Gate -->
+    <!-- Mode Selector Gate -->
     <div id="mode-gate" class="screen-overlay">
         <div class="menu-card">
             <h2>Select Operations</h2>
-            <div style="display:flex; flex-direction:column; gap:12px;">
-                <button class="btn-premium" id="btn-gate-offline">OFFLINE MISSION</button>
+            <div style="display:flex; flex-direction:column; gap:14px;">
+                <button class="btn-premium" id="btn-gate-offline">OFFLINE CAMPAIGN</button>
                 <button class="btn-premium" id="btn-gate-online" style="background:linear-gradient(135deg, #2e7d32 0%, #4caf50 100%); border-color:#1b5e20;">ONLINE MULTIPLAYER</button>
-                <button class="btn-secondary" id="btn-back-gate">Back</button>
+                <button class="btn-secondary" id="btn-back-gate">Return to Tactical Lobby</button>
             </div>
         </div>
     </div>
 
     <!-- Campaign Map Gate -->
     <div id="campaign-screen" class="screen-overlay">
-        <div class="menu-card" style="width:85%; max-width:500px;">
+        <div class="menu-card" style="width:85%; max-width:520px;">
             <h2>Campaign Stages</h2>
             <div class="grid-levels" id="stages-grid"></div>
-            <button class="btn-secondary" id="btn-back-campaign" style="margin-top:15px; width:100%;">Back</button>
+            <button class="btn-secondary" id="btn-back-campaign" style="margin-top:20px; width:100%;">Back to Modes</button>
         </div>
     </div>
 
-    <!-- Online Matchmaking Lobby -->
+    <!-- Online War Rooms Matchmaking Lobby -->
     <div id="online-lobby" class="screen-overlay">
         <div class="menu-card">
-            <h2>War Rooms</h2>
-            <div style="display:flex; flex-direction:column; gap:12px;">
+            <h2>War Rooms Lobby</h2>
+            <div style="display:flex; flex-direction:column; gap:14px;">
                 <button class="btn-premium" id="btn-match-1v1">DUEL 1v1 (Bet: 70G)</button>
-                <button class="btn-premium" id="btn-match-br">BATTLE ROYALE 30 (Fee: 30G)</button>
-                <button class="btn-premium" id="btn-match-coop">CO-OP VS BOTS (TEAM)</button>
-                <button class="btn-secondary" id="btn-back-lobby">Back</button>
+                <button class="btn-premium" id="btn-match-br" style="background: linear-gradient(135deg, #e65100 0%, #f57c00 100%); border-color: #bf360c;">WAR ROOM 30 (Fee: 30G)</button>
+                <button class="btn-premium" id="btn-match-coop" style="background: linear-gradient(135deg, #4a148c 0%, #7b1fa2 100%); border-color: #4a148c;">CO-OP VS BOTS (TEAM)</button>
+                <button class="btn-secondary" id="btn-back-lobby">Back to Modes</button>
             </div>
         </div>
     </div>
 
-    <!-- 1v1 Matchmaking Queue Loader -->
+    <!-- 1v1 Queue Search Matchmaking Loader -->
     <div id="matchmaking-screen" class="screen-overlay">
         <div class="menu-card">
-            <h2 style="color:#ffd700;">Searching Rival...</h2>
-            <div style="margin:20px 0; font-size:18px;" id="matchmaking-timer">Waiting for Player 2...</div>
+            <h2 style="color:#ffd700;" id="search-title">Searching Rival...</h2>
+            <div style="margin:25px 0; font-size:18px; font-weight: bold; color: #eceff1;" id="matchmaking-timer">Waiting for Player 2...</div>
             <button class="btn-secondary" id="btn-cancel-matchmaking" style="width:100%;">Cancel Search</button>
         </div>
     </div>
 
-    <!-- HUD Layout -->
+    <!-- Heads Up Display UI -->
     <div id="hud">
         <div id="hud-name">Soldier</div>
         <div id="hp-bar-container"><div id="hp-bar"></div></div>
         <div id="gold-match-display">Gold: 0</div>
     </div>
 
+    <!-- Ingame Floating Settings -->
     <button class="btn-secondary" id="ingame-settings-btn">?</button>
     <div id="ingame-popup">
-        <button class="menu-btn btn-secondary" id="btn-game-resume">Resume</button>
-        <button class="menu-btn btn-secondary" id="btn-game-quit" style="background:#c62828;">Quit Room</button>
+        <button class="btn-secondary" id="btn-game-resume">Resume Combat</button>
+        <button class="btn-secondary" id="btn-game-quit" style="background: linear-gradient(135deg, #b71c1c 0%, #e53935 100%); border-color: #7f0000;">Quit Room</button>
     </div>
 
-    <!-- Match End Screens (Offline Only) -->
+    <!-- Mobile Screen Controls Overlay Widgets -->
+    <div id="touch-fire-zone">FIRE</div>
+
+    <!-- Match End Screens (Offline Mode Fallbacks) -->
     <div id="screen-lose" class="match-end-screen">
-        <h1 style="color:#c62828; font-size:45px;">MISSION FAILED</h1>
-        <button class="btn-premium" id="btn-lose-retry">Try Again</button>
+        <h1 style="color:#e53935; font-size:50px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); font-weight: 900; letter-spacing: 2px;">MISSION FAILED</h1>
+        <button class="btn-premium" id="btn-lose-retry" style="margin-top: 20px; padding: 16px 40px;">REDEPLOY</button>
     </div>
     <div id="screen-win" class="match-end-screen">
-        <h1 style="color:#4caf50; font-size:45px;">MISSION SUCCESS</h1>
-        <button class="btn-premium" id="btn-win-cont">Continue</button>
+        <h1 style="color:#4caf50; font-size:50px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); font-weight: 900; letter-spacing: 2px;">MISSION SUCCESS</h1>
+        <button class="btn-premium" id="btn-win-cont" style="margin-top: 20px; padding: 16px 40px; background: linear-gradient(135deg, #2e7d32 0%, #4caf50 100%);">NEXT OPERATIONS</button>
     </div>
 
     <canvas id="game"></canvas>
@@ -153,24 +187,29 @@
     <script>
         const canvas = document.getElementById("game");
         const ctx = canvas.getContext("2d");
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; updateJoystickPositions(); }
+        
+        function resize() { 
+            canvas.width = window.innerWidth; 
+            canvas.height = window.innerHeight; 
+            updateJoystickLayout(); 
+        }
         window.addEventListener("resize", resize);
 
         let account = null;
         let isRegisterMode = false;
 
         const WEAPONS_DATA = [
-            { id: 0, name: "Pistol Basic", price: 0, reqStage: 1, dmg: 10 },
-            { id: 1, name: "Rifle Assault", price: 500, reqStage: 5, dmg: 20 },
-            { id: 2, name: "Plasma Cannon", price: 2000, reqStage: 15, dmg: 45 }
+            { id: 0, name: "Pistol Basic", price: 0, reqStage: 1, dmg: 10, desc: "Standard issue weapon. Infinite ammo." },
+            { id: 1, name: "Rifle Assault", price: 500, reqStage: 5, dmg: 22, desc: "High velocity combat rifle." },
+            { id: 2, name: "Plasma Cannon", price: 2000, reqStage: 15, dmg: 48, desc: "Heavy alien energy core blaster." }
         ];
         const ARMORS_DATA = [
-            { id: 0, name: "Recruit Vest", price: 0, reqStage: 1, protection: 0 },
-            { id: 1, name: "Kevlar Plating", price: 600, reqStage: 8, protection: 1 },
-            { id: 2, name: "Quantum Shield", price: 2500, reqStage: 20, protection: 2 }
+            { id: 0, name: "Recruit Vest", price: 0, reqStage: 1, protection: 0, desc: "Basic cloth uniform wrapper." },
+            { id: 1, name: "Kevlar Plating", price: 600, reqStage: 8, protection: 2, desc: "Absorbs 2 units damage per shell." },
+            { id: 2, name: "Quantum Shield", price: 2500, reqStage: 20, protection: 5, desc: "Advanced nano-magnetic force dynamic." }
         ];
 
-        // Auth Logic Guard
+        // Auth Operations Guard Setup
         document.getElementById("btn-toggle-auth").addEventListener("click", () => {
             isRegisterMode = !isRegisterMode;
             document.getElementById("auth-title").innerText = isRegisterMode ? "Create New Profile" : "Account Gateway";
@@ -184,21 +223,21 @@
             let errorDiv = document.getElementById("auth-error");
 
             if(!email.includes("@") || name.length < 2 || pass.length < 4) {
-                errorDiv.innerText = "Error: Invalid inputs constraints.";
+                errorDiv.innerText = "Error: Invalid inputs verification parameters.";
                 return;
             }
             let userKey = "ts_user_" + email;
             let existingData = localStorage.getItem(userKey);
 
             if (isRegisterMode) {
-                if (existingData) { errorDiv.innerText = "Error: Email registered!"; return; }
-                account = { email: email, pass: pass, nickname: name, gold: 300, maxStage: 1, weapon: 0, armor: 0, itemsOwned: ["w_0", "a_0"] };
+                if (existingData) { errorDiv.innerText = "Error: Email registration already exists!"; return; }
+                account = { email: email, pass: pass, nickname: name, gold: 500, maxStage: 1, weapon: 0, armor: 0, itemsOwned: ["w_0", "a_0"] };
                 localStorage.setItem(userKey, JSON.stringify(account));
                 showMainMenu();
             } else {
-                if (!existingData) { errorDiv.innerText = "Error: Account not found!"; return; }
+                if (!existingData) { errorDiv.innerText = "Error: Account record not found!"; return; }
                 let parsed = JSON.parse(existingData);
-                if (parsed.pass !== pass || parsed.nickname !== name) { errorDiv.innerText = "Error: Credentials mismatch!"; return; }
+                if (parsed.pass !== pass || parsed.nickname !== name) { errorDiv.innerText = "Error: Authentication mismatch!"; return; }
                 account = parsed;
                 showMainMenu();
             }
@@ -207,31 +246,42 @@
         function saveAccount() { if(account) localStorage.setItem("ts_user_" + account.email, JSON.stringify(account)); }
         
         function showMainMenu() {
-            document.getElementById("auth-screen").style.display = "none";
+            // ????? ?? ???????? ???? ????? ?????? ???????? ??????
+            const menus = ["auth-screen", "shop-screen", "mode-gate", "campaign-screen", "online-lobby", "matchmaking-screen"];
+            menus.forEach(m => document.getElementById(m).style.display = "none");
+            
             document.getElementById("main-menu").style.display = "flex";
-            document.getElementById("user-display-name").innerText = "Soldier: " + account.nickname;
-            document.getElementById("user-display-gold").innerText = "Gold Bank: " + account.gold + " G";
-            document.getElementById("user-display-level").innerText = "Campaign Unlock: Stage " + account.maxStage;
+            document.getElementById("user-display-name").innerText = account.nickname;
+            document.getElementById("user-display-gold").innerText = account.gold + " G";
+            document.getElementById("user-display-level").innerText = account.maxStage;
         }
 
+        // Navigation Controllers Bridges (Strict Return to Tactical Lobby Main Menu Logic)
         document.getElementById("btn-switch-account").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("auth-screen").style.display = "flex"; });
         document.getElementById("btn-goto-play").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
-        document.getElementById("btn-back-gate").addEventListener("click", () => { document.getElementById("mode-gate").style.display = "none"; showMainMenu(); });
+        
+        document.getElementById("btn-back-gate").addEventListener("click", () => { showMainMenu(); });
         document.getElementById("btn-gate-offline").addEventListener("click", () => { document.getElementById("mode-gate").style.display = "none"; document.getElementById("campaign-screen").style.display = "flex"; buildCampaignGrid(); });
         document.getElementById("btn-back-campaign").addEventListener("click", () => { document.getElementById("campaign-screen").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
         document.getElementById("btn-gate-online").addEventListener("click", () => { document.getElementById("mode-gate").style.display = "none"; document.getElementById("online-lobby").style.display = "flex"; });
         document.getElementById("btn-back-lobby").addEventListener("click", () => { document.getElementById("online-lobby").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
         document.getElementById("btn-goto-shop").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("shop-screen").style.display = "flex"; renderShop(); });
-        document.getElementById("btn-back-shop").addEventListener("click", () => { document.getElementById("shop-screen").style.display = "none"; showMainMenu(); });
+        document.getElementById("btn-back-shop").addEventListener("click", () => { showMainMenu(); });
 
         function renderShop() {
-            document.getElementById("shop-gold-title").innerText = "Your Gold: " + account.gold + " G";
+            document.getElementById("shop-gold-title").innerText = "Your Balance: " + account.gold + " G";
             let wRack = document.getElementById("weapons-rack"); wRack.innerHTML = "";
             WEAPONS_DATA.forEach(w => {
                 let status = account.weapon === w.id ? "EQUIPPED" : (account.itemsOwned.includes("w_"+w.id) || w.price===0 ? "EQUIP" : "BUY " + w.price + "G");
-                wRack.innerHTML += `<div class="shop-item"><h4>${w.name}</h4><button class="btn-premium" onclick="triggerBuy('w', ${w.id}, ${w.price})">${status}</button></div>`;
+                wRack.innerHTML += `<div class="shop-item"><h4>${w.name}</h4><p>Damage: ${w.dmg}</p><button class="btn-premium" style="width:100%; padding:8px;" onclick="triggerBuy('w', ${w.id}, ${w.price})">${status}</button></div>`;
+            });
+            let aRack = document.getElementById("armors-rack"); aRack.innerHTML = "";
+            ARMORS_DATA.forEach(a => {
+                let status = account.armor === a.id ? "EQUIPPED" : (account.itemsOwned.includes("a_"+a.id) || a.price===0 ? "EQUIP" : "BUY " + a.price + "G");
+                aRack.innerHTML += `<div class="shop-item"><h4>${a.name}</h4><p>Block: ${a.protection}</p><button class="btn-premium" style="width:100%; padding:8px;" onclick="triggerBuy('a', ${a.id}, ${a.price})">${status}</button></div>`;
             });
         }
+
         window.triggerBuy = function(type, id, price) {
             let itemKey = type + "_" + id;
             if (account.itemsOwned.includes(itemKey) || price === 0) {
@@ -246,12 +296,12 @@
         function buildCampaignGrid() {
             let grid = document.getElementById("stages-grid"); grid.innerHTML = "";
             for (let i = 1; i <= 100; i++) {
-                let disabled = i > account.maxStage ? "opacity: 0.4; pointer-events:none;" : "";
-                grid.innerHTML += `<button class="btn-secondary" style="${disabled}" onclick="startOfflineMission(${i})">Lvl ${i}</button>`;
+                let disabled = i > account.maxStage ? "opacity: 0.3; pointer-events:none;" : "";
+                grid.innerHTML += `<button class="btn-secondary" style="${disabled}" onclick="startOfflineMission(${i})">${i}</button>`;
             }
         }
 
-        // --- Core Engine Architecture ---
+        // --- Core High-Performance Engine Architecture ---
         const socket = io("https://my-online-game-1n7l.onrender.com");
         const keys = {};
         const mouse = { x: 0, y: 0 };
@@ -262,32 +312,44 @@
         let gameActive = false;
         let largeMap = false;
         
-        let player = { id: null, x: 2000, y: 2000, r: 16, speed: 5.5, hp: 100, maxHp: 100, angle: 0, nickname: "" };
-        let camera = { x: 0, y: 0 };
+        let player = { id: null, x: 2000, y: 2000, r: 18, speed: 6.0, hp: 100, maxHp: 100, angle: 0, nickname: "" };
+        let camera = { x: 2000, y: 2000 };
         let otherPlayers = {};
         let bullets = [];
         let localBots = [];
         let matchGold = 0;
         let localKills = 0;
 
-        // Overlay text alerts mechanics (Canvas Text based - No alert blocks)
+        // Overlay text canvas engine alerts variables
         let canvasAlertText = "";
         let canvasAlertTimer = 0;
 
-        const leftJoystick = { active: false, startX: 90, startY: 0, currentX: 90, currentY: 0, touchId: null, maxRadius: 55 };
-        const rightJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 55 };
+        // Mobile dual joysticks variables (?????? ???????? ???????? ???????)
+        const leftJoystick = { active: false, startX: 100, startY: 0, currentX: 100, currentY: 0, touchId: null, maxRadius: 60 };
+        const rightJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 60 };
+        let isMobileTouch = false;
+        let touchShootInterval = 0;
 
-        function updateJoystickPositions() {
-            leftJoystick.startX = 90; leftJoystick.startY = canvas.height - 90; leftJoystick.currentX = leftJoystick.startX; leftJoystick.currentY = leftJoystick.startY;
-            rightJoystick.startX = canvas.width - 90; rightJoystick.startY = canvas.height - 90; rightJoystick.currentX = rightJoystick.startX; rightJoystick.currentY = rightJoystick.startY;
+        function updateJoystickLayout() {
+            leftJoystick.startY = canvas.height - 110; 
+            leftJoystick.currentX = leftJoystick.startX; 
+            leftJoystick.currentY = leftJoystick.startY;
+            
+            rightJoystick.startX = canvas.width - 110; 
+            rightJoystick.startY = canvas.height - 110; 
+            rightJoystick.currentX = rightJoystick.startX; 
+            rightJoystick.currentY = rightJoystick.startY;
         }
 
+        // Obstacles & Buildings mapping
         const obstacles = [
-            { x: 600, y: 500, w: 200, h: 200, walls: [{x: 600, y: 500, w: 200, h: 15},{x: 600, y: 500, w: 15, h: 200},{x: 785, y: 500, w: 15, h: 200},{x: 600, y: 685, w: 60, h: 15},{x: 720, y: 685, w: 80, h: 15}] },
-            { x: 2200, y: 800, w: 200, h: 200, walls: [{x: 2200, y: 800, w: 200, h: 15},{x: 2200, y: 800, w: 15, h: 200},{x: 2385, y: 800, w: 15, h: 200},{x: 2200, y: 985, w: 70, h: 15},{x: 2330, y: 985, w: 70, h: 15}] }
+            { x: 500, y: 500, w: 250, h: 250, walls: [{x: 500, y: 500, w: 250, h: 20},{x: 500, y: 500, w: 20, h: 250},{x: 730, y: 500, w: 20, h: 250},{x: 500, y: 730, w: 80, h: 20},{x: 670, y: 730, w: 80, h: 20}] },
+            { x: 2200, y: 900, w: 300, h: 200, walls: [{x: 2200, y: 900, w: 300, h: 20},{x: 2200, y: 900, w: 20, h: 200},{x: 2480, y: 900, w: 20, h: 200},{x: 2200, y: 1080, w: 100, h: 20},{x: 2400, y: 1080, w: 100, h: 20}] },
+            { x: 1400, y: 2500, w: 200, h: 300, walls: [{x: 1400, y: 2500, w: 200, h: 20},{x: 1400, y: 2500, w: 20, h: 300},{x: 1580, y: 2500, w: 20, h: 300},{x: 1400, y: 2780, w: 200, h: 20}] }
         ];
 
         function checkCollision(nx, ny, r) {
+            if (nx - r < 0 || nx + r > world.w || ny - r < 0 || ny + r > world.h) return true;
             for (let obs of obstacles) {
                 for(let wall of obs.walls) {
                     if (nx + r > wall.x && nx - r < wall.x + wall.w && ny + r > wall.y && ny - r < wall.y + wall.h) return true;
@@ -297,27 +359,40 @@
         }
 
         function getSafeSpawnCoords(radius) {
-            let rx, ry;
-            while(true) {
-                rx = Math.random() * (world.w - 400) + 200; ry = Math.random() * (world.h - 400) + 200;
-                if(!checkCollision(rx, ry, radius)) break;
+            let rx, ry, attempts = 0;
+            while(attempts < 500) {
+                rx = Math.random() * (world.w - 400) + 200; 
+                ry = Math.random() * (world.h - 400) + 200;
+                if(!checkCollision(rx, ry, radius)) return { x: rx, y: ry };
+                attempts++;
             }
-            return { x: rx, y: ry };
+            return { x: 2000, y: 2000 };
         }
 
+        // Ingame Floating Controls
         document.getElementById("ingame-settings-btn").addEventListener("click", () => {
-            let pop = document.getElementById("ingame-popup"); pop.style.display = pop.style.display === "flex" ? "none" : "flex";
+            let pop = document.getElementById("ingame-popup"); 
+            pop.style.display = pop.style.display === "flex" ? "none" : "flex";
         });
         document.getElementById("btn-game-resume").addEventListener("click", () => document.getElementById("ingame-popup").style.display = "none");
-        document.getElementById("btn-game-quit").addEventListener("click", () => { if(currentMode!=='offline') socket.emit("leaveQueue"); location.reload(); });
+        document.getElementById("btn-game-quit").addEventListener("click", () => { 
+            if(currentMode !== 'offline') socket.emit("leaveQueue"); 
+            document.getElementById("hud").style.display = "none";
+            document.getElementById("ingame-settings-btn").style.display = "none";
+            document.getElementById("ingame-popup").style.display = "none";
+            document.getElementById("touch-fire-zone").style.display = "none";
+            gameActive = false;
+            showMainMenu(); 
+        });
+
         document.getElementById("btn-lose-retry").addEventListener("click", () => { document.getElementById("screen-lose").style.display="none"; initMatchEngine(); });
         document.getElementById("btn-win-cont").addEventListener("click", () => { document.getElementById("screen-win").style.display="none"; currentStage++; initMatchEngine(); });
 
         window.startOfflineMission = function(lvl) { currentStage = lvl; currentMode = "offline"; document.getElementById("campaign-screen").style.display = "none"; initMatchEngine(); };
 
-        // 1v1 Room Execution Matchmaking Logic
+        // 1v1 Room Matchmaking Queue Actions
         document.getElementById("btn-match-1v1").addEventListener("click", () => {
-            if(account.gold < 70) { alert("Insufficient Gold for 1v1! Need 70G."); return; }
+            if(account.gold < 70) { alert("Insufficient Gold for 1v1 Duel! Need 70 G."); return; }
             document.getElementById("online-lobby").style.display = "none";
             document.getElementById("matchmaking-screen").style.display = "flex";
             socket.emit("join1v1Queue", { nickname: account.nickname, email: account.email });
@@ -329,69 +404,69 @@
             document.getElementById("online-lobby").style.display = "flex";
         });
 
-        // 30 Players Room Logic
+        // BR 30 Rooms direct actions
         document.getElementById("btn-match-br").addEventListener("click", () => {
-            if(account.gold < 30) { alert("Insufficient Gold for BR30! Need 30G."); return; }
+            if(account.gold < 30) { alert("Insufficient Gold for War Room 30! Need 30 G."); return; }
             account.gold -= 30; saveAccount();
             document.getElementById("online-lobby").style.display = "none";
             socket.emit("joinBR30Direct", { nickname: account.nickname, email: account.email });
         });
 
-        // CO-OP Multi-stage Logic
+        // CO-OP Multi-stage server setups
         document.getElementById("btn-match-coop").addEventListener("click", () => {
             document.getElementById("online-lobby").style.display = "none";
             socket.emit("joinCoopQueue", { nickname: account.nickname, email: account.email, stage: currentStage });
         });
 
-        // Server Event Bridges
+        // Socket Receivers Hubs
         socket.on("match1v1Ready", (spawnPos) => {
             account.gold -= 70; saveAccount();
             document.getElementById("matchmaking-screen").style.display = "none";
+            currentMode = "1v1";
             initMatchEngine(spawnPos);
         });
 
-        socket.on("br30Start", (spawnPos) => { initMatchEngine(spawnPos); });
-        socket.on("coopStart", (data) => { currentStage = data.stage; initMatchEngine(data.spawn); });
+        socket.on("br30Start", (spawnPos) => { currentMode = "br30"; initMatchEngine(spawnPos); });
+        socket.on("coopStart", (data) => { currentMode = "coop"; currentStage = data.stage; initMatchEngine(data.spawn); });
 
         socket.on("forcedCoordinates", (data) => {
-            // ????? ???? ???? ??? ?????? ???????? ??????? ??? ??? ?????? ????? ????
-            if(Math.hypot(player.x - data.x, player.y - data.y) > 60) {
-                player.x = data.x; player.y = data.y;
-            }
+            if(Math.hypot(player.x - data.x, player.y - data.y) > 75) { player.x = data.x; player.y = data.y; }
         });
 
         socket.on("stateUpdate", serverPlayers => {
             for(let id in serverPlayers) {
                 if(id !== player.id) { otherPlayers[id] = serverPlayers[id]; } 
-                else {
-                    player.hp = serverPlayers[id].hp;
-                }
+                else { player.hp = serverPlayers[id].hp; }
             }
-            // ??????? ???????? ??? ????
             for(let id in otherPlayers) { if(!serverPlayers[id]) delete otherPlayers[id]; }
         });
 
         socket.on("bulletFired", bData => bullets.push(bData));
-
-        socket.on("onlineKillAward", () => {
-            account.gold += 10; saveAccount();
-            localKills++;
-        });
+        socket.on("onlineKillAward", () => { account.gold += 10; saveAccount(); localKills++; });
 
         socket.on("tournamentWinner", (data) => {
             account.gold += data.prize; saveAccount();
-            triggerCanvasAlert("YOU WIN!", 120, () => { location.reload(); });
+            triggerCanvasAlert("YOU WIN! WON " + data.prize + "G", 120, () => {
+                document.getElementById("hud").style.display = "none";
+                document.getElementById("ingame-settings-btn").style.display = "none";
+                gameActive = false;
+                showMainMenu();
+            });
         });
 
         socket.on("tournamentKicked", () => {
-            triggerCanvasAlert("GAME OVER", 120, () => { location.reload(); });
+            triggerCanvasAlert("GAME OVER", 120, () => {
+                document.getElementById("hud").style.display = "none";
+                document.getElementById("ingame-settings-btn").style.display = "none";
+                gameActive = false;
+                showMainMenu();
+            });
         });
 
         socket.on("coopStageCleared", (data) => {
-            // ????? ??????? ????????
             account.gold += Math.floor(data.sharedGold / 2); saveAccount();
             currentStage = data.nextStage;
-            triggerCanvasAlert("YOU WIN! NEXT STAGE IN 2S", 120, () => {
+            triggerCanvasAlert("YOU WIN! STAGE " + currentStage + " IN 2S", 120, () => {
                 initMatchEngine(data.nextSpawn);
             });
         });
@@ -412,31 +487,116 @@
             if (serverSpawn) { player.x = serverSpawn.x; player.y = serverSpawn.y; } 
             else { let p = getSafeSpawnCoords(player.r); player.x = p.x; player.y = p.y; }
 
+            camera.x = player.x; camera.y = player.y;
+
             document.getElementById("hud").style.display = "block";
             document.getElementById("ingame-settings-btn").style.display = "flex";
             document.getElementById("hud-name").innerText = player.nickname;
-            updateJoystickPositions();
+            
+            if(window.innerWidth < 1024) {
+                isMobileTouch = true;
+                document.getElementById("touch-fire-zone").style.display = "flex";
+            }
+            updateJoystickLayout();
 
+            // ????? ?????? ????????? ?? ??????? ??????? ?? ???????? ?? ???? ??? ???
             if (currentMode === "offline" || currentMode === "coop") {
                 let count = 4 + currentStage;
                 for(let i=0; i<count; i++) {
                     let b = getSafeSpawnCoords(16);
-                    localBots.push({ id: "bot_"+i, x: b.x, y: b.y, r: 16, speed: 2.0, hp: 30, maxHp: 30, fireCooldown: Math.random()*40 });
+                    localBots.push({ id: "bot_"+i, type: "standard", x: b.x, y: b.y, r: 16, speed: 2.2, hp: 35, maxHp: 35, fireCooldown: Math.random()*50 });
                 }
             }
         }
 
-        window.addEventListener("keydown", e => { if (!gameActive) return; keys[e.key.toLowerCase()] = true; if(e.key.toLowerCase() === 'm') largeMap = !largeMap; });
+        // Input Keyboard Listeners
+        window.addEventListener("keydown", e => { 
+            if (!gameActive) return; 
+            keys[e.key.toLowerCase()] = true; 
+            if(e.key.toLowerCase() === 'm') largeMap = !largeMap; 
+        });
         window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
         window.addEventListener("mousemove", e => { mouse.x = e.clientX; mouse.y = e.clientY; });
-        window.addEventListener("click", () => {
-            if(!gameActive || canvasAlertTimer > 0) return;
+        window.addEventListener("click", (e) => {
+            if(!gameActive || canvasAlertTimer > 0 || isMobileTouch) return;
+            if(e.clientX < 300 && e.clientY > window.innerHeight - 300) return; // ????? ????? ???????? ??? ????? ??????
             fireBullet();
         });
 
+        // Mobile Advanced Touch Event Processing Architecture (???? ?????? ?????? ?????)
+        window.addEventListener("touchstart", e => {
+            if(!gameActive) return;
+            isMobileTouch = true;
+            document.getElementById("touch-fire-zone").style.display = "flex";
+            for(let t of e.changedTouches) {
+                if(t.clientX < window.innerWidth / 2 && leftJoystick.touchId === null) {
+                    leftJoystick.active = true; leftJoystick.touchId = t.identifier;
+                    leftJoystick.startX = t.clientX; leftJoystick.startY = t.clientY;
+                    leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY;
+                }
+                if(t.clientX >= window.innerWidth / 2 && rightJoystick.touchId === null) {
+                    rightJoystick.active = true; rightJoystick.touchId = t.identifier;
+                    rightJoystick.startX = t.clientX; rightJoystick.startY = t.clientY;
+                    rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY;
+                }
+            }
+        }, {passive: false});
+
+        window.addEventListener("touchmove", e => {
+            if(!gameActive) return;
+            for(let t of e.changedTouches) {
+                if(t.identifier === leftJoystick.touchId) {
+                    let dx = t.clientX - leftJoystick.startX; let dy = t.clientY - leftJoystick.startY;
+                    let dist = Math.hypot(dx, dy);
+                    if(dist > leftJoystick.maxRadius) {
+                        let angle = Math.atan2(dy, dx);
+                        leftJoystick.currentX = leftJoystick.startX + Math.cos(angle) * leftJoystick.maxRadius;
+                        leftJoystick.currentY = leftJoystick.startY + Math.sin(angle) * leftJoystick.maxRadius;
+                    } else {
+                        leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY;
+                    }
+                }
+                if(t.identifier === rightJoystick.touchId) {
+                    let dx = t.clientX - rightJoystick.startX; let dy = t.clientY - rightJoystick.startY;
+                    let dist = Math.hypot(dx, dy);
+                    if(dist > rightJoystick.maxRadius) {
+                        let angle = Math.atan2(dy, dx);
+                        rightJoystick.currentX = rightJoystick.startX + Math.cos(angle) * rightJoystick.maxRadius;
+                        rightJoystick.currentY = rightJoystick.startY + Math.sin(angle) * rightJoystick.maxRadius;
+                    } else {
+                        rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY;
+                    }
+                    // ????? ????? ????? ?????? ??????? ?????? ????????
+                    player.angle = Math.atan2(dy, dx);
+                    if(touchShootInterval === 0) {
+                        touchShootInterval = setInterval(() => { if(gameActive) fireBullet(); }, 180);
+                    }
+                }
+            }
+        }, {passive: false});
+
+        window.addEventListener("touchend", e => {
+            for(let t of e.changedTouches) {
+                if(t.identifier === leftJoystick.touchId) { leftJoystick.active = false; leftJoystick.touchId = null; updateJoystickLayout(); }
+                if(t.identifier === rightJoystick.touchId) { 
+                    rightJoystick.active = false; rightJoystick.touchId = null; updateJoystickLayout(); 
+                    clearInterval(touchShootInterval); touchShootInterval = 0;
+                }
+            }
+        });
+
+        document.getElementById("touch-fire-zone").addEventListener("touchstart", (e) => { e.stopPropagation(); fireBullet(); });
+
         function fireBullet() {
             if(player.hp <= 0) return;
-            let b = { x: player.x + Math.cos(player.angle)*20, y: player.y + Math.sin(player.angle)*20, vx: Math.cos(player.angle)*14, vy: Math.sin(player.angle)*14, id: player.id, damage: WEAPONS_DATA[account.weapon].dmg };
+            let b = { 
+                x: player.x + Math.cos(player.angle)*22, 
+                y: player.y + Math.sin(player.angle)*22, 
+                vx: Math.cos(player.angle)*15, 
+                vy: Math.sin(player.angle)*15, 
+                id: player.id, 
+                damage: WEAPONS_DATA[account.weapon].dmg 
+            };
             bullets.push(b);
             if(currentMode !== "offline") socket.emit("shoot", b);
         }
@@ -446,41 +606,55 @@
             if (canvasAlertTimer > 0) { canvasAlertTimer--; return; }
 
             let nx = player.x; let ny = player.y; let moved = false;
+            
+            // ???? ????????
             if (keys["w"]) { ny -= player.speed; moved = true; }
             if (keys["s"]) { ny += player.speed; moved = true; }
             if (keys["a"]) { nx -= player.speed; moved = true; }
             if (keys["d"]) { nx += player.speed; moved = true; }
 
+            // ???? ????? ??????
             if (leftJoystick.active) {
-                let dx = leftJoystick.currentX - leftJoystick.startX; let dy = leftJoystick.currentY - leftJoystick.startY;
+                let dx = leftJoystick.currentX - leftJoystick.startX; 
+                let dy = leftJoystick.currentY - leftJoystick.startY;
                 let dist = Math.hypot(dx, dy);
                 if (dist > 5) {
                     let angle = Math.atan2(dy, dx);
-                    nx += Math.cos(angle) * player.speed; ny += Math.sin(angle) * player.speed; moved = true;
+                    nx += Math.cos(angle) * player.speed; 
+                    ny += Math.sin(angle) * player.speed; 
+                    moved = true;
                 }
             }
 
-            if (!leftJoystick.active && (mouse.x !== 0 || mouse.y !== 0)) {
-                player.angle = Math.atan2(mouse.y + camera.y - player.y, mouse.x + camera.x - player.x);
+            // ????? ????? ?????? ????????? ??? ?? ??? ??? ??? ?????? ??????
+            if (!rightJoystick.active && !isMobileTouch && (mouse.x !== 0 || mouse.y !== 0)) {
+                player.angle = Math.atan2(mouse.y - canvas.height/2, mouse.x - canvas.width/2);
             }
 
-            if (!checkCollision(nx, player.y, player.r)) player.x = Math.max(0, Math.min(world.w, nx));
-            if (!checkCollision(player.x, ny, player.r)) player.y = Math.max(0, Math.min(world.h, ny));
+            if (!checkCollision(nx, player.y, player.r)) player.x = nx;
+            if (!checkCollision(player.x, ny, player.r)) player.y = ny;
 
-            if (moved && currentMode !== "offline") { socket.emit("move", { x: player.x, y: player.y, angle: player.angle }); }
+            if (moved && currentMode !== "offline") { 
+                socket.emit("move", { x: player.x, y: player.y, angle: player.angle }); 
+            }
 
-            camera.x = player.x - canvas.width / 2; camera.y = player.y - canvas.height / 2;
+            // ?????? ?????? ????? ?? ??????? ?????? ???? ???? ?????? ?????
+            camera.x += (player.x - canvas.width / 2 - camera.x) * 0.1;
+            camera.y += (player.y - canvas.height / 2 - camera.y) * 0.1;
+
             document.getElementById("hp-bar").style.width = (player.hp / player.maxHp * 100) + "%";
-            document.getElementById("gold-match-display").innerText = "Gold Coins: " + account.gold;
+            document.getElementById("gold-match-display").innerText = "Gold Bank: " + account.gold + " G";
 
-            // Projectiles Mechanics
+            // ????? ?????? ??????? ??? 30 ???? ???? 10 ????? ??? ????
             for (let i = bullets.length - 1; i >= 0; i--) {
                 let b = bullets[i]; b.x += b.vx; b.y += b.vy;
-                if (checkCollision(b.x, b.y, 4) || b.x < 0 || b.y < 0 || b.x > world.w || b.y > world.h) { bullets.splice(i, 1); continue; }
+                if (checkCollision(b.x, b.y, 4)) { bullets.splice(i, 1); continue; }
 
                 if (b.id !== player.id && player.hp > 0 && Math.hypot(player.x - b.x, player.y - b.y) < player.r + 4) {
-                    player.hp = Math.max(0, player.hp - b.damage);
-                    if(currentMode !== "offline") socket.emit("takeDamage", { damage: b.damage });
+                    let block = ARMORS_DATA[account.armor].protection;
+                    let finalDmg = Math.max(2, b.damage - block);
+                    player.hp = Math.max(0, player.hp - finalDmg);
+                    if(currentMode !== "offline") socket.emit("takeDamage", { damage: finalDmg });
                     bullets.splice(i, 1); continue;
                 }
 
@@ -488,26 +662,58 @@
                     localBots.forEach(bot => {
                         if (b.id === player.id && bot.hp > 0 && Math.hypot(bot.x - b.x, bot.y - b.y) < bot.r + 4) {
                             bot.hp = Math.max(0, bot.hp - b.damage); bullets.splice(i, 1);
-                            if(bot.hp <= 0) { matchGold += 15; account.gold += 10; saveAccount(); }
+                            if(bot.hp <= 0) { 
+                                matchGold += 20; 
+                                account.gold += 10; // ?? ???? ???? 10 ????? ?????
+                                saveAccount(); 
+                            }
                         }
                     });
                 }
             }
 
-            // Bots Processing Architecture
+            // ???? ??? ????? ??????? ?????? ???????? ??? ??????? ??????? ??? ?? ????
             if (currentMode === "offline" || currentMode === "coop") {
+                // ???? ??? ??? ??? ???? 6 ????? ?? ??? ????? ???????? ???? ????? ???? 6 ?????
+                let activeStandardBots = localBots.filter(b => b.hp > 0 && b.type === "standard");
+                if (activeStandardBots.length >= 6) {
+                    let source = activeStandardBots[0];
+                    source.type = "merged_boss";
+                    source.r = 35;
+                    source.hp = 200;
+                    source.maxHp = 200;
+                    source.speed = 1.5;
+                    source.damage = 60; // 6 ????? ?????
+                    for(let k = 1; k < 6; k++) { activeStandardBots[k].hp = 0; } // ????? ?????? ????????
+                }
+
                 localBots.forEach(bot => {
                     if(bot.hp <= 0) return;
                     let dist = Math.hypot(player.x - bot.x, player.y - bot.y);
-                    if(dist < 500) {
-                        bot.angle = Math.atan2(player.y - bot.y, player.x - bot.x);
-                        let bnx = bot.x + Math.cos(bot.angle)*bot.speed; let bny = bot.y + Math.sin(bot.angle)*bot.speed;
+                    if(dist < 600) {
+                        let directAngle = Math.atan2(player.y - bot.y, player.x - bot.x);
+                        bot.angle = directAngle;
+                        
+                        let bnx = bot.x + Math.cos(bot.angle) * bot.speed;
+                        let bny = bot.y + Math.sin(bot.angle) * bot.speed;
+                        
+                        // ?????? ?????? ????????? ???????? ??? ?????? ??????? ??? ??? ??????
+                        if (checkCollision(bnx, bot.y, bot.r)) {
+                            bot.angle += Math.PI / 2; // ?????? 90 ???? ????? ??????
+                            bnx = bot.x + Math.cos(bot.angle) * bot.speed;
+                        }
+                        if (checkCollision(bot.x, bny, bot.r)) {
+                            bot.angle -= Math.PI / 2;
+                            bny = bot.y + Math.sin(bot.angle) * bot.speed;
+                        }
+
                         if (!checkCollision(bnx, bot.y, bot.r)) bot.x = bnx;
                         if (!checkCollision(bot.x, bny, bot.r)) bot.y = bny;
 
                         if(bot.fireCooldown <= 0) {
-                            bullets.push({ x: bot.x, y: bot.y, vx: Math.cos(bot.angle)*10, vy: Math.sin(bot.angle)*10, id: bot.id, damage: 10 });
-                            bot.fireCooldown = 60;
+                            let dmg = bot.type === "merged_boss" ? 40 : 10;
+                            bullets.push({ x: bot.x, y: bot.y, vx: Math.cos(bot.angle)*11, vy: Math.sin(bot.angle)*11, id: bot.id, damage: dmg });
+                            bot.fireCooldown = bot.type === "merged_boss" ? 40 : 70;
                         }
                     }
                     if(bot.fireCooldown > 0) bot.fireCooldown--;
@@ -517,10 +723,11 @@
                 if(aliveBots === 0 && player.hp > 0 && gameActive) {
                     gameActive = false;
                     if(currentMode === "offline") {
-                        account.gold += matchGold; if(currentStage === account.maxStage) account.maxStage++; saveAccount();
+                        account.gold += matchGold; 
+                        if(currentStage === account.maxStage) account.maxStage++; 
+                        saveAccount();
                         document.getElementById("screen-win").style.display = "flex";
                     } else {
-                        // ????? ??? ??? ??????? ???????? ??????? ????? ???????? ????????
                         socket.emit("coopClearedStageServer", { stage: currentStage, goldShared: matchGold });
                     }
                 }
@@ -528,64 +735,126 @@
 
             if(player.hp <= 0 && gameActive) {
                 gameActive = false;
-                if(currentMode === "offline") { document.getElementById("screen-lose").style.display = "flex"; }
-                else {
+                if(currentMode === "offline") { 
+                    document.getElementById("screen-lose").style.display = "flex"; 
+                } else {
                     socket.emit("playerDiedTournament");
-                    triggerCanvasAlert("GAME OVER", 120, () => { location.reload(); });
+                    triggerCanvasAlert("GAME OVER", 120, () => {
+                        document.getElementById("hud").style.display = "none";
+                        document.getElementById("ingame-settings-btn").style.display = "none";
+                        showMainMenu();
+                    });
                 }
             }
         }
 
-        function drawHuman(x, y, r, angle, color, name, curHp, maxHp) {
+        function drawHuman(x, y, r, angle, color, name, curHp, maxHp, isBoss = false) {
             if (curHp <= 0) return;
             ctx.save(); ctx.translate(x, y);
-            ctx.fillStyle = "white"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.fillText(name, 0, -r - 12);
-            ctx.fillStyle = "#c62828"; ctx.fillRect(-16, -r - 7, 32, 4);
-            ctx.fillStyle = "#2e7d32"; ctx.fillRect(-16, -r - 7, 32 * (curHp / maxHp), 4);
-            ctx.rotate(angle); ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = "#111"; ctx.fillRect(2, -3, r * 1.5, 6); ctx.restore();
+            
+            // Name Tag & Bars
+            ctx.fillStyle = isBoss ? "#ff1744" : "white"; 
+            ctx.font = isBoss ? "bold 14px sans-serif" : "bold 12px sans-serif"; 
+            ctx.textAlign = "center"; 
+            ctx.fillText(name, 0, -r - 14);
+            
+            ctx.fillStyle = "#c62828"; ctx.fillRect(-20, -r - 8, 40, 5);
+            ctx.fillStyle = "#2e7d32"; ctx.fillRect(-20, -r - 8, 40 * (curHp / maxHp), 5);
+            
+            // Base Graphics Rotation
+            ctx.rotate(angle); 
+            ctx.fillStyle = color; 
+            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+            
+            // Gun Draw
+            ctx.fillStyle = "#111"; 
+            ctx.fillRect(5, -4, r * 1.4, 8); 
+            ctx.restore();
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save(); ctx.translate(-camera.x, -camera.y);
+            
+            // ??????? ??????? ?????
             ctx.fillStyle = "#111a24"; ctx.fillRect(0, 0, world.w, world.h);
+            
+            // ???? ?????? ???????
+            ctx.strokeStyle = "rgba(255,255,255,0.03)"; ctx.lineWidth = 2;
+            for(let x=0; x<world.w; x+=100) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,world.h); ctx.stroke(); }
+            for(let y=0; y<world.h; y+=100) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(world.w,y); ctx.stroke(); }
 
+            // ??????? ??????? ????????
             obstacles.forEach(obs => {
                 ctx.fillStyle = "rgba(44, 62, 80, 0.4)"; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
                 ctx.fillStyle = "#57606f"; obs.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
             });
 
-            if (gameActive) drawHuman(player.x, player.y, player.r, player.angle, "#1565C0", player.nickname, player.hp, player.maxHp);
-            for (let id in otherPlayers) { let p = otherPlayers[id]; drawHuman(p.x, p.y, 16, p.angle, "#c62828", p.nickname, p.hp, p.maxHp); }
-            localBots.forEach(bot => drawHuman(bot.x, bot.y, bot.r, bot.angle, "#d35400", "BOT", bot.hp, bot.maxHp));
+            // ??? ????????? ????????? ????????
+            if (gameActive && player.hp > 0) {
+                drawHuman(player.x, player.y, player.r, player.angle, "#1565C0", player.nickname, player.hp, player.maxHp);
+            }
+            for (let id in otherPlayers) { 
+                let p = otherPlayers[id]; 
+                drawHuman(p.x, p.y, 18, p.angle, "#c62828", p.nickname, p.hp, p.maxHp); 
+            }
+            localBots.forEach(bot => {
+                if(bot.type === "merged_boss") {
+                    drawHuman(bot.x, bot.y, bot.r, bot.angle, "#b71c1c", "SUPER BOT X6", bot.hp, bot.maxHp, true);
+                } else {
+                    drawHuman(bot.x, bot.y, bot.r, bot.angle, "#e65100", "BOT SOLDIER", bot.hp, bot.maxHp);
+                }
+            });
 
-            ctx.fillStyle = "#ffd700"; bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI*2); ctx.fill(); });
+            // ??????
+            ctx.fillStyle = "#ffd700"; 
+            bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI*2); ctx.fill(); });
             ctx.restore();
 
+            // ??? ????? ???????? ??????? ?????? ??? ????? ??????
             if (leftJoystick.active) {
                 ctx.beginPath(); ctx.arc(leftJoystick.startX, leftJoystick.startY, leftJoystick.maxRadius, 0, Math.PI*2);
-                ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.stroke();
+                ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 3; ctx.stroke();
+                ctx.beginPath(); ctx.arc(leftJoystick.currentX, leftJoystick.currentY, 25, 0, Math.PI*2);
+                ctx.fillStyle = "rgba(21, 101, 192, 0.4)"; ctx.fill();
+            }
+            if (rightJoystick.active) {
+                ctx.beginPath(); ctx.arc(rightJoystick.startX, rightJoystick.startY, rightJoystick.maxRadius, 0, Math.PI*2);
+                ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 3; ctx.stroke();
+                ctx.beginPath(); ctx.arc(rightJoystick.currentX, rightJoystick.currentY, 25, 0, Math.PI*2);
+                ctx.fillStyle = "rgba(198, 40, 40, 0.4)"; ctx.fill();
             }
 
-            // Draw Canvas Alert Overlay Text
+            // ???? ???? ????????? ???????? ??????? ???? ??? Canvas
             if(canvasAlertTimer > 0) {
-                ctx.fillStyle = "rgba(0,0,0,0.75)"; ctx.fillRect(0,0,canvas.width,canvas.height);
-                ctx.fillStyle = canvasAlertText.includes("WIN") ? "#4caf50" : "#ff5252";
-                ctx.font = "bold 40px sans-serif"; ctx.textAlign = "center";
+                ctx.fillStyle = "rgba(13, 19, 26, 0.85)"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = canvasAlertText.includes("WIN") ? "#4caf50" : "#ef5350";
+                ctx.font = "black 36px 'Segoe UI'"; ctx.textAlign = "center";
                 ctx.fillText(canvasAlertText, canvas.width/2, canvas.height/2);
             }
 
-            // Minimap Generator
-            let mSize = largeMap ? Math.min(canvas.width*0.7, canvas.height*0.7) : 110;
-            let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 15;
-            let mY = largeMap ? (canvas.height - mSize)/2 : 15;
-            let r = mSize / world.w;
-            ctx.fillStyle = "rgba(13,19,26,0.85)"; ctx.fillRect(mX, mY, mSize, mSize);
-            ctx.fillStyle = "#1e88e5"; ctx.beginPath(); ctx.arc(mX + player.x*r, mY + player.y*r, 3, 0, Math.PI*2); ctx.fill();
+            // ??????? ??????? (Minimap) ???????? ???? M
+            let mSize = largeMap ? Math.min(canvas.width*0.75, canvas.height*0.75) : 130;
+            let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 20;
+            let mY = largeMap ? (canvas.height - mSize)/2 : 20;
+            let ratio = mSize / world.w;
+            
+            ctx.fillStyle = "rgba(9, 13, 18, 0.85)"; ctx.fillRect(mX, mY, mSize, mSize);
+            ctx.strokeStyle = "#243447"; ctx.lineWidth = 2; ctx.strokeRect(mX, mY, mSize, mSize);
+            
+            // ??? ???? ?????? ??? ?????
+            ctx.fillStyle = "#1e88e5"; ctx.beginPath(); ctx.arc(mX + player.x*ratio, mY + player.y*ratio, 4, 0, Math.PI*2); ctx.fill();
+            // ???????
+            ctx.fillStyle = "#e65100"; localBots.forEach(b => { if(b.hp>0) { ctx.beginPath(); ctx.arc(mX + b.x*ratio, mY + b.y*ratio, 2, 0, Math.PI*2); ctx.fill(); } });
+            // ??????? ???????
+            ctx.fillStyle = "#ff1744"; for(let id in otherPlayers) { ctx.beginPath(); ctx.arc(mX + otherPlayers[id].x*ratio, mY + otherPlayers[id].y*ratio, 3, 0, Math.PI*2); ctx.fill(); }
         }
 
-        function loop() { update(); draw(); requestAnimationFrame(loop); }
+        function loop() { 
+            update(); 
+            draw(); 
+            requestAnimationFrame(loop); 
+        }
         loop();
     </script>
 </body>
