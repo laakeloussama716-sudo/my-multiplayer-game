@@ -8,7 +8,6 @@
         body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0d131a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; touch-action: none; color: white; width: 100%; height: 100%; }
         canvas { display: block; width: 100vw; height: 100vh; position: absolute; top: 0; left: 0; z-index: 1; }
         
-        /* Premium Core UI Designs */
         .btn-premium {
             background: linear-gradient(135deg, #1565C0 0%, #1e88e5 100%);
             border: 1px solid #0d47a1; color: white; padding: 14px 28px;
@@ -32,7 +31,6 @@
         .menu-card input { width: 92%; padding: 12px; margin: 10px 0; border: none; border-radius: 6px; background: #090d12; color: white; text-align: center; border: 1px solid #243447; font-size: 14px; }
         .menu-card input:focus { border-color: #1e88e5; outline: none; }
         
-        /* Layout Displays State */
         #main-menu, #shop-screen, #mode-gate, #campaign-screen, #online-lobby, #matchmaking-screen { display: none; }
         
         .stats-banner { background: #1c2a39; padding: 14px; border-radius: 8px; margin-bottom: 20px; font-size: 14px; text-align: left; border: 1px solid #2d3f55; line-height: 1.6; }
@@ -46,14 +44,12 @@
         
         .grid-levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; max-height: 280px; overflow-y: auto; padding: 10px; background: #090d12; border-radius: 8px; border: 1px solid #243447; }
         
-        /* HUD Style Architecture */
         #hud { position: absolute; top: 20px; left: 20px; pointer-events: none; display: none; z-index: 5; background: rgba(13, 19, 26, 0.75); padding: 12px; border-radius: 8px; border: 1px solid #243447; backdrop-filter: blur(4px); }
         #hud-name { font-weight: bold; font-size: 16px; color: #fff; margin-bottom: 6px; text-shadow: 1px 1px 2px black; }
         #hp-bar-container { width: 180px; height: 16px; background: #263238; border-radius: 4px; overflow: hidden; border: 1px solid #37474F; position: relative; }
         #hp-bar { width: 100%; height: 100%; background: linear-gradient(90deg, #2e7d32, #4caf50); transition: width 0.1s ease; }
         #gold-match-display { margin-top: 8px; font-size: 16px; color: #ffd700; font-weight: bold; text-shadow: 1px 1px 2px black; }
 
-        /* Ingame Settings Floating Panels - Modern Gear Icon Customization */
         #ingame-settings-btn { 
             position: absolute; 
             top: 20px; 
@@ -73,7 +69,6 @@
         }
         #ingame-settings-btn:hover { transform: rotate(45deg); }
         
-        /* Custom SVG Gear inside Button */
         #ingame-settings-btn::before {
             content: "";
             width: 22px;
@@ -92,7 +87,6 @@
 
         #ingame-popup { position: absolute; top: 75px; left: 240px; background: rgba(22, 32, 44, 0.95); border: 1px solid #243447; padding: 15px; border-radius: 10px; display: none; flex-direction: column; gap: 10px; z-index: 6; box-shadow: 0 8px 25px rgba(0,0,0,0.6); }
         
-        /* Mobile Door Trigger Overlay Button */
         #mobile-door-prompt {
             position: absolute;
             bottom: 120px;
@@ -112,71 +106,12 @@
             transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
         #mobile-door-prompt::before {
-            content: "?";
+            content: "??";
             font-size: 28px;
             color: white;
         }
 
         .match-end-screen { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(9, 13, 18, 0.9); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:99; }
-
-        /* Premium Floating Chat Component Architecture */
-        #game-chat-box {
-            position: absolute;
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: 340px;
-            height: 180px;
-            background: rgba(13, 19, 26, 0.85);
-            border: 1px solid #243447;
-            border-radius: 12px;
-            z-index: 8;
-            display: none;
-            flex-direction: column;
-            overflow: hidden;
-            box-shadow: 0 6px 25px rgba(0,0,0,0.5);
-            backdrop-filter: blur(6px);
-        }
-        #chat-messages-container {
-            flex: 1;
-            padding: 10px;
-            overflow-y: auto;
-            font-size: 13px;
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            scroll-behavior: smooth;
-        }
-        .chat-row { line-height: 1.4; word-break: break-word; }
-        .chat-sender { font-weight: bold; color: #1e88e5; }
-        .chat-sender.system { color: #ffd700; }
-        .chat-sender.enemy { color: #ff5252; }
-        .chat-sender.bot { color: #ff9800; }
-        .chat-text { color: #eceff1; }
-        #chat-input-wrapper {
-            display: flex;
-            border-top: 1px solid #243447;
-            background: #090d12;
-        }
-        #chat-input-field {
-            flex: 1;
-            background: transparent;
-            border: none;
-            padding: 10px 12px;
-            color: white;
-            font-size: 13px;
-            outline: none;
-        }
-        #chat-send-btn {
-            background: #1565C0;
-            border: none;
-            color: white;
-            padding: 0 16px;
-            font-size: 12px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        #chat-send-btn:hover { background: #1e88e5; }
     </style>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
@@ -278,14 +213,6 @@
 
     <div id="mobile-door-prompt"></div>
 
-    <div id="game-chat-box">
-        <div id="chat-messages-container"></div>
-        <div id="chat-input-wrapper">
-            <input type="text" id="chat-input-field" placeholder="Type tactical message..." autocomplete="off">
-            <button id="chat-send-btn">SEND</button>
-        </div>
-    </div>
-
     <div id="screen-lose" class="match-end-screen">
         <h1 style="color:#e53935; font-size:50px; text-shadow: 0 4px 10px rgba(0,0,0,0.5); font-weight: 900; letter-spacing: 2px;">MISSION FAILED</h1>
         <button class="btn-premium" id="btn-lose-retry" style="margin-top: 20px; padding: 16px 40px;">REDEPLOY</button>
@@ -322,18 +249,6 @@
             { id: 2, name: "Quantum Shield", price: 2500, reqStage: 20, protection: 5, desc: "Advanced nano-magnetic force dynamic." }
         ];
 
-        const BOT_CHAT_PHRASES = [
-            "I'm scanning the perimeter for hostile forces!",
-            "Cover me! Moving past the central building complex.",
-            "Watch out! I spotted an enemy agent ahead.",
-            "This battle is intense, don't drop your guard!",
-            "Regroup near the main entrance door!",
-            "Negative, sector is currently compromised.",
-            "Affirmative! Engaging target immediately.",
-            "Need backup at the building compound!"
-        ];
-
-        // Auth Operations Guard Setup
         document.getElementById("btn-toggle-auth").addEventListener("click", () => {
             isRegisterMode = !isRegisterMode;
             document.getElementById("auth-title").innerText = isRegisterMode ? "Create New Profile" : "Account Gateway";
@@ -350,25 +265,37 @@
                 errorDiv.innerText = "Error: Invalid inputs verification parameters.";
                 return;
             }
+
             let userKey = "ts_user_" + email;
             let existingData = localStorage.getItem(userKey);
 
             if (isRegisterMode) {
-                if (existingData) { errorDiv.innerText = "Error: Email registration already exists!"; return; }
+                if (existingData) {
+                    errorDiv.innerText = "Error: Email registration already exists!";
+                    return;
+                }
                 account = { email: email, pass: pass, nickname: name, gold: 500, maxStage: 1, weapon: 0, armor: 0, itemsOwned: ["w_0", "a_0"] };
                 localStorage.setItem(userKey, JSON.stringify(account));
                 showMainMenu();
             } else {
-                if (!existingData) { errorDiv.innerText = "Error: Account record not found!"; return; }
+                if (!existingData) {
+                    errorDiv.innerText = "Error: Account record not found!";
+                    return;
+                }
                 let parsed = JSON.parse(existingData);
-                if (parsed.pass !== pass || parsed.nickname !== name) { errorDiv.innerText = "Error: Authentication mismatch!"; return; }
+                if (parsed.pass !== pass) {
+                    errorDiv.innerText = "Error: Authentication mismatch!";
+                    return;
+                }
                 account = parsed;
                 showMainMenu();
             }
         });
 
-        function saveAccount() { if(account) localStorage.setItem("ts_user_" + account.email, JSON.stringify(account)); }
-        
+        function saveAccount() {
+            if(account) localStorage.setItem("ts_user_" + account.email, JSON.stringify(account));
+        }
+
         function showMainMenu() {
             const menus = ["auth-screen", "shop-screen", "mode-gate", "campaign-screen", "online-lobby", "matchmaking-screen"];
             menus.forEach(m => document.getElementById(m).style.display = "none");
@@ -376,808 +303,719 @@
             document.getElementById("user-display-name").innerText = account.nickname;
             document.getElementById("user-display-gold").innerText = account.gold + " G";
             document.getElementById("user-display-level").innerText = account.maxStage;
-            document.getElementById("game-chat-box").style.display = "none";
         }
 
         document.getElementById("btn-switch-account").addEventListener("click", () => {
             document.getElementById("main-menu").style.display = "none";
             document.getElementById("auth-screen").style.display = "flex";
         });
+
         document.getElementById("btn-goto-play").addEventListener("click", () => {
             document.getElementById("main-menu").style.display = "none";
             document.getElementById("mode-gate").style.display = "flex";
         });
+
         document.getElementById("btn-back-gate").addEventListener("click", () => { showMainMenu(); });
+
         document.getElementById("btn-gate-offline").addEventListener("click", () => {
             document.getElementById("mode-gate").style.display = "none";
             document.getElementById("campaign-screen").style.display = "flex";
             buildCampaignGrid();
         });
+
         document.getElementById("btn-back-campaign").addEventListener("click", () => {
             document.getElementById("campaign-screen").style.display = "none";
             document.getElementById("mode-gate").style.display = "flex";
         });
+
         document.getElementById("btn-gate-online").addEventListener("click", () => {
             document.getElementById("mode-gate").style.display = "none";
             document.getElementById("online-lobby").style.display = "flex";
+            initSocketConnection();
         });
+
         document.getElementById("btn-back-lobby").addEventListener("click", () => {
             document.getElementById("online-lobby").style.display = "none";
             document.getElementById("mode-gate").style.display = "flex";
         });
+
         document.getElementById("btn-goto-shop").addEventListener("click", () => {
             document.getElementById("main-menu").style.display = "none";
             document.getElementById("shop-screen").style.display = "flex";
-            renderShop();
+            renderShopRacks();
         });
+
         document.getElementById("btn-back-shop").addEventListener("click", () => { showMainMenu(); });
 
-        function renderShop() {
-            document.getElementById("shop-gold-title").innerText = "Your Balance: " + account.gold + " G";
-            let wRack = document.getElementById("weapons-rack"); wRack.innerHTML = "";
+        function renderShopRacks() {
+            document.getElementById("shop-gold-title").innerText = `Your Balance: ${account.gold} G`;
+            
+            let wRack = document.getElementById("weapons-rack");
+            wRack.innerHTML = "";
             WEAPONS_DATA.forEach(w => {
-                let status = account.weapon === w.id ? "EQUIPPED" : (account.itemsOwned.includes("w_"+w.id) || w.price===0 ? "EQUIP" : "BUY " + w.price + "G");
-                wRack.innerHTML += `<div class="shop-item"><h4>${w.name}</h4><p>Damage: ${w.dmg}</p><button class="btn-premium" style="width:100%; padding:8px;" onclick="triggerBuy('w', ${w.id}, ${w.price})">${status}</button></div>`;
+                let owned = account.itemsOwned.includes("w_" + w.id);
+                let selected = account.weapon === w.id;
+                wRack.innerHTML += `
+                    <div class="shop-item">
+                        <h4>${w.name}</h4>
+                        <p>${w.desc}<br><b style="color:#ff5252;">Dmg: ${w.dmg}</b></p>
+                        <button class="btn-premium" style="padding:8px 16px; font-size:12px; width:100%;" onclick="buyWeapon(${w.id})">
+                            ${selected ? 'EQUIPPED' : owned ? 'EQUIP' : w.price + ' G'}
+                        </button>
+                    </div>`;
             });
-            let aRack = document.getElementById("armors-rack"); aRack.innerHTML = "";
+
+            let aRack = document.getElementById("armors-rack");
+            aRack.innerHTML = "";
             ARMORS_DATA.forEach(a => {
-                let status = account.armor === a.id ? "EQUIPPED" : (account.itemsOwned.includes("a_"+a.id) || a.price===0 ? "EQUIP" : "BUY " + a.price + "G");
-                aRack.innerHTML += `<div class="shop-item"><h4>${a.name}</h4><p>Block: ${a.protection}</p><button class="btn-premium" style="width:100%; padding:8px;" onclick="triggerBuy('a', ${a.id}, ${a.price})">${status}</button></div>`;
+                let owned = account.itemsOwned.includes("a_" + a.id);
+                let selected = account.armor === a.id;
+                aRack.innerHTML += `
+                    <div class="shop-item">
+                        <h4>${a.name}</h4>
+                        <p>${a.desc}<br><b style="color:#4caf50;">Prot: ${a.protection}</b></p>
+                        <button class="btn-premium" style="padding:8px 16px; font-size:12px; width:100%;" onclick="buyArmor(${a.id})">
+                            ${selected ? 'EQUIPPED' : owned ? 'EQUIP' : a.price + ' G'}
+                        </button>
+                    </div>`;
             });
         }
 
-        window.triggerBuy = function(type, id, price) {
-            let itemKey = type + "_" + id;
-            if (account.itemsOwned.includes(itemKey) || price === 0) {
-                if(type === 'w') account.weapon = id; else account.armor = id;
-            } else if (account.gold >= price) {
-                account.gold -= price; account.itemsOwned.push(itemKey);
-                if(type === 'w') account.weapon = id; else account.armor = id;
+        window.buyWeapon = function(id) {
+            let w = WEAPONS_DATA[id];
+            let tag = "w_" + id;
+            if(account.itemsOwned.includes(tag)) {
+                account.weapon = id;
+            } else {
+                if(account.gold >= w.price && account.maxStage >= w.reqStage) {
+                    account.gold -= w.price;
+                    account.itemsOwned.push(tag);
+                    account.weapon = id;
+                }
             }
-            saveAccount(); renderShop();
+            saveAccount();
+            renderShopRacks();
+        };
+
+        window.buyArmor = function(id) {
+            let a = ARMORS_DATA[id];
+            let tag = "a_" + id;
+            if(account.itemsOwned.includes(tag)) {
+                account.armor = id;
+            } else {
+                if(account.gold >= a.price && account.maxStage >= a.reqStage) {
+                    account.gold -= a.price;
+                    account.itemsOwned.push(tag);
+                    account.armor = id;
+                }
+            }
+            saveAccount();
+            renderShopRacks();
         };
 
         function buildCampaignGrid() {
-            let grid = document.getElementById("stages-grid"); grid.innerHTML = "";
-            for (let i = 1; i <= 100; i++) {
-                let disabled = i > account.maxStage ? "opacity: 0.3; pointer-events:none;" : "";
-                grid.innerHTML += `<button class="btn-secondary" style="${disabled} padding:10px; font-size:12px;" onclick="startOfflineCampaign(${i})">S-${i}</button>`;
+            let grid = document.getElementById("stages-grid");
+            grid.innerHTML = "";
+            for(let i = 1; i <= 30; i++) {
+                let locked = i > account.maxStage;
+                grid.innerHTML += `<button class="btn-premium" style="padding:15px 0; background:${locked ? '#263238':'linear-gradient(135deg, #1565C0, #1e88e5)'}; opacity:${locked?0.5:1};" ${locked?'disabled':''} onclick="startCampaign(${i})">${i}</button>`;
             }
         }
 
-        // --- Core Engine Gameplay Architectures ---
         let socket = null;
-        let gameState = "MENU"; // MENU, PLAYING
-        let gameMode = "OFFLINE"; // OFFLINE, ON_1V1, ON_BR, ON_COOP
-        let currentStage = 1;
-        let matchGoldReward = 0;
+        function initSocketConnection() {
+            if(socket) return;
+            socket = io({ autoConnect: true });
 
-        const world = { w: 3200, h: 3200 };
-        const player = { x: 400, y: 400, r: 22, speed: 5.5, angle: 0, hp: 100, maxHp: 100, goldEarned: 0 };
+            socket.on("connect", () => { console.log("Connected to Arena Network"); });
+            
+            socket.on("matchFound", (data) => {
+                document.getElementById("matchmaking-screen").style.display = "none";
+                startOnlineMatch(data.room, data.mode);
+            });
+
+            socket.on("stateUpdate", (players) => {
+                if(!inGame || !isOnline) return;
+                for(let id in players) {
+                    if(id !== socket.id) {
+                        networkPlayers[id] = players[id];
+                    }
+                }
+            });
+
+            socket.on("bulletFired", (b) => {
+                if(!inGame || !isOnline) return;
+                remoteBullets.push(b);
+            });
+
+            socket.on("soldierDamaged", (data) => {
+                if(!inGame || !isOnline) return;
+                if(data.id === socket.id) {
+                    player.hp = data.hp;
+                    if(player.hp <= 0) triggerMatchEnd(false);
+                } else if(networkPlayers[data.id]) {
+                    networkPlayers[data.id].hp = data.hp;
+                }
+            });
+
+            socket.on("playerLeftRoom", (id) => {
+                if(networkPlayers[id]) delete networkPlayers[id];
+            });
+        }
+
+        document.getElementById("btn-match-1v1").addEventListener("click", () => { queueSearch("1v1"); });
+        document.getElementById("btn-match-br").addEventListener("click", () => { queueSearch("br30"); });
+        document.getElementById("btn-match-coop").addEventListener("click", () => { queueSearch("coop"); });
         
-        let keys = {};
-        let mouse = { x: 0, y: 0 };
+        document.getElementById("btn-cancel-matchmaking").addEventListener("click", () => {
+            if(socket) socket.emit("leaveQueue");
+            document.getElementById("matchmaking-screen").style.display = "none";
+            document.getElementById("online-lobby").style.display = "flex";
+            clearInterval(matchTimerInterval);
+        });
+
+        let matchTimerInterval = null;
+        function queueSearch(mode) {
+            document.getElementById("online-lobby").style.display = "none";
+            document.getElementById("matchmaking-screen").style.display = "flex";
+            
+            let title = document.getElementById("search-title");
+            let timerEl = document.getElementById("matchmaking-timer");
+            title.innerText = mode === "1v1" ? "Searching Duelist..." : mode === "br30" ? "Assembling 30 Warriors..." : "Searching Co-op Squad...";
+            
+            let elapsed = 0;
+            timerEl.innerText = "Elapsed Time: 0s";
+            clearInterval(matchTimerInterval);
+            matchTimerInterval = setInterval(() => {
+                elapsed++;
+                timerEl.innerText = `Searching... ${elapsed}s`;
+                if(elapsed >= 2 && (mode === "br30" || mode === "coop")) {
+                    clearInterval(matchTimerInterval);
+                    socket.emit("forceStartQueue", { mode: mode, nickname: account.nickname });
+                }
+            }, 1000);
+
+            socket.emit("joinQueue", { mode: mode, nickname: account.nickname, weapon: account.weapon, armor: account.armor });
+        }
+
+        let world = { w: 3200, h: 3200 };
+        let player = { x: 400, y: 400, r: 22, speed: 5.5, angle: 0, hp: 100, maxHp: 100, goldMatch: 0 };
         let obstacles = [];
         let localBots = [];
-        let bullets = [];
-        let bloodSplats = [];
+        let localBullets = [];
+        let remoteBullets = [];
         let networkPlayers = {};
+        
+        let inGame = false;
+        let isOnline = false;
+        let currentMode = "campaign"; 
+        let currentRoomId = null;
+        let currentStageId = 1;
 
-        // Large map layout modifier toggle switch
         let largeMap = false;
+        let joystick = { active: false, startX: 0, startY: 0, curX: 0, curY: 0, vx: 0, vy: 0, size: 70 };
+        let isMobile = false;
 
-        // Joystick Interface Structures
-        let isTouchDevice = false;
-        let stickActive = false;
-        let stickStart = { x: 0, y: 0 };
-        let stickMove = { x: 0, y: 0 };
-        let joyLayout = { x: 100, y: 100, r: 55 };
-
-        function updateJoystickLayout() {
-            joyLayout.x = 110;
-            joyLayout.y = canvas.height - 110;
+        if(/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+            isMobile = true;
         }
 
-        window.addEventListener("keydown", e => { 
-            keys[e.key.toLowerCase()] = true; 
-            if(e.key.toLowerCase() === 'm' && gameState === "PLAYING") { largeMap = !largeMap; }
+        function generateObstaclesGrid() {
+            obstacles = [
+                { x: 500, y: 500, w: 250, h: 250, door: { x: 610, y: 740, w: 35, h: 10 } },
+                { x: 1400, y: 400, w: 300, h: 200, door: { x: 1530, y: 590, w: 40, h: 10 } },
+                { x: 2200, y: 800, w: 250, h: 300, door: { x: 2190, y: 920, w: 10, h: 40 } },
+                { x: 600, y: 1500, w: 400, h: 250, door: { x: 780, y: 1740, w: 45, h: 10 } },
+                { x: 1800, y: 1800, w: 350, h: 350, door: { x: 1950, y: 2140, w: 50, h: 10 } },
+                { x: 1100, y: 2400, w: 280, h: 280, door: { x: 1220, y: 2670, w: 40, h: 10 } }
+            ];
+        }
+
+        function updateJoystickLayout() {
+            if(!isMobile) return;
+            joystick.x = 100;
+            joystick.y = canvas.height - 100;
+        }
+
+        function startCampaign(stage) {
+            document.getElementById("campaign-screen").style.display = "none";
+            currentStageId = stage;
+            currentMode = "campaign";
+            isOnline = false;
+            setupMatchSandbox();
+        }
+
+        function startOnlineMatch(room, mode) {
+            currentRoomId = room;
+            currentMode = mode;
+            isOnline = true;
+            setupMatchSandbox();
+        }
+
+        function setupMatchSandbox() {
+            inGame = true;
+            generateObstaclesGrid();
+            localBullets = [];
+            remoteBullets = [];
+            networkPlayers = {};
+            localBots = [];
+
+            let selectedW = WEAPONS_DATA[account.weapon];
+            let selectedA = ARMORS_DATA[account.armor];
+
+            player.maxHp = 100 + (selectedA.protection * 15);
+            player.hp = player.maxHp;
+            player.x = 200 + Math.random() * 400;
+            player.y = 200 + Math.random() * 400;
+            player.goldMatch = 0;
+
+            document.getElementById("hud").style.display = "block";
+            document.getElementById("ingame-settings-btn").style.display = "flex";
+            document.getElementById("hud-name").innerText = account.nickname;
+            updateHUD();
+
+            if(!isOnline) {
+                let botCount = currentStageId * 2 + 1;
+                if(currentMode === "br30") botCount = 30;
+                for(let i = 0; i < botCount; i++) {
+                    localBots.push({
+                        id: "bot_" + i,
+                        x: 600 + Math.random() * (world.w - 800),
+                        y: 600 + Math.random() * (world.h - 800),
+                        r: 20,
+                        speed: 2 + Math.random() * 1.5,
+                        hp: 40 + currentStageId * 6,
+                        maxHp: 40 + currentStageId * 6,
+                        type: Math.random() > 0.75 ? "hexa" : "grunt",
+                        lastShot: 0
+                    });
+                }
+            } else {
+                if(currentMode === "br30" || currentMode === "coop") {
+                    let fillBots = currentMode === "br30" ? 25 : 12;
+                    for(let i = 0; i < fillBots; i++) {
+                        localBots.push({
+                            id: "online_bot_" + i,
+                            x: 500 + Math.random() * (world.w - 1000),
+                            y: 500 + Math.random() * (world.h - 1000),
+                            r: 20,
+                            speed: 2.8,
+                            hp: 70,
+                            maxHp: 70,
+                            type: "grunt",
+                            lastShot: 0
+                        });
+                    }
+                }
+            }
+
+            resize();
+            requestAnimationFrame(gameLoop);
+        }
+
+        function updateHUD() {
+            let pct = (player.hp / player.maxHp) * 100;
+            document.getElementById("hp-bar").style.width = Math.max(0, pct) + "%";
+            document.getElementById("gold-match-display").innerText = "Gold Earned: " + player.goldMatch;
+        }
+
+        let keys = {};
+        window.addEventListener("keydown", e => {
+            keys[e.key.toLowerCase()] = true;
+            if(e.key.toLowerCase() === 'm') largeMap = !largeMap;
         });
         window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
-        
-        // CORRECTION DE LA POSITION DE LA SOURIS (DÉPENDANCE CENTRALE DU JOUEUR CORRIGÉE)
-        //         window.addEventListener("mousemove", e => {
-            mouse.x = e.clientX;
-            mouse.y = e.clientY;
-            if(gameState === "PLAYING") {
-                // Le joueur étant strictement au centre de l'écran, l'angle calculé ne souffre d'aucun décalage
-                let dx = mouse.x - (canvas.width / 2);
-                let dy = mouse.y - (canvas.height / 2);
-                player.angle = Math.atan2(dy, dx);
-            }
+
+        let mouseX = 0, mouseY = 0;
+        window.addEventListener("mousemove", e => {
+            if(!inGame) return;
+            mouseX = e.clientX;
+            mouseY = e.clientY;
         });
 
         window.addEventListener("mousedown", e => {
-            if(gameState !== "PLAYING") return;
-            if(e.button === 0) fireActivePlayerBullet();
+            if(!inGame || isMobile) return;
+            if(e.target.tagName === "BUTTON" || e.target.closest("#ingame-popup")) return;
+            fireLocalWeaponShell();
         });
 
-        // Touch Input Handlers Architecture
         window.addEventListener("touchstart", e => {
-            isTouchDevice = true;
-            for(let t of e.changedTouches) {
-                if(t.clientX < canvas.width / 2 && !stickActive) {
-                    stickActive = true;
-                    stickStart.x = t.clientX;
-                    stickStart.y = t.clientY;
-                    stickMove.x = t.clientX;
-                    stickMove.y = t.clientY;
-                } else if(t.clientX >= canvas.width / 2) {
-                    // Mobile auto-aim close enemies or touch directional fire trigger sequence
-                    let dx = t.clientX - (canvas.width / 2);
-                    let dy = t.clientY - (canvas.height / 2);
-                    player.angle = Math.atan2(dy, dx);
-                    fireActivePlayerBullet();
-                }
+            if(!inGame) return;
+            let t = e.touches[0];
+            if(t.clientX < canvas.width / 2) {
+                joystick.active = true;
+                joystick.startX = t.clientX;
+                joystick.startY = t.clientY;
+                joystick.curX = t.clientX;
+                joystick.curY = t.clientY;
+            } else {
+                mouseX = t.clientX;
+                mouseY = t.clientY;
+                fireLocalWeaponShell();
             }
         });
 
         window.addEventListener("touchmove", e => {
-            if(!stickActive) return;
-            for(let t of e.touches) {
+            if(!inGame || !joystick.active) return;
+            for(let i=0; i<e.touches.length; i++) {
+                let t = e.touches[i];
                 if(t.clientX < canvas.width / 2) {
-                    stickMove.x = t.clientX;
-                    stickMove.y = t.clientY;
+                    joystick.curX = t.clientX;
+                    joystick.curY = t.clientY;
+                    
+                    let dx = joystick.curX - joystick.startX;
+                    let dy = joystick.curY - joystick.startY;
+                    let dist = Math.hypot(dx, dy);
+                    if(dist > joystick.size) {
+                        dx = (dx / dist) * joystick.size;
+                        dy = (dy / dist) * joystick.size;
+                    }
+                    joystick.vx = dx / joystick.size;
+                    joystick.vy = dy / joystick.size;
                 }
             }
         });
 
-        window.addEventListener("touchend", e => {
-            if(e.touches.length === 0) { stickActive = false; }
+        window.addEventListener("touchend", () => {
+            joystick.active = false;
+            joystick.vx = 0;
+            joystick.vy = 0;
         });
 
-        // Setup Obstacles and Doors
-        function initObstaclesWorld() {
-            obstacles = [
-                { x: 500, y: 500, w: 250, h: 250, door: { x: 500, y: 600, w: 10, h: 50, open: false } },
-                { x: 1200, y: 300, w: 400, h: 250, door: { x: 1400, y: 540, w: 60, h: 10, open: false } },
-                { x: 2000, y: 800, w: 300, h: 300, door: { x: 2000, y: 920, w: 10, h: 60, open: false } },
-                { x: 800, y: 1500, w: 350, h: 350, door: { x: 950, y: 1840, w: 70, h: 10, open: false } },
-                { x: 2100, y: 1800, w: 450, h: 300, door: { x: 2100, y: 1900, w: 10, h: 70, open: false } }
-            ];
-        }
-
-        function startOfflineCampaign(stageId) {
-            currentStage = stageId;
-            gameMode = "OFFLINE";
-            document.getElementById("campaign-screen").style.display = "none";
-            launchGameSession();
+        function fireLocalWeaponShell() {
+            let selectedW = WEAPONS_DATA[account.weapon];
+            let angle = player.angle;
             
-            // Build stage enemies bot count factor scale
-            let botCount = 4 + Math.floor(stageId * 0.5);
-            localBots = [];
-            for(let i=0; i<botCount; i++) {
-                let subType = (i % 3 === 0) ? "elite" : "grunt";
-                localBots.push(createBotEntity(`Target AI-${i+1}`, subType));
-            }
-            clearChatLogs();
-            pushSystemChatMessage(`CAMPAIGN STAGE ${stageId} INITIALIZED. WIPE OUT ALL THREATS!`);
-        }
-
-        function createBotEntity(name, type) {
-            let rx = Math.random() * (world.w - 200) + 100;
-            let ry = Math.random() * (world.h - 200) + 100;
-            let hpMax = type==="elite"? 200 : 80;
-            return {
-                id: "bot_" + Math.random().toString(36).substr(2, 5),
-                name: name, type: type, x: rx, y: ry, r: type==="elite"? 28 : 20,
-                hp: hpMax, maxHp: hpMax, speed: type==="elite"? 2.8 : 3.6,
-                angle: 0, lastShot: 0, nextChatTime: Date.now() + Math.random()*15000,
-                mergeCount: 1, originalSpeed: type==="elite"? 2.8 : 3.6
+            let shell = {
+                owner: "player",
+                x: player.x + Math.cos(angle) * player.r,
+                y: player.y + Math.sin(angle) * player.r,
+                vx: Math.cos(angle) * 14,
+                vy: Math.sin(angle) * 14,
+                dmg: selectedW.dmg,
+                range: 450
             };
-        }
+            localBullets.push(shell);
 
-        function launchGameSession() {
-            gameState = "PLAYING";
-            player.x = world.w / 2;
-            player.y = world.h / 2;
-            player.hp = 100;
-            player.goldEarned = 0;
-            bullets = [];
-            bloodSplats = [];
-            initObstaclesWorld();
-            
-            document.getElementById("hud").style.display = "block";
-            document.getElementById("hud-name").innerText = account.nickname;
-            document.getElementById("ingame-settings-btn").style.display = "flex";
-            document.getElementById("game-chat-box").style.display = "flex";
-            resize();
-        }
-
-        // Nettoyer l'historique du chat lors de nouvelles sessions
-        function clearChatLogs() {
-            document.getElementById("chat-messages-container").innerHTML = "";
-        }
-
-        function pushSystemChatMessage(text) {
-            appendChatRowLayout(`<span class="chat-sender system">[HQ SYSTEM]: </span><span class="chat-text" style="color:#ffd700; font-weight:500;">${text}</span>`);
-        }
-        function pushBotChatMessage(botId, text) {
-            let tag = botId.includes("titan") ? "HEXA-TITAN AI" : "BOT DISPATCH";
-            appendChatRowLayout(`<span class="chat-sender bot">[${tag}]: </span><span class="chat-text" style="color:#ffb74d;">${text}</span>`);
-        }
-        function pushEnemyChatMessage(sender, text) {
-            appendChatRowLayout(`<span class="chat-sender enemy">[RIVAL] ${sender}: </span><span class="chat-text">${text}</span>`);
-        }
-
-        function appendChatRowLayout(htmlContent) {
-            let container = document.getElementById("chat-messages-container");
-            let row = document.createElement("div");
-            row.className = "chat-row";
-            row.innerHTML = htmlContent;
-            container.appendChild(row);
-            container.scrollTop = container.scrollHeight;
-        }
-
-        document.getElementById("chat-send-btn").addEventListener("click", broadcastLocalChatMessage);
-        document.getElementById("chat-input-field").addEventListener("keydown", e => {
-            if(e.key === 'Enter') broadcastLocalChatMessage();
-        });
-
-        function broadcastLocalChatMessage() {
-            let field = document.getElementById("chat-input-field");
-            let msg = field.value.trim();
-            if(!msg) return;
-            appendChatRowLayout(`<span class="chat-sender">${account.nickname}: </span><span class="chat-text">${msg}</span>`);
-            if(socket && socket.connected) {
-                socket.emit("sendChatMessage", msg);
-            }
-            field.value = "";
-        }
-
-        function fireActivePlayerBullet() {
-            let dmgFactor = WEAPONS_DATA[account.weapon].dmg;
-            let b = {
-                owner: "player", x: player.x + Math.cos(player.angle)*25, y: player.y + Math.sin(player.angle)*25,
-                vx: Math.cos(player.angle)*14, vy: Math.sin(player.angle)*14, r: 5, damage: dmgFactor
-            };
-            bullets.push(b);
-            if(socket && socket.connected) {
-                socket.emit("shoot", { x: b.x, y: b.y, vx: b.vx, vy: b.vy, damage: b.damage });
+            if(isOnline && socket) {
+                socket.emit("shoot", { x: shell.x, y: shell.y, vx: shell.vx, vy: shell.vy, dmg: shell.dmg });
             }
         }
 
-        // In-game Settings Controllers
-        document.getElementById("ingame-settings-btn").addEventListener("click", () => {
-            let pop = document.getElementById("ingame-popup");
-            pop.style.display = (pop.style.display === "flex") ? "none" : "flex";
-        });
-        document.getElementById("btn-game-resume").addEventListener("click", () => {
-            document.getElementById("ingame-popup").style.display = "none";
-        });
-        document.getElementById("btn-game-quit").addEventListener("click", () => {
-            document.getElementById("ingame-popup").style.display = "none";
-            exitSessionToLobby();
-        });
-
-        function exitSessionToLobby() {
-            gameState = "MENU";
-            if(socket) { socket.disconnect(); socket = null; }
-            document.getElementById("hud").style.display = "none";
-            document.getElementById("ingame-settings-btn").style.display = "none";
-            document.getElementById("game-chat-box").style.display = "none";
-            document.getElementById("screen-win").style.display = "none";
-            document.getElementById("screen-lose").style.display = "none";
-            showMainMenu();
+        function checkCollisionWithWalls(px, py, radius) {
+            for(let i = 0; i < obstacles.length; i++) {
+                let o = obstacles[i];
+                let closestX = Math.max(o.x, Math.min(px, o.x + o.w));
+                let closestY = Math.max(o.y, Math.min(py, o.y + o.h));
+                let dX = px - closestX;
+                let dY = py - closestY;
+                if((dX * dX + dY * dY) < (radius * radius)) {
+                    return true;
+                }
+            }
+            return false;
         }
 
-        document.getElementById("btn-lose-retry").addEventListener("click", () => {
-            document.getElementById("screen-lose").style.display = "none";
-            if(gameMode === "OFFLINE") startOfflineCampaign(currentStage);
-            else exitSessionToLobby();
-        });
-        document.getElementById("btn-win-cont").addEventListener("click", () => {
-            document.getElementById("screen-win").style.display = "none";
-            exitSessionToLobby();
-        });
-
-        // --- Matchmaking Connections Network Hub ---
-        let matchmakingTimerInterval = null;
-        let matchmakingSeconds = 0;
-
-        document.getElementById("btn-match-1v1").addEventListener("click", () => triggerOnlineQueue("1v1"));
-        document.getElementById("btn-match-br").addEventListener("click", () => triggerOnlineQueue("br30"));
-        document.getElementById("btn-match-coop").addEventListener("click", () => triggerOnlineQueue("coop"));
-        document.getElementById("btn-cancel-matchmaking").addEventListener("click", cancelMatchmakingSearch);
-
-        function triggerOnlineQueue(modeType) {
-            let cost = modeType==="1v1"? 70 : (modeType==="br30"? 30 : 0);
-            if(account.gold < cost) { alert("Insufficient Gold Reserves for deployment fee!"); return; }
-            
-            account.gold -= cost; saveAccount();
-            document.getElementById("online-lobby").style.display = "none";
-            document.getElementById("matchmaking-screen").style.display = "flex";
-            document.getElementById("search-title").innerText = `Joining ${modeType.toUpperCase()} Airspace...`;
-            
-            matchmakingSeconds = 0;
-            document.getElementById("matchmaking-timer").innerText = "Connecting to server...";
-            matchmakingTimerInterval = setInterval(() => {
-                matchmakingSeconds++;
-                document.getElementById("matchmaking-timer").innerText = `Time elapsed: ${matchmakingSeconds}s | Looking for players...`;
-            }, 1000);
-
-            // Connect Socket safely to prevent leaks
-            if(socket) socket.disconnect();
-            socket = io("http://localhost:3000", { reconnection: false });
-
-            socket.on("connect", () => {
-                socket.emit("joinQueue", { mode: modeType, nickname: account.nickname, email: account.email });
-            });
-
-            socket.on("matchFound", (data) => {
-                clearInterval(matchmakingTimerInterval);
-                document.getElementById("matchmaking-screen").style.display = "none";
-                gameMode = modeType === "1v1" ? "ON_1V1" : (modeType === "br30" ? "ON_BR" : "ON_COOP");
-                launchGameSession();
-                pushSystemChatMessage(`CONNECTED SUCCESSFUL. ROOM ID: ${data.roomId}`);
-            });
-
-            socket.on("stateUpdate", (serverPlayers) => {
-                networkPlayers = serverPlayers;
-            });
-
-            socket.on("bulletFired", (bData) => {
-                bullets.push({
-                    owner: "enemy", x: bData.x, y: bData.y, vx: bData.vx, vy: bData.vy, r: 5, damage: bData.damage
-                });
-            });
-
-            socket.on("receiveChatMessage", (data) => {
-                pushEnemyChatMessage(data.sender, data.text);
-            });
-
-            socket.on("roomTerminated", (msg) => {
-                alert(msg); exitSessionToLobby();
-            });
-
-            socket.on("connect_error", () => {
-                clearInterval(matchmakingTimerInterval);
-                alert("Could not link with Multiplayer Master Server Node. Offline redirection active.");
-                cancelMatchmakingSearch();
-            });
+        function gameLoop() {
+            if(!inGame) return;
+            updateEnginePhysics();
+            drawEngineGraphics();
+            requestAnimationFrame(gameLoop);
         }
 
-        function cancelMatchmakingSearch() {
-            clearInterval(matchmakingTimerInterval);
-            if(socket) { socket.emit("leaveQueue"); socket.disconnect(); socket = null; }
-            document.getElementById("matchmaking-screen").style.display = "none";
-            document.getElementById("online-lobby").style.display = "flex";
-            showMainMenu();
-        }
+        function updateEnginePhysics() {
+            let mx = 0;
+            let my = 0;
 
-        // --- Core Loops: Calculations and Mechanics Updates ---
-        function loop() {
-            updateGameplayMechanics();
-            renderGraphicsFrame();
-            requestAnimationFrame(loop);
-        }
+            if(isMobile && joystick.active) {
+                mx = joystick.vx * player.speed;
+                my = joystick.vy * player.speed;
+            } else {
+                if(keys['w'] || keys['arrowup']) my = -player.speed;
+                if(keys['s'] || keys['arrowdown']) my = player.speed;
+                if(keys['a'] || keys['arrowleft']) mx = -player.speed;
+                if(keys['d'] || keys['arrowright']) mx = player.speed;
+            }
 
-        function updateGameplayMechanics() {
-            if (gameState !== "PLAYING") return;
+            let nextX = player.x + mx;
+            let nextY = player.y + my;
 
-            // 1. CALCUL DU PROTOCOLE DE MOUVEMENT DE L'ACTEUR LOCAL
-            let moveX = 0;
-            let moveY = 0;
+            if(!checkCollisionWithWalls(nextX, player.y, player.r) && nextX > player.r && nextX < world.w - player.r) {
+                player.x = nextX;
+            }
+            if(!checkCollisionWithWalls(player.x, nextY, player.r) && nextY > player.r && nextY < world.h - player.r) {
+                player.y = nextY;
+            }
 
-            if (isTouchDevice && stickActive) {
-                let dx = stickMove.x - stickStart.x;
-                let dy = stickMove.y - stickStart.y;
-                let dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist > 0) {
-                    moveX = dx / dist;
-                    moveY = dy / dist;
+            let camX = player.x - canvas.width / 2;
+            let camY = player.y - canvas.height / 2;
+
+            if(isMobile) {
+                if(joystick.active) {
+                    player.angle = Math.atan2(joystick.vy, joystick.vx);
                 }
             } else {
-                if (keys['w'] || keys['z'] || keys['arrowup']) moveY = -1;
-                if (keys['s'] || keys['arrowdown']) moveY = 1;
-                if (keys['a'] || keys['q'] || keys['arrowleft']) moveX = -1;
-                if (keys['d'] || keys['arrowright']) moveX = 1;
+                let worldMouseX = mouseX + camX;
+                let worldMouseY = mouseY + camY;
+                player.angle = Math.atan2(worldMouseY - player.y, worldMouseX - player.x);
             }
 
-            // Normalisation pour éviter l'accélération diagonale
-            if (moveX !== 0 && moveY !== 0) {
-                moveX *= 0.7071;
-                moveY *= 0.7071;
+            if(isOnline && socket && (mx !== 0 || my !== 0)) {
+                socket.emit("move", { x: player.x, y: player.y, angle: player.angle });
             }
 
-            let nextX = player.x + moveX * player.speed;
-            let nextY = player.y + moveY * player.speed;
-
-            // Application des collisions contre les structures géométriques de la carte
-            //             obstacles.forEach(obs => {
-                // Épaississement virtuel autour de l'obstacle pour le rayon du joueur
-                let pad = player.r;
-                if (nextX + pad > obs.x && nextX - pad < obs.x + obs.w &&
-                    player.y + pad > obs.y && player.y - pad < obs.y + obs.h) {
-                    nextX = player.x; // Bloquer X
-                }
-                if (player.x + pad > obs.x && player.x - pad < obs.x + obs.w &&
-                    nextY + pad > obs.y && nextY - pad < obs.y + obs.h) {
-                    nextY = player.y; // Bloquer Y
-                }
-
-                // Vérification de la proximité immédiate de la porte (Door Prompt Overlay Activation)
+            let doorNear = false;
+            obstacles.forEach(obs => {
                 let d = obs.door;
-                let distToDoor = Math.hypot(player.x - (d.x + d.w/2), player.y - (d.y + d.h/2));
-                let prompt = document.getElementById("mobile-door-prompt");
-                if (distToDoor < 90) {
-                    prompt.style.display = "flex";
-                    prompt.style.transform = "scale(1)";
-                    if (keys['e']) d.open = true;
-                } else {
-                    // Masquage progressif s'il s'éloigne
-                    if (distToDoor > 150) { prompt.style.transform = "scale(0)"; }
+                let dist = Math.hypot(player.x - d.x, player.y - d.y);
+                if(dist < 75) doorNear = true;
+            });
+
+            let promptEl = document.getElementById("mobile-door-prompt");
+            if(doorNear) {
+                promptEl.style.display = "flex";
+                setTimeout(() => promptEl.style.transform = "scale(1)", 10);
+            } else {
+                promptEl.style.transform = "scale(0)";
+                setTimeout(() => promptEl.style.display = "none", 200);
+            }
+
+            localBullets.forEach((b, idx) => {
+                b.x += b.vx;
+                b.y += b.vy;
+                b.range -= Math.hypot(b.vx, b.vy);
+                if(b.range <= 0 || checkCollisionWithWalls(b.x, b.y, 4)) {
+                    localBullets.splice(idx, 1);
                 }
             });
 
-            // Confinement strict à l'intérieur des frontières du monde (World Bounds clamping)
-            player.x = Math.max(player.r, Math.min(world.w - player.r, nextX));
-            player.y = Math.max(player.r, Math.min(world.h - player.r, nextY));
-
-            // Envoi de la position actuelle au serveur si en ligne
-            if (socket && socket.connected) {
-                socket.emit("updatePlayerState", { x: player.x, y: player.y, angle: player.angle });
-            }
-
-            // 2. TACTICAL HEXA-BOTS BOT MERGING MERGE INTELLIGENCE
-            // Fusionnement quand 6 bots identiques se touchent
-            let mergeGroups = {};
-            localBots.forEach(b => {
-                if (b.hp <= 0) return;
-                if (!mergeGroups[b.type]) mergeGroups[b.type] = [];
-                mergeGroups[b.type].push(b);
+            remoteBullets.forEach((b, idx) => {
+                b.x += b.vx;
+                b.y += b.vy;
+                if(checkCollisionWithWalls(b.x, b.y, 4)) {
+                    remoteBullets.splice(idx, 1);
+                }
             });
 
-            for (let type in mergeGroups) {
-                let list = mergeGroups[type];
-                if (list.length >= 6) {
-                    // Déclenchement de la fusion : On prend le premier bot comme réceptacle de la puissance globale
-                    let titan = list[0];
-                    titan.mergeCount += list.length - 1; 
-                    titan.type = "titan_" + type;
-                    titan.name = `HEXA-TITAN ${type.toUpperCase()}`;
-                    titan.r = 55; // Croissance visuelle massive
-                    titan.maxHp = 1200;
-                    titan.hp = 1200;
-                    titan.speed = titan.originalSpeed * 0.75; // Légèrement plus lent mais destructeur
-                    
-                    // Nettoyage des 5 autres sous-unités consommées par le cœur
-                    for(let k = 1; k < list.length; k++) {
-                        list[k].hp = 0; 
-                    }
-                    pushBotChatMessage(titan.id, "CRITICAL ALERT: 6 Sub-units synchronized. Hexa-Titan Entity formed! Absolute force engaged.");
-                }
-            }
+            localBots.forEach((bot, bIdx) => {
+                if(bot.hp <= 0) return;
 
-            // 3. IA PATHFINDING DE NAVIGATION ET COMPORTEMENT DES BOT LOCALES
-            localBots.forEach(b => {
-                if(b.hp <= 0) return;
-
-                // Chat autonome aléatoire des bots tactiques
-                if (Date.now() > b.nextChatTime) {
-                    let randPhrase = BOT_CHAT_PHRASES[Math.floor(Math.random() * BOT_CHAT_PHRASES.length)];
-                    pushBotChatMessage(b.id, randPhrase);
-                    b.nextChatTime = Date.now() + 15000 + Math.random()*20000;
-                }
-
-                let targetX = player.x;
-                let targetY = player.y;
-
-                let dx = targetX - b.x;
-                let dy = targetY - b.y;
+                let dx = player.x - bot.x;
+                let dy = player.y - bot.y;
                 let dist = Math.hypot(dx, dy);
 
-                // Algorithme d'évitement d'obstacles intégré pour empêcher les bots de se coincer
-                //                 let pathX = dx / (dist || 1);
-                let pathY = dy / (dist || 1);
+                let nextBotX = bot.x + (dx / dist) * bot.speed;
+                let nextBotY = bot.y + (dy / dist) * bot.speed;
 
-                obstacles.forEach(obs => {
-                    let pad = b.r + 15;
-                    // Test de prédiction de collision imminente sur la boîte englobante
-                    if (b.x + pathX*b.speed + pad > obs.x && b.x + pathX*b.speed - pad < obs.x + obs.w &&
-                        b.y + pathY*b.speed + pad > obs.y && b.y + pathY*b.speed - pad < obs.y + obs.h) {
-                        // Inversion vectorielle perpendiculaire pour contourner le mur
-                        let temp = pathX;
-                        pathX = -pathY;
-                        pathY = temp;
+                if(!checkCollisionWithWalls(nextBotX, bot.y, bot.r)) bot.x = nextBotX;
+                if(!checkCollisionWithWalls(bot.x, nextBotY, bot.r)) bot.y = nextBotY;
+
+                let now = Date.now();
+                if(dist < 350 && now - bot.lastShot > 1400) {
+                    bot.lastShot = now;
+                    let angle = Math.atan2(dy, dx);
+                    remoteBullets.push({
+                        owner: "bot",
+                        x: bot.x + Math.cos(angle) * bot.r,
+                        y: bot.y + Math.sin(angle) * bot.r,
+                        vx: Math.cos(angle) * 8,
+                        vy: Math.sin(angle) * 8
+                    });
+                }
+
+                localBullets.forEach((bullet, bllIdx) => {
+                    if(Math.hypot(bullet.x - bot.x, bullet.y - bot.y) < bot.r) {
+                        bot.hp -= bullet.dmg;
+                        localBullets.splice(bllIdx, 1);
+                        if(bot.hp <= 0) {
+                            player.goldMatch += 35;
+                            updateHUD();
+                            checkMatchProgressStatus();
+                        }
                     }
                 });
-
-                b.x += pathX * b.speed;
-                b.y += pathY * b.speed;
-                b.angle = Math.atan2(dy, dx);
-
-                // Cadence de tir de l'intelligence artificielle hostile
-                if (dist < 450 && Date.now() - b.lastShot > 1100) {
-                    bullets.push({
-                        owner: "bot", x: b.x + Math.cos(b.angle)*22, y: b.y + Math.sin(b.angle)*22,
-                        vx: Math.cos(b.angle)*7.5, vy: Math.sin(b.angle)*7.5, r: 5, damage: b.type.includes("titan")? 25 : 8
-                    });
-                    b.lastShot = Date.now();
-                }
             });
 
-            // 4. BALISTIQUE ET TRAJECTOIRES DES BALLES DE COMBAT
-            for (let i = bullets.length - 1; i >= 0; i--) {
-                let blt = bullets[i];
-                blt.x += blt.vx;
-                blt.y += blt.vy;
-
-                // Destruction de la munition si elle heurte les limites physiques du monde
-                if(blt.x<0 || blt.x>world.w || blt.y<0 || blt.y>world.h) {
-                    bullets.splice(i, 1); continue;
-                }
-
-                // Collision de la balle contre les murs occultants solides
-                let hitObstacle = false;
-                for (let obs of obstacles) {
-                    if (blt.x > obs.x && blt.x < obs.x + obs.w && blt.y > obs.y && blt.y < obs.y + obs.h) {
-                        hitObstacle = true; break;
+            remoteBullets.forEach((bullet, bllIdx) => {
+                if(bullet.owner !== "player") {
+                    if(Math.hypot(bullet.x - player.x, bullet.y - player.y) < player.r) {
+                        remoteBullets.splice(bllIdx, 1);
+                        player.hp -= 8;
+                        updateHUD();
+                        if(player.hp <= 0) triggerMatchEnd(false);
                     }
                 }
-                if (hitObstacle) { bullets.splice(i, 1); continue; }
-
-                // Gestion des impacts selon l'allégeance de la source
-                if (blt.owner === "player") {
-                    for (let b of localBots) {
-                        if (b.hp > 0 && Math.hypot(blt.x - b.x, blt.y - b.y) < b.r) {
-                            b.hp -= blt.damage;
-                            createBloodSplatParticle(b.x, b.y);
-                            if (b.hp <= 0) {
-                                let reward = b.type.includes("titan") ? 350 : 60;
-                                player.goldEarned += reward;
-                                account.gold += reward; saveAccount();
-                                pushSystemChatMessage(`ELIMINATED TARGET: +${reward} GOLD GRANTED.`);
-                            }
-                            bullets.splice(i, 1); break;
-                        }
-                    }
-                } else if (blt.owner === "bot" || blt.owner === "enemy") {
-                    if (Math.hypot(blt.x - player.x, blt.y - player.y) < player.r) {
-                        // Application de l'armure de protection achetée à l'armurerie
-                        let proto = ARMORS_DATA[account.armor].protection;
-                        let finalDmg = Math.max(1, blt.damage - proto);
-                        player.hp -= finalDmg;
-                        createBloodSplatParticle(player.x, player.y);
-                        
-                        // Envoi de la notification de dégâts au serveur en ligne
-                        if (socket && socket.connected) {
-                            socket.emit("takeDamage", { damage: finalDmg });
-                        }
-                        
-                        bullets.splice(i, 1);
-                        if (player.hp <= 0) { triggerMatchResolutionFailure(); }
-                    }
-                }
-            }
-
-            // Evaluation finale des conditions de victoire en mode unitaire hors ligne
-            if (gameMode === "OFFLINE" && localBots.length > 0 && localBots.every(b => b.hp <= 0)) {
-                triggerMatchResolutionVictory();
-            }
-
-            // Dynamic Update Interface Panels
-            document.getElementById("hp-bar").style.width = `${Math.max(0, player.hp)}%`;
-            document.getElementById("gold-match-display").innerText = `Gold: ${player.goldEarned} | Total: ${account.gold}`;
-        }
-
-        function createBloodSplatParticle(x, y) {
-            bloodSplats.push({
-                x: x + (Math.random()*20-10), y: y + (Math.random()*20-10),
-                r: Math.random()*12 + 6, alpha: 0.85
             });
         }
 
-        function triggerMatchResolutionVictory() {
-            gameState = "MENU";
-            if (currentStage === account.maxStage) {
-                account.maxStage++; saveAccount();
+        function checkMatchProgressStatus() {
+            let alive = localBots.filter(b => b.hp > 0).length;
+            if(alive === 0) {
+                triggerMatchEnd(true);
             }
-            document.getElementById("screen-win").style.display = "flex";
         }
 
-        function triggerMatchResolutionFailure() {
-            gameState = "MENU";
-            document.getElementById("screen-lose").style.display = "flex";
+        function triggerMatchEnd(won) {
+            inGame = false;
+            if(socket) socket.emit("leaveQueue");
+            
+            document.getElementById("hud").style.display = "none";
+            document.getElementById("ingame-settings-btn").style.display = "none";
+            document.getElementById("ingame-popup").style.display = "none";
+
+            if(won) {
+                account.gold += player.goldMatch + 100;
+                if(!isOnline && currentStageId === account.maxStage) {
+                    account.maxStage++;
+                }
+                saveAccount();
+                document.getElementById("screen-win").style.display = "flex";
+            } else {
+                document.getElementById("screen-lose").style.display = "flex";
+            }
         }
 
-        // --- Core Rendering Engine Engine Architecture ---
-        // RENDU DE TOUS LES ÉLÉMENTS DU JEU COMPLÈTEMENT CORRIGÉ
-        function renderGraphicsFrame() {
+        document.getElementById("btn-win-cont").addEventListener("click", () => {
+            document.getElementById("screen-win").style.display = "none";
+            showMainMenu();
+        });
+        document.getElementById("btn-lose-retry").addEventListener("click", () => {
+            document.getElementById("screen-lose").style.display = "none";
+            showMainMenu();
+        });
+
+        function drawEngineGraphics() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // CORRECTION CRITIQUE DES COORDONNÉES DE LA CAMÉRA
-            // Calculer la translation pour bloquer STRICTEMENT le joueur au milieu exact du Canvas
-            let cameraX = canvas.width / 2 - player.x;
-            let cameraY = canvas.height / 2 - player.y;
+            let camX = player.x - canvas.width / 2;
+            let camY = player.y - canvas.height / 2;
 
             ctx.save();
-            ctx.translate(cameraX, cameraY);
+            ctx.translate(-camX, -camY);
 
-            // 1. Dessiner la grille de fond du simulateur tactique (Tactical Floor Grid)
-            ctx.strokeStyle = "#16222f";
+            ctx.strokeStyle = "#162331";
             ctx.lineWidth = 1;
-            const gridSize = 80;
-            for (let x = 0; x < world.w; x += gridSize) {
+            let gridSize = 100;
+            for(let x=0; x<world.w; x+=gridSize) {
                 ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, world.h); ctx.stroke();
             }
-            for (let y = 0; y < world.h; y += gridSize) {
+            for(let y=0; y<world.h; y+=gridSize) {
                 ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(world.w, y); ctx.stroke();
             }
 
-            // Bordures physiques extérieures de l'arène de combat
-            ctx.strokeStyle = "#1e88e5"; ctx.lineWidth = 6;
-            ctx.strokeRect(0, 0, world.w, world.h);
-
-            // 2. Dessiner les éclaboussures de sang (Blood Splats Background Elements)
-            bloodSplats.forEach(s => {
-                ctx.fillStyle = `rgba(183, 28, 28, ${s.alpha})`;
-                ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI*2); ctx.fill();
-            });
-
-            // 3. Dessiner les bâtiments structures (Obstacles géométriques)
             obstacles.forEach(obs => {
-                // Toit du bunker fortifié
-                ctx.fillStyle = "#2c3d52";
+                ctx.fillStyle = "#2c3e50";
                 ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-                ctx.strokeStyle = "#3e5775"; ctx.lineWidth = 3;
+                ctx.strokeStyle = "#34495e";
+                ctx.lineWidth = 4;
                 ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
 
-                // Portes intérieures interactives
-                let d = obs.door;
-                ctx.fillStyle = d.open ? "rgba(76, 175, 80, 0.3)" : "#ffb300";
-                ctx.fillRect(d.x, d.y, d.w, d.h);
+                ctx.fillStyle = "#ffb300";
+                ctx.fillRect(obs.door.x, obs.door.y, obs.door.w, obs.door.h);
             });
 
-            // 4. Dessiner les projectiles (Bullets)
-            bullets.forEach(b => {
-                ctx.fillStyle = b.owner === "player" ? "#64b5f6" : "#ff8a65";
-                ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
+            localBots.forEach(bot => {
+                if(bot.hp <= 0) return;
+                ctx.fillStyle = bot.type === "hexa" ? "#9c27b0" : "#e65100";
+                ctx.beginPath();
+                ctx.arc(bot.x, bot.y, bot.r, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#263238";
+                ctx.fillRect(bot.x - 20, bot.y - bot.r - 12, 40, 5);
+                ctx.fillStyle = "#f44336";
+                ctx.fillRect(bot.x - 20, bot.y - bot.r - 12, (bot.hp / bot.maxHp) * 40, 5);
             });
 
-            // 5. Dessiner les bots locaux hostiles (AI Entities)
-            localBots.forEach(b => {
-                if (b.hp <= 0) return;
-                ctx.save();
-                ctx.translate(b.x, b.y);
-                ctx.rotate(b.angle);
-
-                // Couleur du corps du bot (Devient violet intense pour les Titans fusionnés)
-                ctx.fillStyle = b.type.includes("titan") ? "#4a148c" : (b.type === "elite" ? "#e65100" : "#d32f2f");
-                ctx.beginPath(); ctx.arc(0, 0, b.r, 0, Math.PI*2); ctx.fill();
-                ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.stroke();
-
-                // Direction du canon d'arme du bot
-                ctx.fillStyle = "#1e272c";
-                ctx.fillRect(0, -5, b.r + 12, 10);
-                ctx.restore();
-
-                // Barre de points de vie au-dessus du bot (Lifebar Indicator)
-                let barW = b.r * 2;
-                ctx.fillStyle = "rgba(0,0,0,0.6)";
-                ctx.fillRect(b.x - b.r, b.y - b.r - 14, barW, 6);
-                ctx.fillStyle = "#ff5252";
-                ctx.fillRect(b.x - b.r, b.y - b.r - 14, barW * (b.hp / b.maxHp), 6);
-                
-                // Affichage du nom et du multiplicateur de fusion (Merge Count Multiplier)
-                ctx.fillStyle = "#ffffff"; ctx.font = "bold 11px Arial"; ctx.textBaseline = "bottom"; ctx.textAlign = "center";
-                let tagStr = b.mergeCount > 1 ? `${b.name} (x${b.mergeCount})` : b.name;
-                ctx.fillText(tagStr, b.x, b.y - b.r - 18);
-            });
-
-            // 6. Rendu des joueurs du réseau connecté (Multiplayer Online Network Avatars)
-            for (let id in networkPlayers) {
-                if (id === socket?.id) continue; // Skip matching local view
-                let np = networkPlayers[id];
-                if (np.hp <= 0) continue;
+            for(let id in networkPlayers) {
+                let p = networkPlayers[id];
+                if(p.hp <= 0) continue;
+                ctx.fillStyle = "#e53935";
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 22, 0, Math.PI * 2);
+                ctx.fill();
 
                 ctx.save();
-                ctx.translate(np.x, np.y);
-                ctx.rotate(np.angle);
-                ctx.fillStyle = "#c2185b";
-                ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI*2); ctx.fill();
-                ctx.fillStyle = "#212121"; ctx.fillRect(0, -5, 32, 10);
+                ctx.translate(p.x, p.y);
+                ctx.rotate(p.angle);
+                ctx.fillStyle = "#37474F";
+                ctx.fillRect(0, -5, 30, 10);
                 ctx.restore();
 
-                ctx.fillStyle = "#ff4081"; ctx.font = "12px Arial"; ctx.textAlign = "center";
-                ctx.fillText(np.nickname, np.x, np.y - 34);
+                ctx.fillStyle = "white";
+                ctx.font = "12px sans-serif";
+                ctx.fillText(p.nickname || "Rival", p.x - 20, p.y - 35);
             }
 
-            // 7. RENDU FINAL DE L'ACTEUR LOCAL (PLAYER) [STRICTEMENT AU CENTRE DE L'ÉCRAN REQUIS]
+            ctx.fillStyle = "#1e88e5";
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.r, 0, Math.PI * 2);
+            ctx.fill();
+
             ctx.save();
             ctx.translate(player.x, player.y);
             ctx.rotate(player.angle);
+            ctx.fillStyle = "#1565C0";
+            ctx.fillRect(0, -6, 32, 12);
+            ctx.restore();
 
-            // Base circulaire de la tenue de combat
-            ctx.fillStyle = "#1e88e5"; 
-            ctx.beginPath(); ctx.arc(0, 0, player.r, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3; ctx.stroke();
-
-            // Rendu visuel de l'arme équipée tenue en main
-            ctx.fillStyle = "#37474f";
-            let weaponId = account.weapon;
-            if(weaponId === 0) ctx.fillRect(0, -4, 30, 8); // Pistol Basic Length
-            else if(weaponId === 1) ctx.fillRect(0, -6, 42, 12); // Rifle Assault Length
-            else ctx.fillRect(0, -8, 48, 16); // Plasma Cannon Massive Core
+            ctx.fillStyle = "#fff";
+            localBullets.forEach(b => {
+                ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI*2); ctx.fill();
+            });
+            ctx.fillStyle = "#ffeb3b";
+            remoteBullets.forEach(b => {
+                ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI*2); ctx.fill();
+            });
 
             ctx.restore();
 
-            ctx.restore(); // Fin de la translation de la caméra
-
-            // 8. COUCHE D'INTERFACE GRAPHIQUE RADAR (MINIMAP HUD SYSTEM)
-            renderOverlayRadarMinimap();
-
-            // 9. RENDER MOBILE JOYSTICK ONSCREEN INTERFACE GESTURE
-            if (isTouchDevice && stickActive) {
-                ctx.save();
-                ctx.fillStyle = "rgba(255,255,255,0.08)";
-                ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.lineWidth = 2;
-                ctx.beginPath(); ctx.arc(stickStart.x, stickStart.y, joyLayout.r, 0, Math.PI*2); ctx.fill(); ctx.stroke();
-
-                ctx.fillStyle = "rgba(30, 136, 229, 0.6)";
-                ctx.beginPath(); ctx.arc(stickMove.x, stickMove.y, 24, 0, Math.PI*2); ctx.fill();
-                ctx.restore();
+            if(isMobile && joystick.active) {
+                ctx.fillStyle = "rgba(255,255,255,0.15)";
+                ctx.beginPath();
+                ctx.arc(joystick.startX, joystick.startY, joystick.size, 0, Math.PI*2);
+                ctx.fill();
+                ctx.fillStyle = "rgba(255,255,255,0.4)";
+                ctx.beginPath();
+                ctx.arc(joystick.curX, joystick.curY, 25, 0, Math.PI*2);
+                ctx.fill();
             }
-        }
 
-        // --- Rendu du Mini-radar de Combat Supérieur Droit ---
-        function renderOverlayRadarMinimap() {
-            let mSize = largeMap ? Math.min(canvas.width, canvas.height) * 0.75 : 170;
-            let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 20;
+            let mSize = largeMap ? Math.min(canvas.width, canvas.height) * 0.75 : 160;
+            let mX = canvas.width - mSize - 20;
             let mY = largeMap ? (canvas.height - mSize)/2 : 20;
             let ratio = mSize / world.w;
             
             ctx.fillStyle = "rgba(9, 13, 18, 0.85)"; ctx.fillRect(mX, mY, mSize, mSize);
             ctx.strokeStyle = "#243447"; ctx.lineWidth = 2; ctx.strokeRect(mX, mY, mSize, mSize);
             
-            // Dessin des structures géométriques à l'intérieur de la carte radar mini
             obstacles.forEach(obs => {
                 ctx.fillStyle = "rgba(87, 96, 111, 0.6)";
                 ctx.fillRect(mX + obs.x*ratio, mY + obs.y*ratio, obs.w*ratio, obs.h*ratio);
-                
-                // Marqueur de porte jaune miniature
-                ctx.fillStyle = "#ffb300";
-                ctx.fillRect(mX + obs.door.x*ratio, mY + obs.door.y*ratio, Math.max(2, obs.door.w*ratio), Math.max(2, obs.door.h*ratio));
             });
             
-            // Position du joueur local (Flèche bleue fixe ou point focal centré)
             ctx.fillStyle = "#1e88e5"; ctx.beginPath(); ctx.arc(mX + player.x*ratio, mY + player.y*ratio, 4, 0, Math.PI*2); ctx.fill();
-            
-            // Positions des menaces bots locales sur le radar (Points rouges)
-            ctx.fillStyle = "#e65100"; 
-            localBots.forEach(b => { 
-                if(b.hp > 0) { 
-                    ctx.beginPath(); ctx.arc(mX + b.x*ratio, mY + b.y*ratio, b.type.includes("titan")? 4 : 2, 0, Math.PI*2); ctx.fill(); 
-                } 
-            });
+            ctx.fillStyle = "#e65100"; localBots.forEach(b => { if(b.hp>0) { ctx.beginPath(); ctx.arc(mX + b.x*ratio, mY + b.y*ratio, 2, 0, Math.PI*2); ctx.fill(); } });
         }
 
-        // Mobile door manual pointer action click hook
-        document.getElementById("mobile-door-prompt").addEventListener("click", () => {
-            obstacles.forEach(obs => {
-                let dist = Math.hypot(player.x - (obs.door.x + obs.door.w/2), player.y - (obs.door.y + obs.door.h/2));
-                if(dist < 120) obs.door.open = true;
-            });
+        let settingsOpen = false;
+        document.getElementById("ingame-settings-btn").addEventListener("click", () => {
+            settingsOpen = !settingsOpen;
+            document.getElementById("ingame-popup").style.display = settingsOpen ? "flex" : "none";
         });
-
-        // --- Initialisation automatique du démarrage ---
-        if(localStorage.getItem("ts_user_admin@gmail.com")) {
-            document.getElementById("auth-email").value = "admin@gmail.com";
-            document.getElementById("auth-name").value = "Commander";
-            document.getElementById("auth-pass").value = "123456";
-        }
-
-        // Start Clock Engine Loop
-        loop();
+        document.getElementById("btn-game-resume").addEventListener("click", () => {
+            settingsOpen = false;
+            document.getElementById("ingame-popup").style.display = "none";
+        });
+        document.getElementById("btn-game-quit").addEventListener("click", () => {
+            inGame = false;
+            settingsOpen = false;
+            if(socket) socket.emit("leaveQueue");
+            document.getElementById("ingame-popup").style.display = "none";
+            document.getElementById("hud").style.display = "none";
+            document.getElementById("ingame-settings-btn").style.display = "none";
+            showMainMenu();
+        });
     </script>
 </body>
 </html>
