@@ -51,16 +51,11 @@
         
         /* Game Over / Win Overlays */
         .match-end-screen { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(13,19,26,0.85); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:9; }
-
-        /* Mobile HUD controls button */
-        #map-btn-mobile { position: absolute; top: 15px; right: 15px; width: 45px; height: 45px; border-radius: 6px; display: none; justify-content: center; align-items: center; z-index: 5; }
-        @media (max-width: 768px) { #map-btn-mobile { display: flex; } }
     </style>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
 
-    <!-- Auth Registration Screen -->
     <div id="auth-screen" class="screen-overlay">
         <div class="menu-card">
             <h2>Account Register</h2>
@@ -72,7 +67,6 @@
         </div>
     </div>
 
-    <!-- Main Game Menu Lobby -->
     <div id="main-menu" class="screen-overlay">
         <div class="menu-card" style="width: 360px;">
             <h2>Tactical Lobby</h2>
@@ -89,7 +83,6 @@
         </div>
     </div>
 
-    <!-- Armory Shop Screen -->
     <div id="shop-screen" class="screen-overlay">
         <h2 style="color:#ffd700;">ARMORY & GEAR MARKET</h2>
         <h3 id="shop-gold-title">Your Gold: 0</h3>
@@ -100,7 +93,6 @@
         <button class="btn-premium" id="btn-back-shop" style="margin-top:20px;">Return to Menu</button>
     </div>
 
-    <!-- Mode Selection Gate -->
     <div id="mode-gate" class="screen-overlay" style="display:none;">
         <div class="menu-card">
             <h2>Select Operations</h2>
@@ -112,7 +104,6 @@
         </div>
     </div>
 
-    <!-- Campaign Map Gate -->
     <div id="campaign-screen" class="screen-overlay">
         <div class="menu-card" style="width:85%; max-width:500px;">
             <h2>Campaign Stages (1 - 100)</h2>
@@ -121,7 +112,6 @@
         </div>
     </div>
 
-    <!-- Online Matchmaking Lobby -->
     <div id="online-lobby" class="screen-overlay">
         <div class="menu-card">
             <h2>War Rooms</h2>
@@ -134,7 +124,6 @@
         </div>
     </div>
 
-    <!-- HUD Layout -->
     <div id="hud">
         <div id="hud-name">Soldier</div>
         <div id="hp-bar-container"><div id="hp-bar"></div></div>
@@ -148,9 +137,6 @@
         <button class="menu-btn btn-secondary" id="btn-game-quit" style="background:#c62828;">Quit Menu</button>
     </div>
 
-    <button class="btn-secondary" id="map-btn-mobile">MAP</button>
-
-    <!-- Match End Screens -->
     <div id="screen-lose" class="match-end-screen">
         <h1 style="color:#c62828; font-size:45px; text-shadow: 0 0 10px black;">MISSION FAILED</h1>
         <div style="display:flex; gap:15px; margin-top:20px;">
@@ -173,8 +159,8 @@
     <script>
         const canvas = document.getElementById("game");
         const ctx = canvas.getContext("2d");
-        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
-        resize(); window.addEventListener("resize", resize);
+        function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; updateJoystickPositions(); }
+        window.addEventListener("resize", resize);
 
         // Global Storage Account Data Mockup Database
         let account = null;
@@ -198,6 +184,7 @@
             } else {
                 document.getElementById("auth-screen").style.display = "flex";
             }
+            resize();
         });
 
         // Registration Event Handler
@@ -209,7 +196,7 @@
                 document.getElementById("auth-error").innerText = "Invalid credentials setup! Try again.";
                 return;
             }
-            account = { email: email, pass: pass, nickname: name, nameChanges: 1, gold: 200, maxStage: 1, weapon: 0, armor: 0, itemsOwned: [0] };
+            account = { email: email, pass: pass, nickname: name, nameChanges: 1, gold: 200, maxStage: 1, weapon: 0, armor: 0, itemsOwned: ["w_0", "a_0"] };
             saveAccount(); showMainMenu();
         });
 
@@ -308,11 +295,13 @@
 
         // --- Core Engine Gameplay Configuration ---
         const socket = io("https://my-online-game-1n7l.onrender.com");
+        const keys = {};
+        const mouse = { x: 0, y: 0 };
         const world = { w: 4000, h: 4000 };
-        let currentMode = "offline"; // offline, 1v1, br, coop
+        let currentMode = "offline"; 
         let currentStage = 1;
         let gameActive = false;
-        let showMap = true;
+        let largeMap = false; // ???? ????? ?????? ?????
         
         let player = { id: null, x: 2000, y: 2000, r: 16, speed: 5.5, hp: 100, maxHp: 100, angle: 0, nickname: "" };
         let camera = { x: 0, y: 0 };
@@ -321,9 +310,21 @@
         let localBots = [];
         let matchGold = 0;
 
-        // Mini-Milita dual controller mechanics tracking
-        const leftJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 50 };
-        const rightJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 50 };
+        // Mini-Militia permanent transparent joysticks fixed in bottom corners
+        const leftJoystick = { active: false, startX: 80, startY: 0, currentX: 80, currentY: 0, touchId: null, maxRadius: 55 };
+        const rightJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 55 };
+
+        function updateJoystickPositions() {
+            leftJoystick.startX = 90;
+            leftJoystick.startY = canvas.height - 90;
+            leftJoystick.currentX = leftJoystick.startX;
+            leftJoystick.currentY = leftJoystick.startY;
+
+            rightJoystick.startX = canvas.width - 90;
+            rightJoystick.startY = canvas.height - 90;
+            rightJoystick.currentX = rightJoystick.startX;
+            rightJoystick.currentY = rightJoystick.startY;
+        }
 
         const obstacles = [
             { x: 600, y: 500, w: 160, h: 160, type: "house" },
@@ -335,11 +336,10 @@
         // In-game menus wiring logic
         const sToggle = document.getElementById("ingame-settings-btn");
         const sPopup = document.getElementById("ingame-popup");
-        sToggle.addEventListener("click", () => sPopup.style.display = sPopup.style.display === "flex" ? "none" : "flex");
+        sToggle.addEventListener("click", (e) => { e.stopPropagation(); sPopup.style.display = sPopup.style.display === "flex" ? "none" : "flex"; });
         document.getElementById("btn-game-resume").addEventListener("click", () => sPopup.style.display = "none");
         document.getElementById("btn-game-restart").addEventListener("click", () => { sPopup.style.display="none"; restartMatch(); });
         document.getElementById("btn-game-quit").addEventListener("click", () => { location.reload(); });
-        document.getElementById("map-btn-mobile").addEventListener("click", () => showMap = !showMap);
 
         // Win-Lose Buttons bindings
         document.getElementById("btn-lose-retry").addEventListener("click", () => { document.getElementById("screen-lose").style.display="none"; restartMatch(); });
@@ -378,7 +378,7 @@
         socket.on("coopGoldSynced", data => { matchGold = data.goldShared; });
 
         function initMatchEngine() {
-            gameActive = true; bullets = []; localBots = []; matchGold = 0;
+            gameActive = true; bullets = []; localBots = []; matchGold = 0; largeMap = false;
             let currentArmorData = ARMORS_DATA[account.armor];
             player.maxHp = 100 + (currentArmorData.protection * 25); player.hp = player.maxHp;
             player.id = currentMode === "offline" ? "local" : socket.id;
@@ -388,10 +388,11 @@
             document.getElementById("hud").style.display = "block";
             document.getElementById("ingame-settings-btn").style.display = "flex";
             document.getElementById("hud-name").innerText = player.nickname;
+            updateJoystickPositions();
 
             if (currentMode === "offline" || currentMode === "coop") {
                 let spawnedCount = currentMode === "coop" ? 10 : 3 + currentStage;
-                if(currentStage % 10 === 0 && currentMode === "offline") { // Boss Stage
+                if(currentStage % 10 === 0 && currentMode === "offline") { 
                     localBots.push({ id: "boss", x: 1200, y: 1200, r: 40, speed: 1.5, hp: 500, maxHp: 500, type: "boss" });
                 } else {
                     for(let i=0; i<spawnedCount; i++) {
@@ -404,26 +405,57 @@
         function restartMatch() { initMatchEngine(); }
         function exitToCampaignMenu() { document.getElementById("hud").style.display="none"; document.getElementById("ingame-settings-btn").style.display="none"; gameActive=false; document.getElementById("campaign-screen").style.display="flex"; buildCampaignGrid(); }
 
-        // PC Keyboards / Mice triggers
-        window.onkeydown = e => { 
+        // PC Keyboards / Mice triggers - GLOBAL FIX FOR CODES M AND R
+        window.addEventListener("keydown", e => { 
+            if (!gameActive) return;
             keys[e.key.toLowerCase()] = true; 
-            if(e.key.toLowerCase() === 'm') showMap = !showMap; 
-            if(e.key.toLowerCase() === 'r' && currentMode === 'offline') restartMatch(); 
-        };
-        window.onkeyup = e => keys[e.key.toLowerCase()] = false;
+            if(e.key.toLowerCase() === 'm') { largeMap = !largeMap; } 
+            if(e.key.toLowerCase() === 'r' && currentMode === 'offline') { restartMatch(); } 
+        });
+        window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
         window.addEventListener("mousemove", e => { if(!gameActive) return; mouse.x = e.clientX; mouse.y = e.clientY; });
-        window.addEventListener("click", e => { if(!gameActive || e.clientY < 100 && e.clientX < 260) return; executeWeaponFire(); });
+        
+        // Handle Clicks / Minimap Interactions
+        window.addEventListener("click", e => { 
+            if(!gameActive) return;
+            
+            // ???? ??? ??? ????? ??? ????? ????? ???????/??????
+            let mSize = largeMap ? Math.min(canvas.width * 0.7, canvas.height * 0.7) : Math.min(120, canvas.width * 0.22);
+            let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 15;
+            let mY = largeMap ? (canvas.height - mSize)/2 : 15;
+            
+            if (e.clientX >= mX && e.clientX <= mX + mSize && e.clientY >= mY && e.clientY <= mY + mSize) {
+                largeMap = !largeMap;
+                return;
+            }
 
-        // Touch Input Mapper (Mini-Milita Dual System)
+            if(e.clientY < 100 && e.clientX < 260) return; // ????? ????? ??? HUD
+            executeWeaponFire(); 
+        });
+
+        // Touch Input Mapper (Mini-Militia Fixed Joysticks + Minimap Touch Toggle)
         window.addEventListener("touchstart", e => {
             if(!gameActive) return;
             for (let t of e.changedTouches) {
-                if (t.clientX < canvas.width / 2 && !leftJoystick.active) {
-                    leftJoystick.active = true; leftJoystick.startX = t.clientX; leftJoystick.startY = t.clientY;
-                    leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY; leftJoystick.touchId = t.identifier;
-                } else if (t.clientX >= canvas.width / 2 && !rightJoystick.active) {
-                    rightJoystick.active = true; rightJoystick.startX = t.clientX; rightJoystick.startY = t.clientY;
-                    rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY; rightJoystick.touchId = t.identifier;
+                
+                // ?????: ???? ??? ??? ????? ?????? ????? ???????
+                let mSize = largeMap ? Math.min(canvas.width * 0.7, canvas.height * 0.7) : Math.min(120, canvas.width * 0.22);
+                let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 15;
+                let mY = largeMap ? (canvas.height - mSize)/2 : 15;
+                if (t.clientX >= mX && t.clientX <= mX + mSize && t.clientY >= mY && t.clientY <= mY + mSize) {
+                    largeMap = !largeMap;
+                    continue;
+                }
+
+                // ??????: ??? ????? ????????? ???????
+                if (t.clientX < canvas.width / 2) {
+                    leftJoystick.active = true;
+                    leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY;
+                    leftJoystick.touchId = t.identifier;
+                } else if (t.clientX >= canvas.width / 2) {
+                    rightJoystick.active = true;
+                    rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY;
+                    rightJoystick.touchId = t.identifier;
                 }
             }
         });
@@ -438,8 +470,14 @@
 
         window.addEventListener("touchend", e => {
             for (let t of e.changedTouches) {
-                if (leftJoystick.active && t.identifier === leftJoystick.touchId) { leftJoystick.active = false; }
-                if (rightJoystick.active && t.identifier === rightJoystick.touchId) { rightJoystick.active = false; }
+                if (leftJoystick.active && t.identifier === leftJoystick.touchId) { 
+                    leftJoystick.active = false; 
+                    leftJoystick.currentX = leftJoystick.startX; leftJoystick.currentY = leftJoystick.startY;
+                }
+                if (rightJoystick.active && t.identifier === rightJoystick.touchId) { 
+                    rightJoystick.active = false; 
+                    rightJoystick.currentX = rightJoystick.startX; rightJoystick.currentY = rightJoystick.startY;
+                }
             }
         });
 
@@ -470,25 +508,25 @@
             if (keys["a"]) { nx -= player.speed; moved = true; }
             if (keys["d"]) { nx += player.speed; moved = true; }
 
-            // Left Joystick Track Vector
+            // Left Joystick Movement Vector Tracking
             if (leftJoystick.active) {
                 let dx = leftJoystick.currentX - leftJoystick.startX; let dy = leftJoystick.currentY - leftJoystick.startY;
                 let dist = Math.hypot(dx, dy);
-                if (dist > 0) {
+                if (dist > 5) {
                     let angle = Math.atan2(dy, dx);
                     let force = Math.min(player.speed, (dist / leftJoystick.maxRadius) * player.speed);
                     nx += Math.cos(angle) * force; ny += Math.sin(angle) * force; moved = true;
                 }
             }
 
-            // Right Joystick Tracking (Aims and Auto Shoots if at edge)
+            // Right Joystick Aiming & Auto shooting
             if (rightJoystick.active) {
                 let rdx = rightJoystick.currentX - rightJoystick.startX; let rdy = rightJoystick.currentY - rightJoystick.startY;
                 let rdist = Math.hypot(rdx, rdy);
                 if (rdist > 5) {
                     player.angle = Math.atan2(rdy, rdx);
-                    if (rdist >= rightJoystick.maxRadius - 8 && fireCooldown <= 0) {
-                        executeWeaponFire(); fireCooldown = 12; // Auto shooting pace loop
+                    if (rdist >= rightJoystick.maxRadius - 12 && fireCooldown <= 0) {
+                        executeWeaponFire(); fireCooldown = 12; 
                     }
                 }
             } else if (!leftJoystick.active && (mouse.x !== 0 || mouse.y !== 0)) {
@@ -497,7 +535,6 @@
 
             if(fireCooldown > 0) fireCooldown--;
 
-            // Solid Bounding Box Collision application
             if (!checkCollision(nx, player.y, player.r)) player.x = Math.max(0, Math.min(world.w, nx));
             if (!checkCollision(player.x, ny, player.r)) player.y = Math.max(0, Math.min(world.h, ny));
 
@@ -507,7 +544,7 @@
             document.getElementById("hp-bar").style.width = (player.hp / player.maxHp * 100) + "%";
             document.getElementById("gold-match-display").innerText = "Match Gold: " + matchGold;
 
-            // Handle Projectiles Loop
+            // Projectiles Calculations
             for (let i = bullets.length - 1; i >= 0; i--) {
                 let b = bullets[i]; b.x += b.vx; b.y += b.vy;
 
@@ -515,7 +552,6 @@
                     bullets.splice(i, 1); continue;
                 }
 
-                // Friendly/Enemy Multiplayer calculations
                 if (b.id !== player.id && player.hp > 0) {
                     if (Math.hypot(player.x - b.x, player.y - b.y) < player.r + 4) {
                         player.hp = Math.max(0, player.hp - b.damage);
@@ -524,7 +560,6 @@
                     }
                 }
 
-                // Offline Enemy Bullets Collision Calc
                 if (currentMode === "offline" || currentMode === "coop") {
                     localBots.forEach(bot => {
                         if (b.id === player.id && bot.hp > 0 && Math.hypot(bot.x - b.x, bot.y - b.y) < bot.r + 4) {
@@ -539,7 +574,7 @@
                 }
             }
 
-            // AI Navigation Updates Loop
+            // AI Updates
             if (currentMode === "offline" || currentMode === "coop") {
                 localBots.forEach(bot => {
                     if(bot.hp <= 0) return;
@@ -554,13 +589,12 @@
                         if (!checkCollision(bnx, bot.y, bot.r)) bot.x = bnx;
                         if (!checkCollision(bot.x, bny, bot.r)) bot.y = bny;
 
-                        if (dist < player.r + bot.r) { // Melee touch damage to player
+                        if (dist < player.r + bot.r) { 
                             player.hp = Math.max(0, player.hp - 0.5);
                         }
                     }
                 });
 
-                // Win Conditions criteria evaluation
                 let aliveBots = localBots.filter(b => b.hp > 0).length;
                 if (aliveBots === 0 && player.hp > 0 && gameActive) {
                     gameActive = false;
@@ -570,7 +604,6 @@
                 }
             }
 
-            // Match Over Triggers criteria evaluation
             if (player.hp <= 0 && gameActive) {
                 gameActive = false;
                 if(currentMode === "offline") {
@@ -598,37 +631,52 @@
         }
 
         function drawMinimap() {
-            if (!showMap) return;
-            let mSize = Math.min(120, canvas.width * 0.22);
-            let mX = canvas.width - mSize - 15; let mY = 15; let r = mSize / world.w;
+            // ???? ???? ??????? ????? ??? ?? ??? ???? ????? ?? ????? ?? ????? ?? ???????
+            let mSize = largeMap ? Math.min(canvas.width * 0.7, canvas.height * 0.7) : Math.min(120, canvas.width * 0.22);
+            let mX = largeMap ? (canvas.width - mSize) / 2 : canvas.width - mSize - 15;
+            let mY = largeMap ? (canvas.height - mSize) / 2 : 15;
+            let r = mSize / world.w;
 
-            ctx.fillStyle = "rgba(13, 19, 26, 0.8)"; ctx.fillRect(mX, mY, mSize, mSize);
-            ctx.strokeStyle = "#243447"; ctx.strokeRect(mX, mY, mSize, mSize);
+            ctx.fillStyle = largeMap ? "rgba(9, 15, 22, 0.95)" : "rgba(13, 19, 26, 0.75)"; 
+            ctx.fillRect(mX, mY, mSize, mSize);
+            ctx.strokeStyle = largeMap ? "#1e88e5" : "#243447"; 
+            ctx.lineWidth = largeMap ? 3 : 1;
+            ctx.strokeRect(mX, mY, mSize, mSize);
+            ctx.lineWidth = 1;
 
             ctx.fillStyle = "rgba(255,255,255,0.15)";
             obstacles.forEach(o => ctx.fillRect(mX + o.x*r, mY + o.y*r, o.w*r, o.h*r));
 
-            if(player.hp > 0) { ctx.fillStyle = "#1565C0"; ctx.beginPath(); ctx.arc(mX + player.x*r, mY + player.y*r, 3, 0, Math.PI*2); ctx.fill(); }
+            if(player.hp > 0) { ctx.fillStyle = "#1e88e5"; ctx.beginPath(); ctx.arc(mX + player.x*r, mY + player.y*r, largeMap? 5 : 3, 0, Math.PI*2); ctx.fill(); }
             
             for (let id in otherPlayers) {
                 if (id !== player.id && otherPlayers[id].hp > 0) {
-                    ctx.fillStyle = "#c62828"; ctx.beginPath(); ctx.arc(mX + otherPlayers[id].x*r, mY + otherPlayers[id].y*r, 2.5, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "#c62828"; ctx.beginPath(); ctx.arc(mX + otherPlayers[id].x*r, mY + otherPlayers[id].y*r, largeMap? 4.5 : 2.5, 0, Math.PI*2); ctx.fill();
                 }
             }
+
+            localBots.forEach(b => {
+                if (b.hp > 0) {
+                    ctx.fillStyle = "#d35400"; ctx.beginPath(); ctx.arc(mX + b.x*r, mY + b.y*r, largeMap? 4 : 2, 0, Math.PI*2); ctx.fill();
+                }
+            });
         }
 
-        function renderVirtualStick(stick) {
-            if (!stick.active) return;
+        function renderVirtualStick(stick, isRight) {
+            // ??? ????????? ??????? ????? ??????
             ctx.beginPath(); ctx.arc(stick.startX, stick.startY, stick.maxRadius, 0, Math.PI*2);
-            ctx.fillStyle = "rgba(255,255,255,0.06)"; ctx.fill();
-            ctx.strokeStyle = "rgba(255,255,255,0.25)"; ctx.stroke();
+            ctx.fillStyle = "rgba(255,255,255,0.04)"; ctx.fill();
+            ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.stroke();
 
             let dx = stick.currentX - stick.startX; let dy = stick.currentY - stick.startY;
             let dist = Math.hypot(dx, dy); let angle = Math.atan2(dy, dx);
             let mx = stick.startX + (dist > stick.maxRadius ? Math.cos(angle)*stick.maxRadius : dx);
             let my = stick.startY + (dist > stick.maxRadius ? Math.sin(angle)*stick.maxRadius : dy);
 
-            ctx.beginPath(); ctx.arc(mx, my, 16, 0, Math.PI*2); ctx.fillStyle = "rgba(21,101,192,0.5)"; ctx.fill();
+            ctx.beginPath(); ctx.arc(mx, my, 18, 0, Math.PI*2); 
+            ctx.fillStyle = isRight ? "rgba(229,57,53,0.3)" : "rgba(21,101,192,0.3)"; 
+            ctx.fill();
+            ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.stroke();
         }
 
         function draw() {
@@ -659,8 +707,9 @@
 
             ctx.restore();
             
-            renderVirtualStick(leftJoystick);
-            renderVirtualStick(rightJoystick);
+            // ??????? ???? ???? ????? ????? ??????? ????? ???????
+            renderVirtualStick(leftJoystick, false);
+            renderVirtualStick(rightJoystick, true);
             drawMinimap();
         }
 
