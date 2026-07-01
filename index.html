@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Tactical Souls: Remastered</title>
+    <title>Tactical Souls: Tournament Edition</title>
     <style>
         body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0d131a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; touch-action: none; color: white; }
         canvas { display: block; }
@@ -22,17 +22,14 @@
         .menu-card { background: #16202c; padding: 30px; border-radius: 12px; border: 1px solid #243447; text-align: center; width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
         .menu-card input { width: 90%; padding: 10px; margin: 8px 0; border: none; border-radius: 6px; background: #090d12; color: white; text-align: center; border: 1px solid #243447; }
         
-        #main-menu { display: none; flex-direction: column; gap: 15px; }
+        #main-menu, #shop-screen, #mode-gate, #campaign-screen, #online-lobby, #matchmaking-screen { display: none; }
         .stats-banner { background: #1c2a39; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: left; }
         
-        #shop-screen { display: none; flex-direction: column; background: #0f1822; }
         .shop-container { display: flex; gap: 20px; max-width: 90%; overflow-x: auto; padding: 10px; }
         .shop-item { background: #16202c; padding: 15px; border-radius: 10px; border: 1px solid #243447; min-width: 140px; text-align: center; }
-
-        #campaign-screen { display: none; }
         .grid-levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; max-height: 300px; overflow-y: auto; padding: 10px; }
 
-        #hud { position: absolute; top: 15px; left: 15px; pointer-events: none; display: none; }
+        #hud { position: absolute; top: 15px; left: 15px; pointer-events: none; display: none; z-index: 4; }
         #hp-bar-container { width: 160px; height: 16px; background: #263238; border-radius: 4px; overflow: hidden; margin-top: 5px; border: 1px solid #37474F; }
         #hp-bar { width: 100%; height: 100%; background: #2e7d32; }
         #gold-match-display { margin-top: 5px; font-size: 18px; color: #ffd700; text-shadow: 1px 1px 2px black; }
@@ -46,7 +43,8 @@
 </head>
 <body>
 
-    <div id="auth-screen" class="screen-overlay">
+    <!-- Genuine Secure Authentication Screen -->
+    <div id="auth-screen" class="screen-overlay" style="display: flex;">
         <div class="menu-card">
             <h2 id="auth-title">Account Gateway</h2>
             <input type="email" id="auth-email" placeholder="Gmail Address">
@@ -58,6 +56,7 @@
         </div>
     </div>
 
+    <!-- Main Game Menu Lobby -->
     <div id="main-menu" class="screen-overlay">
         <div class="menu-card" style="width: 360px;">
             <h2>Tactical Lobby</h2>
@@ -74,17 +73,17 @@
         </div>
     </div>
 
+    <!-- Armory Shop Screen -->
     <div id="shop-screen" class="screen-overlay">
-        <h2 style="color:#ffd700;">ARMORY & GEAR MARKET</h2>
+        <h2 style="color:#ffd700;">ARMORY MARKET</h2>
         <h3 id="shop-gold-title">Your Gold: 0</h3>
-        <h3 style="margin:5px;">Weapons Rack</h3>
         <div class="shop-container" id="weapons-rack"></div>
-        <h3 style="margin:5px;">Tactical Armors</h3>
         <div class="shop-container" id="armors-rack"></div>
         <button class="btn-premium" id="btn-back-shop" style="margin-top:20px;">Return to Menu</button>
     </div>
 
-    <div id="mode-gate" class="screen-overlay" style="display:none;">
+    <!-- Mode Selection Gate -->
+    <div id="mode-gate" class="screen-overlay">
         <div class="menu-card">
             <h2>Select Operations</h2>
             <div style="display:flex; flex-direction:column; gap:12px;">
@@ -95,26 +94,38 @@
         </div>
     </div>
 
+    <!-- Campaign Map Gate -->
     <div id="campaign-screen" class="screen-overlay">
         <div class="menu-card" style="width:85%; max-width:500px;">
-            <h2>Campaign Stages (1 - 100)</h2>
+            <h2>Campaign Stages</h2>
             <div class="grid-levels" id="stages-grid"></div>
             <button class="btn-secondary" id="btn-back-campaign" style="margin-top:15px; width:100%;">Back</button>
         </div>
     </div>
 
+    <!-- Online Matchmaking Lobby -->
     <div id="online-lobby" class="screen-overlay">
         <div class="menu-card">
             <h2>War Rooms</h2>
             <div style="display:flex; flex-direction:column; gap:12px;">
-                <button class="btn-premium" id="btn-match-1v1">DUEL (1v1 FIGHT)</button>
-                <button class="btn-premium" id="btn-match-br">BATTLE ROYALE (30 MAX)</button>
+                <button class="btn-premium" id="btn-match-1v1">DUEL 1v1 (Bet: 70G)</button>
+                <button class="btn-premium" id="btn-match-br">BATTLE ROYALE 30 (Fee: 30G)</button>
                 <button class="btn-premium" id="btn-match-coop">CO-OP VS BOTS (TEAM)</button>
                 <button class="btn-secondary" id="btn-back-lobby">Back</button>
             </div>
         </div>
     </div>
 
+    <!-- 1v1 Matchmaking Queue Loader -->
+    <div id="matchmaking-screen" class="screen-overlay">
+        <div class="menu-card">
+            <h2 style="color:#ffd700;">Searching Rival...</h2>
+            <div style="margin:20px 0; font-size:18px;" id="matchmaking-timer">Waiting for Player 2...</div>
+            <button class="btn-secondary" id="btn-cancel-matchmaking" style="width:100%;">Cancel Search</button>
+        </div>
+    </div>
+
+    <!-- HUD Layout -->
     <div id="hud">
         <div id="hud-name">Soldier</div>
         <div id="hp-bar-container"><div id="hp-bar"></div></div>
@@ -124,25 +135,17 @@
     <button class="btn-secondary" id="ingame-settings-btn">?</button>
     <div id="ingame-popup">
         <button class="menu-btn btn-secondary" id="btn-game-resume">Resume</button>
-        <button class="menu-btn btn-secondary" id="btn-game-restart">Restart</button>
-        <button class="menu-btn btn-secondary" id="btn-game-quit" style="background:#c62828;">Quit Menu</button>
+        <button class="menu-btn btn-secondary" id="btn-game-quit" style="background:#c62828;">Quit Room</button>
     </div>
 
+    <!-- Match End Screens (Offline Only) -->
     <div id="screen-lose" class="match-end-screen">
-        <h1 style="color:#c62828; font-size:45px; text-shadow: 0 0 10px black;">MISSION FAILED</h1>
-        <div style="display:flex; gap:15px; margin-top:20px;">
-            <button class="btn-premium" id="btn-lose-retry">Try Again</button>
-            <button class="btn-secondary" id="btn-lose-map">Level Map</button>
-        </div>
+        <h1 style="color:#c62828; font-size:45px;">MISSION FAILED</h1>
+        <button class="btn-premium" id="btn-lose-retry">Try Again</button>
     </div>
-
     <div id="screen-win" class="match-end-screen">
-        <h1 style="color:#4caf50; font-size:45px; text-shadow: 0 0 10px black;">MISSION SUCCESS</h1>
-        <div style="display:flex; gap:15px; margin-top:20px;">
-            <button class="btn-premium" id="btn-win-cont">Continue</button>
-            <button class="btn-secondary" id="btn-win-retry">Replay</button>
-            <button class="btn-secondary" id="btn-win-map">Level Map</button>
-        </div>
+        <h1 style="color:#4caf50; font-size:45px;">MISSION SUCCESS</h1>
+        <button class="btn-premium" id="btn-win-cont">Continue</button>
     </div>
 
     <canvas id="game"></canvas>
@@ -157,9 +160,9 @@
         let isRegisterMode = false;
 
         const WEAPONS_DATA = [
-            { id: 0, name: "Pistol Basic", price: 0, reqStage: 1, dmg: 10, range: 400 },
-            { id: 1, name: "Rifle Assault", price: 500, reqStage: 5, dmg: 20, range: 550 },
-            { id: 2, name: "Plasma Cannon", price: 2000, reqStage: 15, dmg: 45, range: 700 }
+            { id: 0, name: "Pistol Basic", price: 0, reqStage: 1, dmg: 10 },
+            { id: 1, name: "Rifle Assault", price: 500, reqStage: 5, dmg: 20 },
+            { id: 2, name: "Plasma Cannon", price: 2000, reqStage: 15, dmg: 45 }
         ];
         const ARMORS_DATA = [
             { id: 0, name: "Recruit Vest", price: 0, reqStage: 1, protection: 0 },
@@ -167,18 +170,7 @@
             { id: 2, name: "Quantum Shield", price: 2500, reqStage: 20, protection: 2 }
         ];
 
-        // Strict Authentic Credentials Checker Local Database System
-        window.addEventListener("load", () => {
-            let activeSession = localStorage.getItem("ts_active_session");
-            if (activeSession) {
-                account = JSON.parse(localStorage.getItem("ts_user_" + activeSession));
-                showMainMenu();
-            } else {
-                document.getElementById("auth-screen").style.display = "flex";
-            }
-            resize();
-        });
-
+        // Auth Logic Guard
         document.getElementById("btn-toggle-auth").addEventListener("click", () => {
             isRegisterMode = !isRegisterMode;
             document.getElementById("auth-title").innerText = isRegisterMode ? "Create New Profile" : "Account Gateway";
@@ -190,46 +182,29 @@
             let name = document.getElementById("auth-name").value.trim();
             let pass = document.getElementById("auth-pass").value.trim();
             let errorDiv = document.getElementById("auth-error");
-            errorDiv.innerText = "";
 
             if(!email.includes("@") || name.length < 2 || pass.length < 4) {
-                errorDiv.innerText = "Error: Input constraints violated! Check requirements.";
+                errorDiv.innerText = "Error: Invalid inputs constraints.";
                 return;
             }
-
             let userKey = "ts_user_" + email;
             let existingData = localStorage.getItem(userKey);
 
             if (isRegisterMode) {
-                if (existingData) {
-                    errorDiv.innerText = "Error: Email profile already registered!";
-                    return;
-                }
-                account = { email: email, pass: pass, nickname: name, gold: 200, maxStage: 1, weapon: 0, armor: 0, itemsOwned: ["w_0", "a_0"] };
+                if (existingData) { errorDiv.innerText = "Error: Email registered!"; return; }
+                account = { email: email, pass: pass, nickname: name, gold: 300, maxStage: 1, weapon: 0, armor: 0, itemsOwned: ["w_0", "a_0"] };
                 localStorage.setItem(userKey, JSON.stringify(account));
-                localStorage.setItem("ts_active_session", email);
                 showMainMenu();
             } else {
-                if (!existingData) {
-                    errorDiv.innerText = "Error: Email match records not found!";
-                    return;
-                }
+                if (!existingData) { errorDiv.innerText = "Error: Account not found!"; return; }
                 let parsed = JSON.parse(existingData);
-                if (parsed.pass !== pass || parsed.nickname !== name) {
-                    errorDiv.innerText = "Access Denied: Email, Nickname or Password do not match!";
-                    return;
-                }
+                if (parsed.pass !== pass || parsed.nickname !== name) { errorDiv.innerText = "Error: Credentials mismatch!"; return; }
                 account = parsed;
-                localStorage.setItem("ts_active_session", email);
                 showMainMenu();
             }
         });
 
-        function saveAccount() {
-            if(account && account.email) {
-                localStorage.setItem("ts_user_" + account.email, JSON.stringify(account));
-            }
-        }
+        function saveAccount() { if(account) localStorage.setItem("ts_user_" + account.email, JSON.stringify(account)); }
         
         function showMainMenu() {
             document.getElementById("auth-screen").style.display = "none";
@@ -239,21 +214,13 @@
             document.getElementById("user-display-level").innerText = "Campaign Unlock: Stage " + account.maxStage;
         }
 
-        document.getElementById("btn-switch-account").addEventListener("click", () => {
-            localStorage.removeItem("ts_active_session");
-            document.getElementById("main-menu").style.display = "none";
-            document.getElementById("auth-screen").style.display = "flex";
-        });
-
-        // Navigation flows UI bridges
+        document.getElementById("btn-switch-account").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("auth-screen").style.display = "flex"; });
         document.getElementById("btn-goto-play").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
         document.getElementById("btn-back-gate").addEventListener("click", () => { document.getElementById("mode-gate").style.display = "none"; showMainMenu(); });
         document.getElementById("btn-gate-offline").addEventListener("click", () => { document.getElementById("mode-gate").style.display = "none"; document.getElementById("campaign-screen").style.display = "flex"; buildCampaignGrid(); });
         document.getElementById("btn-back-campaign").addEventListener("click", () => { document.getElementById("campaign-screen").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
         document.getElementById("btn-gate-online").addEventListener("click", () => { document.getElementById("mode-gate").style.display = "none"; document.getElementById("online-lobby").style.display = "flex"; });
         document.getElementById("btn-back-lobby").addEventListener("click", () => { document.getElementById("online-lobby").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
-
-        // Shop Builder
         document.getElementById("btn-goto-shop").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("shop-screen").style.display = "flex"; renderShop(); });
         document.getElementById("btn-back-shop").addEventListener("click", () => { document.getElementById("shop-screen").style.display = "none"; showMainMenu(); });
 
@@ -262,27 +229,16 @@
             let wRack = document.getElementById("weapons-rack"); wRack.innerHTML = "";
             WEAPONS_DATA.forEach(w => {
                 let status = account.weapon === w.id ? "EQUIPPED" : (account.itemsOwned.includes("w_"+w.id) || w.price===0 ? "EQUIP" : "BUY " + w.price + "G");
-                let disabled = account.maxStage < w.reqStage ? "disabled" : "";
-                wRack.innerHTML += `<div class="shop-item"><h4>${w.name}</h4><p>Dmg: ${w.dmg}</p><p style="font-size:11px; color:#aaa;">Req Stage: ${w.reqStage}</p><button class="btn-premium" ${disabled} onclick="triggerBuy('w', ${w.id}, ${w.price})">${status}</button></div>`;
-            });
-            let aRack = document.getElementById("armors-rack"); aRack.innerHTML = "";
-            ARMORS_DATA.forEach(a => {
-                let status = account.armor === a.id ? "EQUIPPED" : (account.itemsOwned.includes("a_"+a.id) || a.price===0 ? "EQUIP" : "BUY " + a.price + "G");
-                let disabled = account.maxStage < a.reqStage ? "disabled" : "";
-                aRack.innerHTML += `<div class="shop-item"><h4>${a.name}</h4><p>Armor Rating</p><p style="font-size:11px; color:#aaa;">Req Stage: ${a.reqStage}</p><button class="btn-premium" ${disabled} onclick="triggerBuy('a', ${a.id}, ${a.price})">${status}</button></div>`;
+                wRack.innerHTML += `<div class="shop-item"><h4>${w.name}</h4><button class="btn-premium" onclick="triggerBuy('w', ${w.id}, ${w.price})">${status}</button></div>`;
             });
         }
-
         window.triggerBuy = function(type, id, price) {
             let itemKey = type + "_" + id;
-            if (account.weapon === id && type === 'w' || account.armor === id && type === 'a') return;
             if (account.itemsOwned.includes(itemKey) || price === 0) {
                 if(type === 'w') account.weapon = id; else account.armor = id;
-            } else {
-                if (account.gold >= price) {
-                    account.gold -= price; account.itemsOwned.push(itemKey);
-                    if(type === 'w') account.weapon = id; else account.armor = id;
-                }
+            } else if (account.gold >= price) {
+                account.gold -= price; account.itemsOwned.push(itemKey);
+                if(type === 'w') account.weapon = id; else account.armor = id;
             }
             saveAccount(); renderShop();
         };
@@ -290,17 +246,17 @@
         function buildCampaignGrid() {
             let grid = document.getElementById("stages-grid"); grid.innerHTML = "";
             for (let i = 1; i <= 100; i++) {
-                let isBoss = i % 10 === 0 ? "background:linear-gradient(135deg, #b71c1c 0%, #e53935 100%);" : "";
                 let disabled = i > account.maxStage ? "opacity: 0.4; pointer-events:none;" : "";
-                grid.innerHTML += `<button class="btn-secondary" style="${isBoss} ${disabled}" onclick="startOfflineMission(${i})">Lvl ${i}</button>`;
+                grid.innerHTML += `<button class="btn-secondary" style="${disabled}" onclick="startOfflineMission(${i})">Lvl ${i}</button>`;
             }
         }
 
-        // --- Core Engine Gameplay Configuration ---
+        // --- Core Engine Architecture ---
         const socket = io("https://my-online-game-1n7l.onrender.com");
         const keys = {};
         const mouse = { x: 0, y: 0 };
         const world = { w: 4000, h: 4000 };
+        
         let currentMode = "offline"; 
         let currentStage = 1;
         let gameActive = false;
@@ -312,178 +268,25 @@
         let bullets = [];
         let localBots = [];
         let matchGold = 0;
+        let localKills = 0;
+
+        // Overlay text alerts mechanics (Canvas Text based - No alert blocks)
+        let canvasAlertText = "";
+        let canvasAlertTimer = 0;
 
         const leftJoystick = { active: false, startX: 90, startY: 0, currentX: 90, currentY: 0, touchId: null, maxRadius: 55 };
         const rightJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 55 };
 
         function updateJoystickPositions() {
-            leftJoystick.startX = 90; leftJoystick.startY = canvas.height - 90;
-            leftJoystick.currentX = leftJoystick.startX; leftJoystick.currentY = leftJoystick.startY;
-            rightJoystick.startX = canvas.width - 90; rightJoystick.startY = canvas.height - 90;
-            rightJoystick.currentX = rightJoystick.startX; rightJoystick.currentY = rightJoystick.startY;
+            leftJoystick.startX = 90; leftJoystick.startY = canvas.height - 90; leftJoystick.currentX = leftJoystick.startX; leftJoystick.currentY = leftJoystick.startY;
+            rightJoystick.startX = canvas.width - 90; rightJoystick.startY = canvas.height - 90; rightJoystick.currentX = rightJoystick.startX; rightJoystick.currentY = rightJoystick.startY;
         }
 
-        // 4-Walls House Matrix with Bottom Exit Door Entrance Configuration
         const obstacles = [
-            { x: 600, y: 500, w: 200, h: 200, type: "house", walls: [
-                {x: 600, y: 500, w: 200, h: 15}, // Top Wall
-                {x: 600, y: 500, w: 15, h: 200}, // Left Wall
-                {x: 785, y: 500, w: 15, h: 200}, // Right Wall
-                {x: 600, y: 685, w: 60, h: 15},  // Bottom Left segment
-                {x: 720, y: 685, w: 80, h: 15}   // Bottom Right segment [Door space: 660 -> 720]
-            ]},
-            { x: 2200, y: 800, w: 200, h: 200, type: "house", walls: [
-                {x: 2200, y: 800, w: 200, h: 15},
-                {x: 2200, y: 800, w: 15, h: 200},
-                {x: 2385, y: 800, w: 15, h: 200},
-                {x: 2200, y: 985, w: 70, h: 15},
-                {x: 2330, y: 985, w: 70, h: 15}   // Door space: 2270 -> 2330
-            ]},
-            { x: 1500, y: 1200, w: 300, h: 30, type: "wall", walls: [{x: 1500, y: 1200, w: 300, h: 30}] },
-            { x: 900, y: 2500, w: 400, h: 30, type: "wall", walls: [{x: 900, y: 2500, w: 400, h: 30}] }
+            { x: 600, y: 500, w: 200, h: 200, walls: [{x: 600, y: 500, w: 200, h: 15},{x: 600, y: 500, w: 15, h: 200},{x: 785, y: 500, w: 15, h: 200},{x: 600, y: 685, w: 60, h: 15},{x: 720, y: 685, w: 80, h: 15}] },
+            { x: 2200, y: 800, w: 200, h: 200, walls: [{x: 2200, y: 800, w: 200, h: 15},{x: 2200, y: 800, w: 15, h: 200},{x: 2385, y: 800, w: 15, h: 200},{x: 2200, y: 985, w: 70, h: 15},{x: 2330, y: 985, w: 70, h: 15}] }
         ];
 
-        // Safe coordinates generation algorithm (Prevents spawning inside walls)
-        function getSafeSpawnCoords(radius) {
-            let safe = false; let rx, ry;
-            while(!safe) {
-                rx = Math.random() * (world.w - 200) + 100;
-                ry = Math.random() * (world.h - 200) + 100;
-                if(!checkCollision(rx, ry, radius)) safe = true;
-            }
-            return { x: rx, y: ry };
-        }
-
-        const sToggle = document.getElementById("ingame-settings-btn");
-        const sPopup = document.getElementById("ingame-popup");
-        sToggle.addEventListener("click", (e) => { e.stopPropagation(); sPopup.style.display = sPopup.style.display === "flex" ? "none" : "flex"; });
-        document.getElementById("btn-game-resume").addEventListener("click", () => sPopup.style.display = "none");
-        document.getElementById("btn-game-restart").addEventListener("click", () => { sPopup.style.display="none"; restartMatch(); });
-        document.getElementById("btn-game-quit").addEventListener("click", () => { location.reload(); });
-
-        document.getElementById("btn-lose-retry").addEventListener("click", () => { document.getElementById("screen-lose").style.display="none"; restartMatch(); });
-        document.getElementById("btn-lose-map").addEventListener("click", () => { document.getElementById("screen-lose").style.display="none"; exitToCampaignMenu(); });
-        document.getElementById("btn-win-cont").addEventListener("click", () => { document.getElementById("screen-win").style.display="none"; startOfflineMission(currentStage+1); });
-        document.getElementById("btn-win-retry").addEventListener("click", () => { document.getElementById("screen-win").style.display="none"; restartMatch(); });
-        document.getElementById("btn-win-map").addEventListener("click", () => { document.getElementById("screen-win").style.display="none"; exitToCampaignMenu(); });
-
-        window.startOfflineMission = function(lvl) { currentStage = lvl; currentMode = "offline"; document.getElementById("campaign-screen").style.display = "none"; initMatchEngine(); };
-
-        document.getElementById("btn-match-1v1").addEventListener("click", () => triggerOnlineLobby("1v1"));
-        document.getElementById("btn-match-br").addEventListener("click", () => triggerOnlineLobby("br"));
-        document.getElementById("btn-match-coop").addEventListener("click", () => triggerOnlineLobby("coop"));
-
-        function triggerOnlineLobby(mode) {
-            currentMode = mode; document.getElementById("online-lobby").style.display = "none";
-            let activeGear = { weapon: account.weapon, armor: account.armor };
-            // ???? ?????? ?????? ???? ???? ?????? ?????? ??????? ?????????? ????????? ?????? ???? ????? ???????
-            socket.emit("joinGame", { nickname: account.nickname, email: account.email, mode: mode, gear: activeGear });
-        }
-
-        socket.on("joinedRoomSuccess", (serverSpawn) => {
-            initMatchEngine(serverSpawn);
-        });
-
-        socket.on("stateUpdate", serverPlayers => {
-            otherPlayers = serverPlayers;
-            if(player.id && serverPlayers[player.id]) {
-                player.hp = serverPlayers[player.id].hp;
-                player.maxHp = serverPlayers[player.id].maxHp;
-                // ??? ???? ??????? ????? ?????????? ????????? ???? ??????? ?????
-                if(currentMode !== "offline") {
-                    player.x = serverPlayers[player.id].x;
-                    player.y = serverPlayers[player.id].y;
-                }
-            }
-        });
-        socket.on("bulletFired", bData => bullets.push(bData));
-        socket.on("coopGoldSynced", data => { matchGold = data.goldShared; });
-
-        function initMatchEngine(serverSpawn = null) {
-            gameActive = true; bullets = []; localBots = []; matchGold = 0; largeMap = false;
-            let currentArmorData = ARMORS_DATA[account.armor];
-            player.maxHp = 100 + (currentArmorData.protection * 25); player.hp = player.maxHp;
-            player.id = currentMode === "offline" ? "local" : socket.id;
-            player.nickname = account.nickname;
-
-            // ??? ??????? ???? ??????? ??? ???? ??????? ?????? ?? ??????? ???????? ??????? ?? ???????
-            if (serverSpawn) {
-                player.x = serverSpawn.x; player.y = serverSpawn.y;
-            } else {
-                let spawnPos = getSafeSpawnCoords(player.r);
-                player.x = spawnPos.x; player.y = spawnPos.y;
-            }
-
-            document.getElementById("hud").style.display = "block";
-            document.getElementById("ingame-settings-btn").style.display = "flex";
-            document.getElementById("hud-name").innerText = player.nickname;
-            updateJoystickPositions();
-
-            if (currentMode === "offline" || currentMode === "coop") {
-                let spawnedCount = currentMode === "coop" ? 10 : 3 + currentStage;
-                if(currentStage % 10 === 0 && currentMode === "offline") { 
-                    let bPos = getSafeSpawnCoords(40);
-                    localBots.push({ id: "boss", x: bPos.x, y: bPos.y, r: 40, speed: 1.5, hp: 500, maxHp: 500, type: "boss", fireCooldown: 0 });
-                } else {
-                    for(let i=0; i<spawnedCount; i++) {
-                        let bPos = getSafeSpawnCoords(16);
-                        localBots.push({ id: "bot_"+i, x: bPos.x, y: bPos.y, r: 16, speed: 2.2, hp: 40, maxHp: 40, type: "grunt", fireCooldown: Math.random()*50 });
-                    }
-                }
-            }
-        }
-
-        function restartMatch() { initMatchEngine(); }
-        function exitToCampaignMenu() { document.getElementById("hud").style.display="none"; document.getElementById("ingame-settings-btn").style.display="none"; gameActive=false; document.getElementById("campaign-screen").style.display="flex"; buildCampaignGrid(); }
-
-        window.addEventListener("keydown", e => { 
-            if (!gameActive) return;
-            keys[e.key.toLowerCase()] = true; 
-            if(e.key.toLowerCase() === 'm') { largeMap = !largeMap; } 
-            if(e.key.toLowerCase() === 'r' && currentMode === 'offline') { restartMatch(); } 
-        });
-        window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
-        window.addEventListener("mousemove", e => { if(!gameActive) return; mouse.x = e.clientX; mouse.y = e.clientY; });
-        
-        window.addEventListener("click", e => { 
-            if(!gameActive) return;
-            let mSize = largeMap ? Math.min(canvas.width * 0.7, canvas.height * 0.7) : Math.min(120, canvas.width * 0.22);
-            let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 15;
-            let mY = largeMap ? (canvas.height - mSize)/2 : 15;
-            if (e.clientX >= mX && e.clientX <= mX + mSize && e.clientY >= mY && e.clientY <= mY + mSize) { largeMap = !largeMap; return; }
-            if(e.clientY < 100 && e.clientX < 260) return;
-            executeWeaponFire(player.id, player.x, player.y, player.angle, WEAPONS_DATA[account.weapon].dmg); 
-        });
-
-        window.addEventListener("touchstart", e => {
-            if(!gameActive) return;
-            for (let t of e.changedTouches) {
-                let mSize = largeMap ? Math.min(canvas.width * 0.7, canvas.height * 0.7) : Math.min(120, canvas.width * 0.22);
-                let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 15;
-                let mY = largeMap ? (canvas.height - mSize)/2 : 15;
-                if (t.clientX >= mX && t.clientX <= mX + mSize && t.clientY >= mY && t.clientY <= mY + mSize) { largeMap = !largeMap; continue; }
-
-                if (t.clientX < canvas.width / 2) { leftJoystick.active = true; leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY; leftJoystick.touchId = t.identifier; } 
-                else { rightJoystick.active = true; rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY; rightJoystick.touchId = t.identifier; }
-            }
-        });
-
-        window.addEventListener("touchmove", e => {
-            if(!gameActive) return;
-            for (let t of e.changedTouches) {
-                if (leftJoystick.active && t.identifier === leftJoystick.touchId) { leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY; }
-                if (rightJoystick.active && t.identifier === rightJoystick.touchId) { rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY; }
-            }
-        });
-
-        window.addEventListener("touchend", e => {
-            for (let t of e.changedTouches) {
-                if (leftJoystick.active && t.identifier === leftJoystick.touchId) { leftJoystick.active = false; leftJoystick.currentX = leftJoystick.startX; leftJoystick.currentY = leftJoystick.startY; }
-                if (rightJoystick.active && t.identifier === rightJoystick.touchId) { rightJoystick.active = false; rightJoystick.currentX = rightJoystick.startX; rightJoystick.currentY = rightJoystick.startY; }
-            }
-        });
-
-        // Advanced Ray Collision against multi-wall units
         function checkCollision(nx, ny, r) {
             for (let obs of obstacles) {
                 for(let wall of obs.walls) {
@@ -493,19 +296,156 @@
             return false;
         }
 
-        function executeWeaponFire(id, sx, sy, sAngle, dmg) {
-            if (player.hp <= 0 && id === player.id) return;
-            let bulletData = { x: sx + Math.cos(sAngle)*20, y: sy + Math.sin(sAngle)*20, vx: Math.cos(sAngle)*13, vy: Math.sin(sAngle)*13, id: id, damage: dmg };
-            bullets.push(bulletData);
-            if (id === player.id && currentMode !== "offline") socket.emit("shoot", bulletData);
+        function getSafeSpawnCoords(radius) {
+            let rx, ry;
+            while(true) {
+                rx = Math.random() * (world.w - 400) + 200; ry = Math.random() * (world.h - 400) + 200;
+                if(!checkCollision(rx, ry, radius)) break;
+            }
+            return { x: rx, y: ry };
         }
 
-        let fireCooldown = 0;
+        document.getElementById("ingame-settings-btn").addEventListener("click", () => {
+            let pop = document.getElementById("ingame-popup"); pop.style.display = pop.style.display === "flex" ? "none" : "flex";
+        });
+        document.getElementById("btn-game-resume").addEventListener("click", () => document.getElementById("ingame-popup").style.display = "none");
+        document.getElementById("btn-game-quit").addEventListener("click", () => { if(currentMode!=='offline') socket.emit("leaveQueue"); location.reload(); });
+        document.getElementById("btn-lose-retry").addEventListener("click", () => { document.getElementById("screen-lose").style.display="none"; initMatchEngine(); });
+        document.getElementById("btn-win-cont").addEventListener("click", () => { document.getElementById("screen-win").style.display="none"; currentStage++; initMatchEngine(); });
+
+        window.startOfflineMission = function(lvl) { currentStage = lvl; currentMode = "offline"; document.getElementById("campaign-screen").style.display = "none"; initMatchEngine(); };
+
+        // 1v1 Room Execution Matchmaking Logic
+        document.getElementById("btn-match-1v1").addEventListener("click", () => {
+            if(account.gold < 70) { alert("Insufficient Gold for 1v1! Need 70G."); return; }
+            document.getElementById("online-lobby").style.display = "none";
+            document.getElementById("matchmaking-screen").style.display = "flex";
+            socket.emit("join1v1Queue", { nickname: account.nickname, email: account.email });
+        });
+
+        document.getElementById("btn-cancel-matchmaking").addEventListener("click", () => {
+            socket.emit("leaveQueue");
+            document.getElementById("matchmaking-screen").style.display = "none";
+            document.getElementById("online-lobby").style.display = "flex";
+        });
+
+        // 30 Players Room Logic
+        document.getElementById("btn-match-br").addEventListener("click", () => {
+            if(account.gold < 30) { alert("Insufficient Gold for BR30! Need 30G."); return; }
+            account.gold -= 30; saveAccount();
+            document.getElementById("online-lobby").style.display = "none";
+            socket.emit("joinBR30Direct", { nickname: account.nickname, email: account.email });
+        });
+
+        // CO-OP Multi-stage Logic
+        document.getElementById("btn-match-coop").addEventListener("click", () => {
+            document.getElementById("online-lobby").style.display = "none";
+            socket.emit("joinCoopQueue", { nickname: account.nickname, email: account.email, stage: currentStage });
+        });
+
+        // Server Event Bridges
+        socket.on("match1v1Ready", (spawnPos) => {
+            account.gold -= 70; saveAccount();
+            document.getElementById("matchmaking-screen").style.display = "none";
+            initMatchEngine(spawnPos);
+        });
+
+        socket.on("br30Start", (spawnPos) => { initMatchEngine(spawnPos); });
+        socket.on("coopStart", (data) => { currentStage = data.stage; initMatchEngine(data.spawn); });
+
+        socket.on("forcedCoordinates", (data) => {
+            // ????? ???? ???? ??? ?????? ???????? ??????? ??? ??? ?????? ????? ????
+            if(Math.hypot(player.x - data.x, player.y - data.y) > 60) {
+                player.x = data.x; player.y = data.y;
+            }
+        });
+
+        socket.on("stateUpdate", serverPlayers => {
+            for(let id in serverPlayers) {
+                if(id !== player.id) { otherPlayers[id] = serverPlayers[id]; } 
+                else {
+                    player.hp = serverPlayers[id].hp;
+                }
+            }
+            // ??????? ???????? ??? ????
+            for(let id in otherPlayers) { if(!serverPlayers[id]) delete otherPlayers[id]; }
+        });
+
+        socket.on("bulletFired", bData => bullets.push(bData));
+
+        socket.on("onlineKillAward", () => {
+            account.gold += 10; saveAccount();
+            localKills++;
+        });
+
+        socket.on("tournamentWinner", (data) => {
+            account.gold += data.prize; saveAccount();
+            triggerCanvasAlert("YOU WIN!", 120, () => { location.reload(); });
+        });
+
+        socket.on("tournamentKicked", () => {
+            triggerCanvasAlert("GAME OVER", 120, () => { location.reload(); });
+        });
+
+        socket.on("coopStageCleared", (data) => {
+            // ????? ??????? ????????
+            account.gold += Math.floor(data.sharedGold / 2); saveAccount();
+            currentStage = data.nextStage;
+            triggerCanvasAlert("YOU WIN! NEXT STAGE IN 2S", 120, () => {
+                initMatchEngine(data.nextSpawn);
+            });
+        });
+
+        function triggerCanvasAlert(text, duration, callback) {
+            canvasAlertText = text; canvasAlertTimer = duration;
+            let check = setInterval(() => {
+                if(canvasAlertTimer <= 0) { clearInterval(check); callback(); }
+            }, 1000/60);
+        }
+
+        function initMatchEngine(serverSpawn = null) {
+            gameActive = true; bullets = []; localBots = []; matchGold = 0; localKills = 0; largeMap = false;
+            player.maxHp = 100; player.hp = 100;
+            player.id = currentMode === "offline" ? "local" : socket.id;
+            player.nickname = account.nickname;
+
+            if (serverSpawn) { player.x = serverSpawn.x; player.y = serverSpawn.y; } 
+            else { let p = getSafeSpawnCoords(player.r); player.x = p.x; player.y = p.y; }
+
+            document.getElementById("hud").style.display = "block";
+            document.getElementById("ingame-settings-btn").style.display = "flex";
+            document.getElementById("hud-name").innerText = player.nickname;
+            updateJoystickPositions();
+
+            if (currentMode === "offline" || currentMode === "coop") {
+                let count = 4 + currentStage;
+                for(let i=0; i<count; i++) {
+                    let b = getSafeSpawnCoords(16);
+                    localBots.push({ id: "bot_"+i, x: b.x, y: b.y, r: 16, speed: 2.0, hp: 30, maxHp: 30, fireCooldown: Math.random()*40 });
+                }
+            }
+        }
+
+        window.addEventListener("keydown", e => { if (!gameActive) return; keys[e.key.toLowerCase()] = true; if(e.key.toLowerCase() === 'm') largeMap = !largeMap; });
+        window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
+        window.addEventListener("mousemove", e => { mouse.x = e.clientX; mouse.y = e.clientY; });
+        window.addEventListener("click", () => {
+            if(!gameActive || canvasAlertTimer > 0) return;
+            fireBullet();
+        });
+
+        function fireBullet() {
+            if(player.hp <= 0) return;
+            let b = { x: player.x + Math.cos(player.angle)*20, y: player.y + Math.sin(player.angle)*20, vx: Math.cos(player.angle)*14, vy: Math.sin(player.angle)*14, id: player.id, damage: WEAPONS_DATA[account.weapon].dmg };
+            bullets.push(b);
+            if(currentMode !== "offline") socket.emit("shoot", b);
+        }
+
         function update() {
             if (!gameActive) return;
+            if (canvasAlertTimer > 0) { canvasAlertTimer--; return; }
 
-            // Handle PC Screen Movement Inputs
-            let moved = false; let nx = player.x; let ny = player.y;
+            let nx = player.x; let ny = player.y; let moved = false;
             if (keys["w"]) { ny -= player.speed; moved = true; }
             if (keys["s"]) { ny += player.speed; moved = true; }
             if (keys["a"]) { nx -= player.speed; moved = true; }
@@ -516,27 +456,14 @@
                 let dist = Math.hypot(dx, dy);
                 if (dist > 5) {
                     let angle = Math.atan2(dy, dx);
-                    let force = Math.min(player.speed, (dist / leftJoystick.maxRadius) * player.speed);
-                    nx += Math.cos(angle) * force; ny += Math.sin(angle) * force; moved = true;
+                    nx += Math.cos(angle) * player.speed; ny += Math.sin(angle) * player.speed; moved = true;
                 }
             }
 
-            if (rightJoystick.active) {
-                let rdx = rightJoystick.currentX - rightJoystick.startX; let rdy = rightJoystick.currentY - rightJoystick.startY;
-                let rdist = Math.hypot(rdx, rdy);
-                if (rdist > 5) {
-                    player.angle = Math.atan2(rdy, rdx);
-                    if (rdist >= rightJoystick.maxRadius - 12 && fireCooldown <= 0) {
-                        executeWeaponFire(player.id, player.x, player.y, player.angle, WEAPONS_DATA[account.weapon].dmg); fireCooldown = 14; 
-                    }
-                }
-            } else if (!leftJoystick.active && (mouse.x !== 0 || mouse.y !== 0)) {
+            if (!leftJoystick.active && (mouse.x !== 0 || mouse.y !== 0)) {
                 player.angle = Math.atan2(mouse.y + camera.y - player.y, mouse.x + camera.x - player.x);
             }
 
-            if(fireCooldown > 0) fireCooldown--;
-
-            // ??? ???????? ??????????? ???? ??? ???? ??????
             if (!checkCollision(nx, player.y, player.r)) player.x = Math.max(0, Math.min(world.w, nx));
             if (!checkCollision(player.x, ny, player.r)) player.y = Math.max(0, Math.min(world.h, ny));
 
@@ -544,120 +471,79 @@
 
             camera.x = player.x - canvas.width / 2; camera.y = player.y - canvas.height / 2;
             document.getElementById("hp-bar").style.width = (player.hp / player.maxHp * 100) + "%";
-            document.getElementById("gold-match-display").innerText = "Match Gold: " + matchGold;
+            document.getElementById("gold-match-display").innerText = "Gold Coins: " + account.gold;
 
-            // Projectiles Calculations Loop
+            // Projectiles Mechanics
             for (let i = bullets.length - 1; i >= 0; i--) {
                 let b = bullets[i]; b.x += b.vx; b.y += b.vy;
+                if (checkCollision(b.x, b.y, 4) || b.x < 0 || b.y < 0 || b.x > world.w || b.y > world.h) { bullets.splice(i, 1); continue; }
 
-                if (checkCollision(b.x, b.y, 4) || b.x < 0 || b.y < 0 || b.x > world.w || b.y > world.h) {
+                if (b.id !== player.id && player.hp > 0 && Math.hypot(player.x - b.x, player.y - b.y) < player.r + 4) {
+                    player.hp = Math.max(0, player.hp - b.damage);
+                    if(currentMode !== "offline") socket.emit("takeDamage", { damage: b.damage });
                     bullets.splice(i, 1); continue;
-                }
-
-                // ????? ???? ??????? ?? ???? ??????? ????? ???????
-                if (b.id !== player.id && player.hp > 0) {
-                    if (Math.hypot(player.x - b.x, player.y - b.y) < player.r + 4) {
-                        player.hp = Math.max(0, player.hp - b.damage); // ??? ????? ???? ????? ???????
-                        if(currentMode !== 'offline') socket.emit("playerDamage", { id: player.id, damage: b.damage });
-                        bullets.splice(i, 1); continue;
-                    }
                 }
 
                 if (currentMode === "offline" || currentMode === "coop") {
                     localBots.forEach(bot => {
                         if (b.id === player.id && bot.hp > 0 && Math.hypot(bot.x - b.x, bot.y - b.y) < bot.r + 4) {
-                            bot.hp = Math.max(0, bot.hp - b.damage);
-                            bullets.splice(i, 1);
-                            if(bot.hp <= 0) {
-                                matchGold += bot.type === "boss" ? 100 : 15;
-                            }
+                            bot.hp = Math.max(0, bot.hp - b.damage); bullets.splice(i, 1);
+                            if(bot.hp <= 0) { matchGold += 15; account.gold += 10; saveAccount(); }
                         }
                     });
                 }
             }
 
-            // AI Smart Range Bot Bullet Shoot Architecture
+            // Bots Processing Architecture
             if (currentMode === "offline" || currentMode === "coop") {
                 localBots.forEach(bot => {
                     if(bot.hp <= 0) return;
-                    let bdx = player.x - bot.x; let bdy = player.y - bot.y;
-                    let dist = Math.hypot(bdx, bdy);
-
-                    if (dist < 600 && player.hp > 0) {
-                        bot.angle = Math.atan2(bdy, bdx);
-                        
-                        // ?????? ??? ????? ???? ?? ???? ??????? ???????
-                        let bnx = bot.x + Math.cos(bot.angle) * bot.speed;
-                        let bny = bot.y + Math.sin(bot.angle) * bot.speed;
+                    let dist = Math.hypot(player.x - bot.x, player.y - bot.y);
+                    if(dist < 500) {
+                        bot.angle = Math.atan2(player.y - bot.y, player.x - bot.x);
+                        let bnx = bot.x + Math.cos(bot.angle)*bot.speed; let bny = bot.y + Math.sin(bot.angle)*bot.speed;
                         if (!checkCollision(bnx, bot.y, bot.r)) bot.x = bnx;
                         if (!checkCollision(bot.x, bny, bot.r)) bot.y = bny;
 
-                        // ???? ????? ????? ????? ???????
                         if(bot.fireCooldown <= 0) {
-                            executeWeaponFire(bot.id, bot.x, bot.y, bot.angle, bot.type === "boss" ? 25 : 10);
-                            bot.fireCooldown = bot.type === "boss" ? 40 : 65; // ???? ????? ?????
+                            bullets.push({ x: bot.x, y: bot.y, vx: Math.cos(bot.angle)*10, vy: Math.sin(bot.angle)*10, id: bot.id, damage: 10 });
+                            bot.fireCooldown = 60;
                         }
                     }
                     if(bot.fireCooldown > 0) bot.fireCooldown--;
                 });
 
                 let aliveBots = localBots.filter(b => b.hp > 0).length;
-                if (aliveBots === 0 && player.hp > 0 && gameActive) {
-                    gameActive = false; account.gold += matchGold;
-                    if (currentStage === account.maxStage && account.maxStage < 100) account.maxStage++;
-                    saveAccount(); document.getElementById("screen-win").style.display = "flex";
+                if(aliveBots === 0 && player.hp > 0 && gameActive) {
+                    gameActive = false;
+                    if(currentMode === "offline") {
+                        account.gold += matchGold; if(currentStage === account.maxStage) account.maxStage++; saveAccount();
+                        document.getElementById("screen-win").style.display = "flex";
+                    } else {
+                        // ????? ??? ??? ??????? ???????? ??????? ????? ???????? ????????
+                        socket.emit("coopClearedStageServer", { stage: currentStage, goldShared: matchGold });
+                    }
                 }
             }
 
-            if (player.hp <= 0 && gameActive) {
+            if(player.hp <= 0 && gameActive) {
                 gameActive = false;
-                if(currentMode === "offline") { document.getElementById("screen-lose").style.display = "flex"; } 
-                else { alert("Eliminated from warzone!"); location.reload(); }
+                if(currentMode === "offline") { document.getElementById("screen-lose").style.display = "flex"; }
+                else {
+                    socket.emit("playerDiedTournament");
+                    triggerCanvasAlert("GAME OVER", 120, () => { location.reload(); });
+                }
             }
         }
 
         function drawHuman(x, y, r, angle, color, name, curHp, maxHp) {
             if (curHp <= 0) return;
             ctx.save(); ctx.translate(x, y);
-            ctx.fillStyle = "white"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "center";
-            ctx.fillText(name, 0, -r - 14);
-            ctx.fillStyle = "#c62828"; ctx.fillRect(-18, -r - 9, 36, 4);
-            ctx.fillStyle = "#2e7d32"; ctx.fillRect(-18, -r - 9, 36 * (curHp / maxHp), 4);
-            ctx.rotate(angle);
-            ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
-            ctx.fillStyle = "#212121"; ctx.fillRect(4, -4, r * 1.6, 6);
-            ctx.restore();
-        }
-
-        function drawMinimap() {
-            let mSize = largeMap ? Math.min(canvas.width * 0.7, canvas.height * 0.7) : Math.min(120, canvas.width * 0.22);
-            let mX = largeMap ? (canvas.width - mSize) / 2 : canvas.width - mSize - 15;
-            let mY = largeMap ? (canvas.height - mSize) / 2 : 15;
-            let r = mSize / world.w;
-
-            ctx.fillStyle = largeMap ? "rgba(9, 15, 22, 0.95)" : "rgba(13, 19, 26, 0.75)"; ctx.fillRect(mX, mY, mSize, mSize);
-            ctx.strokeStyle = largeMap ? "#1e88e5" : "#243447"; ctx.lineWidth = largeMap ? 3 : 1; ctx.strokeRect(mX, mY, mSize, mSize); ctx.lineWidth = 1;
-
-            ctx.fillStyle = "rgba(255,255,255,0.15)";
-            obstacles.forEach(o => {
-                if(o.type === "house") ctx.strokeRect(mX + o.x*r, mY + o.y*r, o.w*r, o.h*r);
-                else ctx.fillRect(mX + o.x*r, mY + o.y*r, o.w*r, o.h*r);
-            });
-
-            if(player.hp > 0) { ctx.fillStyle = "#1e88e5"; ctx.beginPath(); ctx.arc(mX + player.x*r, mY + player.y*r, largeMap? 5 : 3, 0, Math.PI*2); ctx.fill(); }
-            for (let id in otherPlayers) { if (id !== player.id && otherPlayers[id].hp > 0) { ctx.fillStyle = "#c62828"; ctx.beginPath(); ctx.arc(mX + otherPlayers[id].x*r, mY + otherPlayers[id].y*r, largeMap? 4.5 : 2.5, 0, Math.PI*2); ctx.fill(); } }
-            localBots.forEach(b => { if (b.hp > 0) { ctx.fillStyle = "#d35400"; ctx.beginPath(); ctx.arc(mX + b.x*r, mY + b.y*r, largeMap? 4 : 2, 0, Math.PI*2); ctx.fill(); } });
-        }
-
-        function renderVirtualStick(stick, isRight) {
-            ctx.beginPath(); ctx.arc(stick.startX, stick.startY, stick.maxRadius, 0, Math.PI*2);
-            ctx.fillStyle = "rgba(255,255,255,0.04)"; ctx.fill();
-            ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.stroke();
-            let dx = stick.currentX - stick.startX; let dy = stick.currentY - stick.startY;
-            let dist = Math.hypot(dx, dy); let angle = Math.atan2(dy, dx);
-            let mx = stick.startX + (dist > stick.maxRadius ? Math.cos(angle)*stick.maxRadius : dx);
-            let my = stick.startY + (dist > stick.maxRadius ? Math.sin(angle)*stick.maxRadius : dy);
-            ctx.beginPath(); ctx.arc(mx, my, 18, 0, Math.PI*2); ctx.fillStyle = isRight ? "rgba(229,57,53,0.3)" : "rgba(21,101,192,0.3)"; ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.stroke();
+            ctx.fillStyle = "white"; ctx.font = "bold 12px sans-serif"; ctx.textAlign = "center"; ctx.fillText(name, 0, -r - 12);
+            ctx.fillStyle = "#c62828"; ctx.fillRect(-16, -r - 7, 32, 4);
+            ctx.fillStyle = "#2e7d32"; ctx.fillRect(-16, -r - 7, 32 * (curHp / maxHp), 4);
+            ctx.rotate(angle); ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
+            ctx.fillStyle = "#111"; ctx.fillRect(2, -3, r * 1.5, 6); ctx.restore();
         }
 
         function draw() {
@@ -665,27 +551,38 @@
             ctx.save(); ctx.translate(-camera.x, -camera.y);
             ctx.fillStyle = "#111a24"; ctx.fillRect(0, 0, world.w, world.h);
 
-            // ??? ??????? ????????? ?????? ????????
             obstacles.forEach(obs => {
-                ctx.fillStyle = obs.type === "house" ? "rgba(44, 62, 80, 0.4)" : "#57606f";
-                ctx.fillRect(obs.x, obs.y, obs.w, obs.h); 
-                
-                ctx.fillStyle = "#57606f";
-                obs.walls.forEach(w => {
-                    ctx.fillRect(w.x, w.y, w.w, w.h);
-                    ctx.strokeRect(w.x, w.y, w.w, w.h);
-                });
+                ctx.fillStyle = "rgba(44, 62, 80, 0.4)"; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.fillStyle = "#57606f"; obs.walls.forEach(w => ctx.fillRect(w.x, w.y, w.w, w.h));
             });
 
             if (gameActive) drawHuman(player.x, player.y, player.r, player.angle, "#1565C0", player.nickname, player.hp, player.maxHp);
-            for (let id in otherPlayers) { if (id !== player.id) { let p = otherPlayers[id]; drawHuman(p.x, p.y, 16, p.angle, "#c62828", p.nickname, p.hp, p.maxHp); } }
-            localBots.forEach(bot => drawHuman(bot.x, bot.y, bot.r, bot.angle, "#d35400", bot.type.toUpperCase(), bot.hp, bot.maxHp));
+            for (let id in otherPlayers) { let p = otherPlayers[id]; drawHuman(p.x, p.y, 16, p.angle, "#c62828", p.nickname, p.hp, p.maxHp); }
+            localBots.forEach(bot => drawHuman(bot.x, bot.y, bot.r, bot.angle, "#d35400", "BOT", bot.hp, bot.maxHp));
 
             ctx.fillStyle = "#ffd700"; bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI*2); ctx.fill(); });
             ctx.restore();
-            
-            renderVirtualStick(leftJoystick, false); renderVirtualStick(rightJoystick, true);
-            drawMinimap();
+
+            if (leftJoystick.active) {
+                ctx.beginPath(); ctx.arc(leftJoystick.startX, leftJoystick.startY, leftJoystick.maxRadius, 0, Math.PI*2);
+                ctx.strokeStyle = "rgba(255,255,255,0.2)"; ctx.stroke();
+            }
+
+            // Draw Canvas Alert Overlay Text
+            if(canvasAlertTimer > 0) {
+                ctx.fillStyle = "rgba(0,0,0,0.75)"; ctx.fillRect(0,0,canvas.width,canvas.height);
+                ctx.fillStyle = canvasAlertText.includes("WIN") ? "#4caf50" : "#ff5252";
+                ctx.font = "bold 40px sans-serif"; ctx.textAlign = "center";
+                ctx.fillText(canvasAlertText, canvas.width/2, canvas.height/2);
+            }
+
+            // Minimap Generator
+            let mSize = largeMap ? Math.min(canvas.width*0.7, canvas.height*0.7) : 110;
+            let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 15;
+            let mY = largeMap ? (canvas.height - mSize)/2 : 15;
+            let r = mSize / world.w;
+            ctx.fillStyle = "rgba(13,19,26,0.85)"; ctx.fillRect(mX, mY, mSize, mSize);
+            ctx.fillStyle = "#1e88e5"; ctx.beginPath(); ctx.arc(mX + player.x*r, mY + player.y*r, 3, 0, Math.PI*2); ctx.fill();
         }
 
         function loop() { update(); draw(); requestAnimationFrame(loop); }

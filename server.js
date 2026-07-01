@@ -1,143 +1,162 @@
 const express = require("express");
 const app = express();
-const path = require("path");
 const http = require("http").createServer(app);
 const io = require("socket.io")(http, { cors: { origin: "*" } });
 
-app.use(express.static(path.join(__dirname)));
-app.get("/", (req, res) => { res.sendFile(path.join(__dirname, "index.html")); });
-
-let players = {};
-let rooms = {}; // ????? ????? ??????? ??????? ????????
+let onlinePlayers = {};
+let queue1v1 = [];
+let rooms1v1 = {};
+let br30Room = {};
 
 io.on("connection", (socket) => {
-    console.log("User connected: " + socket.id);
+    console.log("Client connected: " + socket.id);
 
-    socket.on("joinGame", (data) => {
-        const { nickname, email, mode, gear } = data;
-        
-        players[socket.id] = {
-            id: socket.id,
-            x: Math.random() * 1000 + 500,
-            y: Math.random() * 1000 + 500,
-            angle: 0,
-            nickname: nickname,
-            email: email,
-            hp: 100 + (gear.armor * 25), // ????? ???? ??? ?????
-            maxHp: 100 + (gear.armor * 25),
-            gear: gear,
-            mode: mode,
-            room: null
+    // ???? ????? ???????? ????? ???? ?????? ????? ??????
+    function generateServerSpawn() {
+        return {
+            x: Math.floor(Math.random() * 3000) + 500,
+            y: Math.floor(Math.random() * 3000) + 500
         };
+    }
 
-        // ???? ????? ???????? ??? ????? ??? ????? ???????
-        if (mode === "1v1") {
-            let joinedRoom = false;
-            for (let rId in rooms) {
-                if (rooms[rId].mode === "1v1" && rooms[rId].players.length < 2) {
-                    rooms[rId].players.push(socket.id);
-                    players[socket.id].room = rId;
-                    joinedRoom = true;
-                    break;
-                }
-            }
-            if (!joinedRoom) {
-                let rId = "room_1v1_" + socket.id;
-                rooms[rId] = { mode: "1v1", players: [socket.id] };
-                players[socket.id].room = rId;
-            }
-        } else if (mode === "br") {
-            let joinedRoom = false;
-            for (let rId in rooms) {
-                if (rooms[rId].mode === "br" && rooms[rId].players.length < 30) {
-                    rooms[rId].players.push(socket.id);
-                    players[socket.id].room = rId;
-                    joinedRoom = true;
-                    break;
-                }
-            }
-            if (!joinedRoom) {
-                let rId = "room_br_" + socket.id;
-                rooms[rId] = { mode: "br", players: [socket.id] };
-                players[socket.id].room = rId;
-            }
-        } else if (mode === "coop") {
-            let joinedRoom = false;
-            for (let rId in rooms) {
-                if (rooms[rId].mode === "coop" && rooms[rId].players.length < 2) {
-                    rooms[rId].players.push(socket.id);
-                    players[socket.id].room = rId;
-                    joinedRoom = true;
-                    break;
-                }
-            }
-            if (!joinedRoom) {
-                let rId = "room_coop_" + socket.id;
-                rooms[rId] = { mode: "coop", players: [socket.id], goldShared: 0, level: 1 };
-                players[socket.id].room = rId;
-            }
+    // 1v1 Strict Queue Logic
+    socket.on("join1v1Queue", (data) => {
+        socket.nickname = data.nickname;
+        socket.email = data.email;
+        socket.currentMode = "1v1";
+        
+        // ?????? ?? ????? ??? ?????? ???? ????? ??????
+        if(queue1v1.find(p => p.email === data.email)) return;
+
+        queue1v1.push({ id: socket.id, nickname: data.nickname, email: data.email, socket: socket });
+
+        if (queue1v1.length >= 2) {
+            let p1 = queue1v1.shift();
+            let p2 = queue1v1.shift();
+            let roomId = "room_1v1_" + Date.now();
+
+            let spawnP1 = { x: 1000, y: 2000 };
+            let spawnP2 = { x: 3000, y: 2000 };
+
+            rooms1v1[roomId] = { p1: p1.id, p2: p2.id, active: true };
+
+            setupOnlineActivePlayer(p1.socket, roomId, "1v1", spawnP1);
+            setupOnlineActivePlayer(p2.socket, roomId, "1v1", spawnP2);
+
+            p1.socket.emit("match1v1Ready", spawnP1);
+            p2.socket.emit("match1v1Ready", spawnP2);
         }
-
-        socket.join(players[socket.id].room);
-        socket.emit("joinedRoomSuccess", { roomId: players[socket.id].room });
-        sendRoomState(players[socket.id].room);
     });
 
+    // 30 Players Direct Entrance Logic
+    socket.on("joinBR30Direct", (data) => {
+        socket.nickname = data.nickname;
+        socket.email = data.email;
+        socket.currentMode = "br30";
+        let spawn = generateServerSpawn();
+        
+        setupOnlineActivePlayer(socket, "br30_arena", "br30", spawn);
+        socket.emit("br30Start", spawn);
+    });
+
+    // CO-OP Server Matchmaking Bridge
+    socket.on("joinCoopQueue", (data) => {
+        socket.nickname = data.nickname;
+        socket.currentMode = "coop";
+        let spawn = generateServerSpawn();
+        setupOnlineActivePlayer(socket, "coop_arena", "coop", spawn);
+        socket.emit("coopStart", { stage: data.stage, spawn: spawn });
+    });
+
+    function setupOnlineActivePlayer(s, roomId, mode, spawn) {
+        s.roomId = roomId;
+        onlinePlayers[s.id] = { id: s.id, nickname: s.nickname, x: spawn.x, y: spawn.y, angle: 0, hp: 100, maxHp: 100, roomId: roomId, mode: mode };
+        s.join(roomId);
+    }
+
+    // ???? ?????? ???????? ?????? ??????? ??? ???? ?????? ??????
     socket.on("move", (data) => {
-        if (players[socket.id] && players[socket.id].room) {
-            players[socket.id].x = data.x;
-            players[socket.id].y = data.y;
-            players[socket.id].angle = data.angle;
-            sendRoomState(players[socket.id].room);
+        if (onlinePlayers[socket.id]) {
+            onlinePlayers[socket.id].x = data.x;
+            onlinePlayers[socket.id].y = data.y;
+            onlinePlayers[socket.id].angle = data.angle;
+            
+            // ???? ?????????? ?????? ??? ?????? ????? ???????
+            socket.to(socket.roomId).emit("stateUpdate", getRoomPlayers(socket.roomId));
         }
     });
 
-    socket.on("shoot", (bulletData) => {
-        if (players[socket.id] && players[socket.id].room) {
-            socket.to(players[socket.id].room).emit("bulletFired", bulletData);
+    socket.on("shoot", (bData) => {
+        socket.to(socket.roomId).emit("bulletFired", bData);
+    });
+
+    socket.on("takeDamage", (data) => {
+        let p = onlinePlayers[socket.id];
+        if (p) {
+            p.hp = Math.max(0, p.hp - data.damage);
+            io.to(socket.roomId).emit("stateUpdate", getRoomPlayers(socket.roomId));
         }
     });
 
-    socket.on("coopGoldUpdate", (data) => {
-        if (players[socket.id] && players[socket.id].room) {
-            let rId = players[socket.id].room;
-            if (rooms[rId]) {
-                rooms[rId].goldShared += data.amount;
-                io.to(rId).emit("coopGoldSynced", { goldShared: rooms[rId].goldShared });
+    // ???? ?????? ????????? ???? ??????
+    socket.on("playerDiedTournament", () => {
+        let p = onlinePlayers[socket.id];
+        if(!p) return;
+
+        let rId = socket.roomId;
+        socket.emit("tournamentKicked"); // ?????? ???? ?? ???? Game Over ???? ????? ?????
+
+        // ?????? ?????? ??? 1v1 ???????
+        if (p.mode === "1v1" && rooms1v1[rId]) {
+            let r = rooms1v1[rId];
+            let winnerId = (r.p1 === socket.id) ? r.p2 : r.p1;
+            if(onlinePlayers[winnerId]) {
+                io.to(winnerId).emit("tournamentWinner", { prize: 140 }); // ?????? ???? 140 ??????
+            }
+            delete rooms1v1[rId];
+        }
+        
+        // ?????? ?????? ??? BR30 ???????
+        if (p.mode === "br30") {
+            let remaining = Object.values(onlinePlayers).filter(pl => pl.roomId === rId && pl.hp > 0);
+            if(remaining.length === 1) {
+                io.to(remaining[0].id).emit("tournamentWinner", { prize: 150 });
             }
         }
+
+        cleanPlayerSession(socket.id);
     });
 
-    socket.on("playerDamage", (data) => {
-        let targetId = data.id;
-        if (players[targetId] && players[targetId].room) {
-            players[targetId].hp = Math.max(0, players[targetId].hp - data.damage);
-            sendRoomState(players[targetId].room);
-        }
+    // ?????? ?????? ????? ????? ???????? ????? ??????? ?????
+    socket.on("coopClearedStageServer", (data) => {
+        let nSpawn = generateServerSpawn();
+        io.to(socket.roomId).emit("coopStageCleared", { nextStage: data.stage + 1, sharedGold: data.goldShared, nextSpawn: nSpawn });
+    });
+
+    socket.on("leaveQueue", () => {
+        queue1v1 = queue1v1.filter(p => p.id !== socket.id);
+        cleanPlayerSession(socket.id);
     });
 
     socket.on("disconnect", () => {
-        if (players[socket.id]) {
-            let rId = players[socket.id].room;
-            if (rId && rooms[rId]) {
-                rooms[rId].players = rooms[rId].players.filter(id => id !== socket.id);
-                if (rooms[rId].players.length === 0) delete rooms[rId];
-                else sendRoomState(rId);
-            }
-            delete players[socket.id];
-        }
-        console.log("User disconnected: " + socket.id);
+        queue1v1 = queue1v1.filter(p => p.id !== socket.id);
+        cleanPlayerSession(socket.id);
     });
+
+    function getRoomPlayers(rId) {
+        let roomPls = {};
+        for(let id in onlinePlayers) {
+            if(onlinePlayers[id].roomId === rId) roomPls[id] = onlinePlayers[id];
+        }
+        return roomPls;
+    }
+
+    function cleanPlayerSession(id) {
+        if (onlinePlayers[id]) {
+            delete onlinePlayers[id];
+        }
+    }
 });
 
-function sendRoomState(roomId) {
-    if (!rooms[roomId]) return;
-    let roomPlayers = {};
-    rooms[roomId].players.forEach(pId => {
-        if (players[pId]) roomPlayers[pId] = players[pId];
-    });
-    io.to(roomId).emit("stateUpdate", roomPlayers);
-}
-
-const PORT = process.env.PORT || 10000;
-http.listen(PORT, () => { console.log("Server running on port: " + PORT); });
+const PORT = process.env.PORT || 3000;
+http.listen(PORT, () => console.log("Server active on port: " + PORT));
