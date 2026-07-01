@@ -8,7 +8,6 @@
         body, html { margin: 0; padding: 0; overflow: hidden; background-color: #0d131a; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; user-select: none; touch-action: none; color: white; }
         canvas { display: block; }
         
-        /* Glossy & Rounded UI Button Style */
         .btn-premium {
             background: linear-gradient(135deg, #1565C0 0%, #1e88e5 100%);
             border: 1px solid #0d47a1; color: white; padding: 12px 24px;
@@ -19,37 +18,28 @@
         .btn-premium:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(21, 101, 192, 0.6); }
         .btn-secondary { background: linear-gradient(135deg, #37474F 0%, #455A64 100%); border: 1px solid #263238; border-radius: 8px; color: white; padding: 10px 20px; font-weight: bold; cursor: pointer; }
 
-        /* General Menus Layout */
         .screen-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #0d131a; display: flex; justify-content: center; align-items: center; z-index: 10; }
         .menu-card { background: #16202c; padding: 30px; border-radius: 12px; border: 1px solid #243447; text-align: center; width: 320px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
         .menu-card input { width: 90%; padding: 10px; margin: 8px 0; border: none; border-radius: 6px; background: #090d12; color: white; text-align: center; border: 1px solid #243447; }
         
-        /* Main Navigation Screen */
         #main-menu { display: none; flex-direction: column; gap: 15px; }
         .stats-banner { background: #1c2a39; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 14px; text-align: left; }
         
-        /* Shop Layout */
         #shop-screen { display: none; flex-direction: column; background: #0f1822; }
         .shop-container { display: flex; gap: 20px; max-width: 90%; overflow-x: auto; padding: 10px; }
         .shop-item { background: #16202c; padding: 15px; border-radius: 10px; border: 1px solid #243447; min-width: 140px; text-align: center; }
 
-        /* Online Lobby */
-        #online-lobby { display: none; }
-        /* Campaign Levels */
         #campaign-screen { display: none; }
         .grid-levels { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; max-height: 300px; overflow-y: auto; padding: 10px; }
 
-        /* HUD Overlay */
         #hud { position: absolute; top: 15px; left: 15px; pointer-events: none; display: none; }
         #hp-bar-container { width: 160px; height: 16px; background: #263238; border-radius: 4px; overflow: hidden; margin-top: 5px; border: 1px solid #37474F; }
-        #hp-bar { width: 100%; height: 100%; background: #2e7d32; transition: width 0.1s; }
+        #hp-bar { width: 100%; height: 100%; background: #2e7d32; }
         #gold-match-display { margin-top: 5px; font-size: 18px; color: #ffd700; text-shadow: 1px 1px 2px black; }
 
-        /* Game Settings Popup */
         #ingame-settings-btn { position: absolute; top: 15px; left: 200px; width: 36px; height: 36px; border-radius: 50%; display: none; justify-content: center; align-items: center; z-index: 5; }
         #ingame-popup { position: absolute; top: 65px; left: 200px; background: #16202c; border: 1px solid #243447; padding: 12px; border-radius: 8px; display: none; flex-direction: column; gap: 8px; z-index: 5; }
         
-        /* Game Over / Win Overlays */
         .match-end-screen { position: absolute; top:0; left:0; width:100%; height:100%; background: rgba(13,19,26,0.85); display:none; flex-direction:column; justify-content:center; align-items:center; z-index:9; }
     </style>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -58,11 +48,12 @@
 
     <div id="auth-screen" class="screen-overlay">
         <div class="menu-card">
-            <h2>Account Register</h2>
+            <h2 id="auth-title">Account Gateway</h2>
             <input type="email" id="auth-email" placeholder="Gmail Address">
-            <input type="password" id="auth-pass" placeholder="Password">
             <input type="text" id="auth-name" placeholder="Unique Nickname">
-            <button class="btn-premium" id="btn-register-account" style="width:100%; margin-top:10px;">Create Profile</button>
+            <input type="password" id="auth-pass" placeholder="Secure Password">
+            <button class="btn-premium" id="btn-auth-submit" style="width:100%; margin-top:10px;">Login / Register</button>
+            <button class="btn-secondary" id="btn-toggle-auth" style="width:100%; margin-top:8px; font-size:12px; background:none; border:none; color:#1e88e5;">Need a new account? Register here</button>
             <div id="auth-error" style="color:#ff5252; margin-top:10px; font-size:12px;"></div>
         </div>
     </div>
@@ -78,7 +69,7 @@
             <div style="display:flex; flex-direction:column; gap:12px;">
                 <button class="btn-premium" id="btn-goto-play">START MATCH</button>
                 <button class="btn-secondary" id="btn-goto-shop">ARMORY SHOP</button>
-                <button class="btn-secondary" id="btn-switch-account" style="background:#c62828;">Switch Account</button>
+                <button class="btn-secondary" id="btn-switch-account" style="background:#c62828;">Log Out</button>
             </div>
         </div>
     </div>
@@ -162,8 +153,9 @@
         function resize() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; updateJoystickPositions(); }
         window.addEventListener("resize", resize);
 
-        // Global Storage Account Data Mockup Database
         let account = null;
+        let isRegisterMode = false;
+
         const WEAPONS_DATA = [
             { id: 0, name: "Pistol Basic", price: 0, reqStage: 1, dmg: 10, range: 400 },
             { id: 1, name: "Rifle Assault", price: 500, reqStage: 5, dmg: 20, range: 550 },
@@ -175,11 +167,11 @@
             { id: 2, name: "Quantum Shield", price: 2500, reqStage: 20, protection: 2 }
         ];
 
-        // Automatic Local Session Verification
+        // Strict Authentic Credentials Checker Local Database System
         window.addEventListener("load", () => {
-            let saved = localStorage.getItem("ts_account");
-            if (saved) {
-                account = JSON.parse(saved);
+            let activeSession = localStorage.getItem("ts_active_session");
+            if (activeSession) {
+                account = JSON.parse(localStorage.getItem("ts_user_" + activeSession));
                 showMainMenu();
             } else {
                 document.getElementById("auth-screen").style.display = "flex";
@@ -187,20 +179,57 @@
             resize();
         });
 
-        // Registration Event Handler
-        document.getElementById("btn-register-account").addEventListener("click", () => {
-            let email = document.getElementById("auth-email").value.trim();
-            let pass = document.getElementById("auth-pass").value.trim();
-            let name = document.getElementById("auth-name").value.trim();
-            if(!email.includes("@") || pass.length < 4 || name.length < 2) {
-                document.getElementById("auth-error").innerText = "Invalid credentials setup! Try again.";
-                return;
-            }
-            account = { email: email, pass: pass, nickname: name, nameChanges: 1, gold: 200, maxStage: 1, weapon: 0, armor: 0, itemsOwned: ["w_0", "a_0"] };
-            saveAccount(); showMainMenu();
+        document.getElementById("btn-toggle-auth").addEventListener("click", () => {
+            isRegisterMode = !isRegisterMode;
+            document.getElementById("auth-title").innerText = isRegisterMode ? "Create New Profile" : "Account Gateway";
+            document.getElementById("btn-toggle-auth").innerText = isRegisterMode ? "Already have account? Login" : "Need a new account? Register here";
         });
 
-        function saveAccount() { localStorage.setItem("ts_account", JSON.stringify(account)); }
+        document.getElementById("btn-auth-submit").addEventListener("click", () => {
+            let email = document.getElementById("auth-email").value.trim().toLowerCase();
+            let name = document.getElementById("auth-name").value.trim();
+            let pass = document.getElementById("auth-pass").value.trim();
+            let errorDiv = document.getElementById("auth-error");
+            errorDiv.innerText = "";
+
+            if(!email.includes("@") || name.length < 2 || pass.length < 4) {
+                errorDiv.innerText = "Error: Input constraints violated! Check requirements.";
+                return;
+            }
+
+            let userKey = "ts_user_" + email;
+            let existingData = localStorage.getItem(userKey);
+
+            if (isRegisterMode) {
+                if (existingData) {
+                    errorDiv.innerText = "Error: Email profile already registered!";
+                    return;
+                }
+                account = { email: email, pass: pass, nickname: name, gold: 200, maxStage: 1, weapon: 0, armor: 0, itemsOwned: ["w_0", "a_0"] };
+                localStorage.setItem(userKey, JSON.stringify(account));
+                localStorage.setItem("ts_active_session", email);
+                showMainMenu();
+            } else {
+                if (!existingData) {
+                    errorDiv.innerText = "Error: Email match records not found!";
+                    return;
+                }
+                let parsed = JSON.parse(existingData);
+                if (parsed.pass !== pass || parsed.nickname !== name) {
+                    errorDiv.innerText = "Access Denied: Email, Nickname or Password do not match!";
+                    return;
+                }
+                account = parsed;
+                localStorage.setItem("ts_active_session", email);
+                showMainMenu();
+            }
+        });
+
+        function saveAccount() {
+            if(account && account.email) {
+                localStorage.setItem("ts_user_" + account.email, JSON.stringify(account));
+            }
+        }
         
         function showMainMenu() {
             document.getElementById("auth-screen").style.display = "none";
@@ -211,48 +240,22 @@
         }
 
         document.getElementById("btn-switch-account").addEventListener("click", () => {
-            localStorage.removeItem("ts_account");
+            localStorage.removeItem("ts_active_session");
             document.getElementById("main-menu").style.display = "none";
             document.getElementById("auth-screen").style.display = "flex";
         });
 
-        // Navigation flow UI bridges
-        document.getElementById("btn-goto-play").addEventListener("click", () => {
-            document.getElementById("main-menu").style.display = "none";
-            document.getElementById("mode-gate").style.display = "flex";
-        });
-        document.getElementById("btn-back-gate").addEventListener("click", () => {
-            document.getElementById("mode-gate").style.display = "none";
-            showMainMenu();
-        });
-        document.getElementById("btn-gate-offline").addEventListener("click", () => {
-            document.getElementById("mode-gate").style.display = "none";
-            document.getElementById("campaign-screen").style.display = "flex";
-            buildCampaignGrid();
-        });
-        document.getElementById("btn-back-campaign").addEventListener("click", () => {
-            document.getElementById("campaign-screen").style.display = "none";
-            document.getElementById("mode-gate").style.display = "flex";
-        });
-        document.getElementById("btn-gate-online").addEventListener("click", () => {
-            document.getElementById("mode-gate").style.display = "none";
-            document.getElementById("online-lobby").style.display = "flex";
-        });
-        document.getElementById("btn-back-lobby").addEventListener("click", () => {
-            document.getElementById("online-lobby").style.display = "none";
-            document.getElementById("mode-gate").style.display = "flex";
-        });
+        // Navigation flows UI bridges
+        document.getElementById("btn-goto-play").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
+        document.getElementById("btn-back-gate").addEventListener("click", () => { document.getElementById("mode-gate").style.display = "none"; showMainMenu(); });
+        document.getElementById("btn-gate-offline").addEventListener("click", () => { document.getElementById("mode-gate").style.display = "none"; document.getElementById("campaign-screen").style.display = "flex"; buildCampaignGrid(); });
+        document.getElementById("btn-back-campaign").addEventListener("click", () => { document.getElementById("campaign-screen").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
+        document.getElementById("btn-gate-online").addEventListener("click", () => { document.getElementById("mode-gate").style.display = "none"; document.getElementById("online-lobby").style.display = "flex"; });
+        document.getElementById("btn-back-lobby").addEventListener("click", () => { document.getElementById("online-lobby").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
 
-        // Shop Builder Interface
-        document.getElementById("btn-goto-shop").addEventListener("click", () => {
-            document.getElementById("main-menu").style.display = "none";
-            document.getElementById("shop-screen").style.display = "flex";
-            renderShop();
-        });
-        document.getElementById("btn-back-shop").addEventListener("click", () => {
-            document.getElementById("shop-screen").style.display = "none";
-            showMainMenu();
-        });
+        // Shop Builder
+        document.getElementById("btn-goto-shop").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("shop-screen").style.display = "flex"; renderShop(); });
+        document.getElementById("btn-back-shop").addEventListener("click", () => { document.getElementById("shop-screen").style.display = "none"; showMainMenu(); });
 
         function renderShop() {
             document.getElementById("shop-gold-title").innerText = "Your Gold: " + account.gold + " G";
@@ -266,7 +269,7 @@
             ARMORS_DATA.forEach(a => {
                 let status = account.armor === a.id ? "EQUIPPED" : (account.itemsOwned.includes("a_"+a.id) || a.price===0 ? "EQUIP" : "BUY " + a.price + "G");
                 let disabled = account.maxStage < a.reqStage ? "disabled" : "";
-                aRack.innerHTML += `<div class="shop-item"><h4>${a.name}</h4><p>Hp Bonus</p><p style="font-size:11px; color:#aaa;">Req Stage: ${a.reqStage}</p><button class="btn-premium" ${disabled} onclick="triggerBuy('a', ${a.id}, ${a.price})">${status}</button></div>`;
+                aRack.innerHTML += `<div class="shop-item"><h4>${a.name}</h4><p>Armor Rating</p><p style="font-size:11px; color:#aaa;">Req Stage: ${a.reqStage}</p><button class="btn-premium" ${disabled} onclick="triggerBuy('a', ${a.id}, ${a.price})">${status}</button></div>`;
             });
         }
 
@@ -301,7 +304,7 @@
         let currentMode = "offline"; 
         let currentStage = 1;
         let gameActive = false;
-        let largeMap = false; // ???? ????? ?????? ?????
+        let largeMap = false;
         
         let player = { id: null, x: 2000, y: 2000, r: 16, speed: 5.5, hp: 100, maxHp: 100, angle: 0, nickname: "" };
         let camera = { x: 0, y: 0 };
@@ -310,30 +313,47 @@
         let localBots = [];
         let matchGold = 0;
 
-        // Mini-Militia permanent transparent joysticks fixed in bottom corners
-        const leftJoystick = { active: false, startX: 80, startY: 0, currentX: 80, currentY: 0, touchId: null, maxRadius: 55 };
+        const leftJoystick = { active: false, startX: 90, startY: 0, currentX: 90, currentY: 0, touchId: null, maxRadius: 55 };
         const rightJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 55 };
 
         function updateJoystickPositions() {
-            leftJoystick.startX = 90;
-            leftJoystick.startY = canvas.height - 90;
-            leftJoystick.currentX = leftJoystick.startX;
-            leftJoystick.currentY = leftJoystick.startY;
-
-            rightJoystick.startX = canvas.width - 90;
-            rightJoystick.startY = canvas.height - 90;
-            rightJoystick.currentX = rightJoystick.startX;
-            rightJoystick.currentY = rightJoystick.startY;
+            leftJoystick.startX = 90; leftJoystick.startY = canvas.height - 90;
+            leftJoystick.currentX = leftJoystick.startX; leftJoystick.currentY = leftJoystick.startY;
+            rightJoystick.startX = canvas.width - 90; rightJoystick.startY = canvas.height - 90;
+            rightJoystick.currentX = rightJoystick.startX; rightJoystick.currentY = rightJoystick.startY;
         }
 
+        // 4-Walls House Matrix with Bottom Exit Door Entrance Configuration
         const obstacles = [
-            { x: 600, y: 500, w: 160, h: 160, type: "house" },
-            { x: 1500, y: 1200, w: 300, h: 80, type: "wall" },
-            { x: 2200, y: 800, w: 200, h: 200, type: "house" },
-            { x: 900, y: 2500, w: 400, h: 100, type: "wall" }
+            { x: 600, y: 500, w: 200, h: 200, type: "house", walls: [
+                {x: 600, y: 500, w: 200, h: 15}, // Top Wall
+                {x: 600, y: 500, w: 15, h: 200}, // Left Wall
+                {x: 785, y: 500, w: 15, h: 200}, // Right Wall
+                {x: 600, y: 685, w: 60, h: 15},  // Bottom Left segment
+                {x: 720, y: 685, w: 80, h: 15}   // Bottom Right segment [Door space: 660 -> 720]
+            ]},
+            { x: 2200, y: 800, w: 200, h: 200, type: "house", walls: [
+                {x: 2200, y: 800, w: 200, h: 15},
+                {x: 2200, y: 800, w: 15, h: 200},
+                {x: 2385, y: 800, w: 15, h: 200},
+                {x: 2200, y: 985, w: 70, h: 15},
+                {x: 2330, y: 985, w: 70, h: 15}   // Door space: 2270 -> 2330
+            ]},
+            { x: 1500, y: 1200, w: 300, h: 30, type: "wall", walls: [{x: 1500, y: 1200, w: 300, h: 30}] },
+            { x: 900, y: 2500, w: 400, h: 30, type: "wall", walls: [{x: 900, y: 2500, w: 400, h: 30}] }
         ];
 
-        // In-game menus wiring logic
+        // Safe coordinates generation algorithm (Prevents spawning inside walls)
+        function getSafeSpawnCoords(radius) {
+            let safe = false; let rx, ry;
+            while(!safe) {
+                rx = Math.random() * (world.w - 200) + 100;
+                ry = Math.random() * (world.h - 200) + 100;
+                if(!checkCollision(rx, ry, radius)) safe = true;
+            }
+            return { x: rx, y: ry };
+        }
+
         const sToggle = document.getElementById("ingame-settings-btn");
         const sPopup = document.getElementById("ingame-popup");
         sToggle.addEventListener("click", (e) => { e.stopPropagation(); sPopup.style.display = sPopup.style.display === "flex" ? "none" : "flex"; });
@@ -341,49 +361,58 @@
         document.getElementById("btn-game-restart").addEventListener("click", () => { sPopup.style.display="none"; restartMatch(); });
         document.getElementById("btn-game-quit").addEventListener("click", () => { location.reload(); });
 
-        // Win-Lose Buttons bindings
         document.getElementById("btn-lose-retry").addEventListener("click", () => { document.getElementById("screen-lose").style.display="none"; restartMatch(); });
         document.getElementById("btn-lose-map").addEventListener("click", () => { document.getElementById("screen-lose").style.display="none"; exitToCampaignMenu(); });
         document.getElementById("btn-win-cont").addEventListener("click", () => { document.getElementById("screen-win").style.display="none"; startOfflineMission(currentStage+1); });
         document.getElementById("btn-win-retry").addEventListener("click", () => { document.getElementById("screen-win").style.display="none"; restartMatch(); });
         document.getElementById("btn-win-map").addEventListener("click", () => { document.getElementById("screen-win").style.display="none"; exitToCampaignMenu(); });
 
-        window.startOfflineMission = function(lvl) {
-            currentStage = lvl; currentMode = "offline";
-            document.getElementById("campaign-screen").style.display = "none";
-            initMatchEngine();
-        };
+        window.startOfflineMission = function(lvl) { currentStage = lvl; currentMode = "offline"; document.getElementById("campaign-screen").style.display = "none"; initMatchEngine(); };
 
-        // Matchmaker bindings
         document.getElementById("btn-match-1v1").addEventListener("click", () => triggerOnlineLobby("1v1"));
         document.getElementById("btn-match-br").addEventListener("click", () => triggerOnlineLobby("br"));
         document.getElementById("btn-match-coop").addEventListener("click", () => triggerOnlineLobby("coop"));
 
         function triggerOnlineLobby(mode) {
-            currentMode = mode;
-            document.getElementById("online-lobby").style.display = "none";
+            currentMode = mode; document.getElementById("online-lobby").style.display = "none";
             let activeGear = { weapon: account.weapon, armor: account.armor };
+            // ???? ?????? ?????? ???? ???? ?????? ?????? ??????? ?????????? ????????? ?????? ???? ????? ???????
             socket.emit("joinGame", { nickname: account.nickname, email: account.email, mode: mode, gear: activeGear });
         }
 
-        socket.on("joinedRoomSuccess", () => { initMatchEngine(); });
+        socket.on("joinedRoomSuccess", (serverSpawn) => {
+            initMatchEngine(serverSpawn);
+        });
+
         socket.on("stateUpdate", serverPlayers => {
             otherPlayers = serverPlayers;
             if(player.id && serverPlayers[player.id]) {
                 player.hp = serverPlayers[player.id].hp;
                 player.maxHp = serverPlayers[player.id].maxHp;
+                // ??? ???? ??????? ????? ?????????? ????????? ???? ??????? ?????
+                if(currentMode !== "offline") {
+                    player.x = serverPlayers[player.id].x;
+                    player.y = serverPlayers[player.id].y;
+                }
             }
         });
         socket.on("bulletFired", bData => bullets.push(bData));
         socket.on("coopGoldSynced", data => { matchGold = data.goldShared; });
 
-        function initMatchEngine() {
+        function initMatchEngine(serverSpawn = null) {
             gameActive = true; bullets = []; localBots = []; matchGold = 0; largeMap = false;
             let currentArmorData = ARMORS_DATA[account.armor];
             player.maxHp = 100 + (currentArmorData.protection * 25); player.hp = player.maxHp;
             player.id = currentMode === "offline" ? "local" : socket.id;
             player.nickname = account.nickname;
-            player.x = Math.random() * 600 + 400; player.y = Math.random() * 600 + 400;
+
+            // ??? ??????? ???? ??????? ??? ???? ??????? ?????? ?? ??????? ???????? ??????? ?? ???????
+            if (serverSpawn) {
+                player.x = serverSpawn.x; player.y = serverSpawn.y;
+            } else {
+                let spawnPos = getSafeSpawnCoords(player.r);
+                player.x = spawnPos.x; player.y = spawnPos.y;
+            }
 
             document.getElementById("hud").style.display = "block";
             document.getElementById("ingame-settings-btn").style.display = "flex";
@@ -393,10 +422,12 @@
             if (currentMode === "offline" || currentMode === "coop") {
                 let spawnedCount = currentMode === "coop" ? 10 : 3 + currentStage;
                 if(currentStage % 10 === 0 && currentMode === "offline") { 
-                    localBots.push({ id: "boss", x: 1200, y: 1200, r: 40, speed: 1.5, hp: 500, maxHp: 500, type: "boss" });
+                    let bPos = getSafeSpawnCoords(40);
+                    localBots.push({ id: "boss", x: bPos.x, y: bPos.y, r: 40, speed: 1.5, hp: 500, maxHp: 500, type: "boss", fireCooldown: 0 });
                 } else {
                     for(let i=0; i<spawnedCount; i++) {
-                        localBots.push({ id: "bot_"+i, x: Math.random()*2000+800, y: Math.random()*2000+800, r: 16, speed: 2, hp: 40, maxHp: 40, type: "grunt" });
+                        let bPos = getSafeSpawnCoords(16);
+                        localBots.push({ id: "bot_"+i, x: bPos.x, y: bPos.y, r: 16, speed: 2.2, hp: 40, maxHp: 40, type: "grunt", fireCooldown: Math.random()*50 });
                     }
                 }
             }
@@ -405,7 +436,6 @@
         function restartMatch() { initMatchEngine(); }
         function exitToCampaignMenu() { document.getElementById("hud").style.display="none"; document.getElementById("ingame-settings-btn").style.display="none"; gameActive=false; document.getElementById("campaign-screen").style.display="flex"; buildCampaignGrid(); }
 
-        // PC Keyboards / Mice triggers - GLOBAL FIX FOR CODES M AND R
         window.addEventListener("keydown", e => { 
             if (!gameActive) return;
             keys[e.key.toLowerCase()] = true; 
@@ -415,48 +445,26 @@
         window.addEventListener("keyup", e => { keys[e.key.toLowerCase()] = false; });
         window.addEventListener("mousemove", e => { if(!gameActive) return; mouse.x = e.clientX; mouse.y = e.clientY; });
         
-        // Handle Clicks / Minimap Interactions
         window.addEventListener("click", e => { 
             if(!gameActive) return;
-            
-            // ???? ??? ??? ????? ??? ????? ????? ???????/??????
             let mSize = largeMap ? Math.min(canvas.width * 0.7, canvas.height * 0.7) : Math.min(120, canvas.width * 0.22);
             let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 15;
             let mY = largeMap ? (canvas.height - mSize)/2 : 15;
-            
-            if (e.clientX >= mX && e.clientX <= mX + mSize && e.clientY >= mY && e.clientY <= mY + mSize) {
-                largeMap = !largeMap;
-                return;
-            }
-
-            if(e.clientY < 100 && e.clientX < 260) return; // ????? ????? ??? HUD
-            executeWeaponFire(); 
+            if (e.clientX >= mX && e.clientX <= mX + mSize && e.clientY >= mY && e.clientY <= mY + mSize) { largeMap = !largeMap; return; }
+            if(e.clientY < 100 && e.clientX < 260) return;
+            executeWeaponFire(player.id, player.x, player.y, player.angle, WEAPONS_DATA[account.weapon].dmg); 
         });
 
-        // Touch Input Mapper (Mini-Militia Fixed Joysticks + Minimap Touch Toggle)
         window.addEventListener("touchstart", e => {
             if(!gameActive) return;
             for (let t of e.changedTouches) {
-                
-                // ?????: ???? ??? ??? ????? ?????? ????? ???????
                 let mSize = largeMap ? Math.min(canvas.width * 0.7, canvas.height * 0.7) : Math.min(120, canvas.width * 0.22);
                 let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 15;
                 let mY = largeMap ? (canvas.height - mSize)/2 : 15;
-                if (t.clientX >= mX && t.clientX <= mX + mSize && t.clientY >= mY && t.clientY <= mY + mSize) {
-                    largeMap = !largeMap;
-                    continue;
-                }
+                if (t.clientX >= mX && t.clientX <= mX + mSize && t.clientY >= mY && t.clientY <= mY + mSize) { largeMap = !largeMap; continue; }
 
-                // ??????: ??? ????? ????????? ???????
-                if (t.clientX < canvas.width / 2) {
-                    leftJoystick.active = true;
-                    leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY;
-                    leftJoystick.touchId = t.identifier;
-                } else if (t.clientX >= canvas.width / 2) {
-                    rightJoystick.active = true;
-                    rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY;
-                    rightJoystick.touchId = t.identifier;
-                }
+                if (t.clientX < canvas.width / 2) { leftJoystick.active = true; leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY; leftJoystick.touchId = t.identifier; } 
+                else { rightJoystick.active = true; rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY; rightJoystick.touchId = t.identifier; }
             }
         });
 
@@ -470,33 +478,28 @@
 
         window.addEventListener("touchend", e => {
             for (let t of e.changedTouches) {
-                if (leftJoystick.active && t.identifier === leftJoystick.touchId) { 
-                    leftJoystick.active = false; 
-                    leftJoystick.currentX = leftJoystick.startX; leftJoystick.currentY = leftJoystick.startY;
-                }
-                if (rightJoystick.active && t.identifier === rightJoystick.touchId) { 
-                    rightJoystick.active = false; 
-                    rightJoystick.currentX = rightJoystick.startX; rightJoystick.currentY = rightJoystick.startY;
-                }
+                if (leftJoystick.active && t.identifier === leftJoystick.touchId) { leftJoystick.active = false; leftJoystick.currentX = leftJoystick.startX; leftJoystick.currentY = leftJoystick.startY; }
+                if (rightJoystick.active && t.identifier === rightJoystick.touchId) { rightJoystick.active = false; rightJoystick.currentX = rightJoystick.startX; rightJoystick.currentY = rightJoystick.startY; }
             }
         });
 
+        // Advanced Ray Collision against multi-wall units
         function checkCollision(nx, ny, r) {
             for (let obs of obstacles) {
-                if (nx + r > obs.x && nx - r < obs.x + obs.w && ny + r > obs.y && ny - r < obs.y + obs.h) return true;
+                for(let wall of obs.walls) {
+                    if (nx + r > wall.x && nx - r < wall.x + wall.w && ny + r > wall.y && ny - r < wall.y + wall.h) return true;
+                }
             }
             return false;
         }
 
-        function executeWeaponFire() {
-            if (player.hp <= 0) return;
-            let currentWeapon = WEAPONS_DATA[account.weapon];
-            let bulletData = { x: player.x + Math.cos(player.angle)*20, y: player.y + Math.sin(player.angle)*20, vx: Math.cos(player.angle)*14, vy: Math.sin(player.angle)*14, id: player.id, damage: currentWeapon.dmg };
+        function executeWeaponFire(id, sx, sy, sAngle, dmg) {
+            if (player.hp <= 0 && id === player.id) return;
+            let bulletData = { x: sx + Math.cos(sAngle)*20, y: sy + Math.sin(sAngle)*20, vx: Math.cos(sAngle)*13, vy: Math.sin(sAngle)*13, id: id, damage: dmg };
             bullets.push(bulletData);
-            if (currentMode !== "offline") socket.emit("shoot", bulletData);
+            if (id === player.id && currentMode !== "offline") socket.emit("shoot", bulletData);
         }
 
-        // Continuous Loop Logic Updater
         let fireCooldown = 0;
         function update() {
             if (!gameActive) return;
@@ -508,7 +511,6 @@
             if (keys["a"]) { nx -= player.speed; moved = true; }
             if (keys["d"]) { nx += player.speed; moved = true; }
 
-            // Left Joystick Movement Vector Tracking
             if (leftJoystick.active) {
                 let dx = leftJoystick.currentX - leftJoystick.startX; let dy = leftJoystick.currentY - leftJoystick.startY;
                 let dist = Math.hypot(dx, dy);
@@ -519,14 +521,13 @@
                 }
             }
 
-            // Right Joystick Aiming & Auto shooting
             if (rightJoystick.active) {
                 let rdx = rightJoystick.currentX - rightJoystick.startX; let rdy = rightJoystick.currentY - rightJoystick.startY;
                 let rdist = Math.hypot(rdx, rdy);
                 if (rdist > 5) {
                     player.angle = Math.atan2(rdy, rdx);
                     if (rdist >= rightJoystick.maxRadius - 12 && fireCooldown <= 0) {
-                        executeWeaponFire(); fireCooldown = 12; 
+                        executeWeaponFire(player.id, player.x, player.y, player.angle, WEAPONS_DATA[account.weapon].dmg); fireCooldown = 14; 
                     }
                 }
             } else if (!leftJoystick.active && (mouse.x !== 0 || mouse.y !== 0)) {
@@ -535,6 +536,7 @@
 
             if(fireCooldown > 0) fireCooldown--;
 
+            // ??? ???????? ??????????? ???? ??? ???? ??????
             if (!checkCollision(nx, player.y, player.r)) player.x = Math.max(0, Math.min(world.w, nx));
             if (!checkCollision(player.x, ny, player.r)) player.y = Math.max(0, Math.min(world.h, ny));
 
@@ -544,7 +546,7 @@
             document.getElementById("hp-bar").style.width = (player.hp / player.maxHp * 100) + "%";
             document.getElementById("gold-match-display").innerText = "Match Gold: " + matchGold;
 
-            // Projectiles Calculations
+            // Projectiles Calculations Loop
             for (let i = bullets.length - 1; i >= 0; i--) {
                 let b = bullets[i]; b.x += b.vx; b.y += b.vy;
 
@@ -552,9 +554,10 @@
                     bullets.splice(i, 1); continue;
                 }
 
+                // ????? ???? ??????? ?? ???? ??????? ????? ???????
                 if (b.id !== player.id && player.hp > 0) {
                     if (Math.hypot(player.x - b.x, player.y - b.y) < player.r + 4) {
-                        player.hp = Math.max(0, player.hp - b.damage);
+                        player.hp = Math.max(0, player.hp - b.damage); // ??? ????? ???? ????? ???????
                         if(currentMode !== 'offline') socket.emit("playerDamage", { id: player.id, damage: b.damage });
                         bullets.splice(i, 1); continue;
                     }
@@ -567,38 +570,40 @@
                             bullets.splice(i, 1);
                             if(bot.hp <= 0) {
                                 matchGold += bot.type === "boss" ? 100 : 15;
-                                if(currentMode === "coop") socket.emit("coopGoldUpdate", { amount: 15 });
                             }
                         }
                     });
                 }
             }
 
-            // AI Updates
+            // AI Smart Range Bot Bullet Shoot Architecture
             if (currentMode === "offline" || currentMode === "coop") {
                 localBots.forEach(bot => {
                     if(bot.hp <= 0) return;
                     let bdx = player.x - bot.x; let bdy = player.y - bot.y;
                     let dist = Math.hypot(bdx, bdy);
 
-                    if (dist < 500 && player.hp > 0) {
+                    if (dist < 600 && player.hp > 0) {
                         bot.angle = Math.atan2(bdy, bdx);
+                        
+                        // ?????? ??? ????? ???? ?? ???? ??????? ???????
                         let bnx = bot.x + Math.cos(bot.angle) * bot.speed;
                         let bny = bot.y + Math.sin(bot.angle) * bot.speed;
-
                         if (!checkCollision(bnx, bot.y, bot.r)) bot.x = bnx;
                         if (!checkCollision(bot.x, bny, bot.r)) bot.y = bny;
 
-                        if (dist < player.r + bot.r) { 
-                            player.hp = Math.max(0, player.hp - 0.5);
+                        // ???? ????? ????? ????? ???????
+                        if(bot.fireCooldown <= 0) {
+                            executeWeaponFire(bot.id, bot.x, bot.y, bot.angle, bot.type === "boss" ? 25 : 10);
+                            bot.fireCooldown = bot.type === "boss" ? 40 : 65; // ???? ????? ?????
                         }
                     }
+                    if(bot.fireCooldown > 0) bot.fireCooldown--;
                 });
 
                 let aliveBots = localBots.filter(b => b.hp > 0).length;
                 if (aliveBots === 0 && player.hp > 0 && gameActive) {
-                    gameActive = false;
-                    account.gold += matchGold;
+                    gameActive = false; account.gold += matchGold;
                     if (currentStage === account.maxStage && account.maxStage < 100) account.maxStage++;
                     saveAccount(); document.getElementById("screen-win").style.display = "flex";
                 }
@@ -606,24 +611,18 @@
 
             if (player.hp <= 0 && gameActive) {
                 gameActive = false;
-                if(currentMode === "offline") {
-                    document.getElementById("screen-lose").style.display = "flex";
-                } else {
-                    alert("Eliminated! Returning to safe lobby."); location.reload();
-                }
+                if(currentMode === "offline") { document.getElementById("screen-lose").style.display = "flex"; } 
+                else { alert("Eliminated from warzone!"); location.reload(); }
             }
         }
 
         function drawHuman(x, y, r, angle, color, name, curHp, maxHp) {
             if (curHp <= 0) return;
             ctx.save(); ctx.translate(x, y);
-            
             ctx.fillStyle = "white"; ctx.font = "bold 13px sans-serif"; ctx.textAlign = "center";
             ctx.fillText(name, 0, -r - 14);
-
             ctx.fillStyle = "#c62828"; ctx.fillRect(-18, -r - 9, 36, 4);
             ctx.fillStyle = "#2e7d32"; ctx.fillRect(-18, -r - 9, 36 * (curHp / maxHp), 4);
-
             ctx.rotate(angle);
             ctx.fillStyle = color; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
             ctx.fillStyle = "#212121"; ctx.fillRect(4, -4, r * 1.6, 6);
@@ -631,85 +630,61 @@
         }
 
         function drawMinimap() {
-            // ???? ???? ??????? ????? ??? ?? ??? ???? ????? ?? ????? ?? ????? ?? ???????
             let mSize = largeMap ? Math.min(canvas.width * 0.7, canvas.height * 0.7) : Math.min(120, canvas.width * 0.22);
             let mX = largeMap ? (canvas.width - mSize) / 2 : canvas.width - mSize - 15;
             let mY = largeMap ? (canvas.height - mSize) / 2 : 15;
             let r = mSize / world.w;
 
-            ctx.fillStyle = largeMap ? "rgba(9, 15, 22, 0.95)" : "rgba(13, 19, 26, 0.75)"; 
-            ctx.fillRect(mX, mY, mSize, mSize);
-            ctx.strokeStyle = largeMap ? "#1e88e5" : "#243447"; 
-            ctx.lineWidth = largeMap ? 3 : 1;
-            ctx.strokeRect(mX, mY, mSize, mSize);
-            ctx.lineWidth = 1;
+            ctx.fillStyle = largeMap ? "rgba(9, 15, 22, 0.95)" : "rgba(13, 19, 26, 0.75)"; ctx.fillRect(mX, mY, mSize, mSize);
+            ctx.strokeStyle = largeMap ? "#1e88e5" : "#243447"; ctx.lineWidth = largeMap ? 3 : 1; ctx.strokeRect(mX, mY, mSize, mSize); ctx.lineWidth = 1;
 
             ctx.fillStyle = "rgba(255,255,255,0.15)";
-            obstacles.forEach(o => ctx.fillRect(mX + o.x*r, mY + o.y*r, o.w*r, o.h*r));
+            obstacles.forEach(o => {
+                if(o.type === "house") ctx.strokeRect(mX + o.x*r, mY + o.y*r, o.w*r, o.h*r);
+                else ctx.fillRect(mX + o.x*r, mY + o.y*r, o.w*r, o.h*r);
+            });
 
             if(player.hp > 0) { ctx.fillStyle = "#1e88e5"; ctx.beginPath(); ctx.arc(mX + player.x*r, mY + player.y*r, largeMap? 5 : 3, 0, Math.PI*2); ctx.fill(); }
-            
-            for (let id in otherPlayers) {
-                if (id !== player.id && otherPlayers[id].hp > 0) {
-                    ctx.fillStyle = "#c62828"; ctx.beginPath(); ctx.arc(mX + otherPlayers[id].x*r, mY + otherPlayers[id].y*r, largeMap? 4.5 : 2.5, 0, Math.PI*2); ctx.fill();
-                }
-            }
-
-            localBots.forEach(b => {
-                if (b.hp > 0) {
-                    ctx.fillStyle = "#d35400"; ctx.beginPath(); ctx.arc(mX + b.x*r, mY + b.y*r, largeMap? 4 : 2, 0, Math.PI*2); ctx.fill();
-                }
-            });
+            for (let id in otherPlayers) { if (id !== player.id && otherPlayers[id].hp > 0) { ctx.fillStyle = "#c62828"; ctx.beginPath(); ctx.arc(mX + otherPlayers[id].x*r, mY + otherPlayers[id].y*r, largeMap? 4.5 : 2.5, 0, Math.PI*2); ctx.fill(); } }
+            localBots.forEach(b => { if (b.hp > 0) { ctx.fillStyle = "#d35400"; ctx.beginPath(); ctx.arc(mX + b.x*r, mY + b.y*r, largeMap? 4 : 2, 0, Math.PI*2); ctx.fill(); } });
         }
 
         function renderVirtualStick(stick, isRight) {
-            // ??? ????????? ??????? ????? ??????
             ctx.beginPath(); ctx.arc(stick.startX, stick.startY, stick.maxRadius, 0, Math.PI*2);
             ctx.fillStyle = "rgba(255,255,255,0.04)"; ctx.fill();
             ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.stroke();
-
             let dx = stick.currentX - stick.startX; let dy = stick.currentY - stick.startY;
             let dist = Math.hypot(dx, dy); let angle = Math.atan2(dy, dx);
             let mx = stick.startX + (dist > stick.maxRadius ? Math.cos(angle)*stick.maxRadius : dx);
             let my = stick.startY + (dist > stick.maxRadius ? Math.sin(angle)*stick.maxRadius : dy);
-
-            ctx.beginPath(); ctx.arc(mx, my, 18, 0, Math.PI*2); 
-            ctx.fillStyle = isRight ? "rgba(229,57,53,0.3)" : "rgba(21,101,192,0.3)"; 
-            ctx.fill();
-            ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.stroke();
+            ctx.beginPath(); ctx.arc(mx, my, 18, 0, Math.PI*2); ctx.fillStyle = isRight ? "rgba(229,57,53,0.3)" : "rgba(21,101,192,0.3)"; ctx.fill(); ctx.strokeStyle = "rgba(255,255,255,0.3)"; ctx.stroke();
         }
 
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             ctx.save(); ctx.translate(-camera.x, -camera.y);
-
             ctx.fillStyle = "#111a24"; ctx.fillRect(0, 0, world.w, world.h);
 
+            // ??? ??????? ????????? ?????? ????????
             obstacles.forEach(obs => {
-                ctx.fillStyle = obs.type === "house" ? "#2c3e50" : "#57606f";
-                ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
-                ctx.strokeRect(obs.x, obs.y, obs.w, obs.h);
+                ctx.fillStyle = obs.type === "house" ? "rgba(44, 62, 80, 0.4)" : "#57606f";
+                ctx.fillRect(obs.x, obs.y, obs.w, obs.h); 
+                
+                ctx.fillStyle = "#57606f";
+                obs.walls.forEach(w => {
+                    ctx.fillRect(w.x, w.y, w.w, w.h);
+                    ctx.strokeRect(w.x, w.y, w.w, w.h);
+                });
             });
 
             if (gameActive) drawHuman(player.x, player.y, player.r, player.angle, "#1565C0", player.nickname, player.hp, player.maxHp);
-
-            for (let id in otherPlayers) {
-                if (id !== player.id) {
-                    let p = otherPlayers[id];
-                    drawHuman(p.x, p.y, 16, p.angle, "#c62828", p.nickname, p.hp, p.maxHp);
-                }
-            }
-
+            for (let id in otherPlayers) { if (id !== player.id) { let p = otherPlayers[id]; drawHuman(p.x, p.y, 16, p.angle, "#c62828", p.nickname, p.hp, p.maxHp); } }
             localBots.forEach(bot => drawHuman(bot.x, bot.y, bot.r, bot.angle, "#d35400", bot.type.toUpperCase(), bot.hp, bot.maxHp));
 
-            ctx.fillStyle = "#ffd700";
-            bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI*2); ctx.fill(); });
-
+            ctx.fillStyle = "#ffd700"; bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 4, 0, Math.PI*2); ctx.fill(); });
             ctx.restore();
             
-            // ??????? ???? ???? ????? ????? ??????? ????? ???????
-            renderVirtualStick(leftJoystick, false);
-            renderVirtualStick(rightJoystick, true);
+            renderVirtualStick(leftJoystick, false); renderVirtualStick(rightJoystick, true);
             drawMinimap();
         }
 
