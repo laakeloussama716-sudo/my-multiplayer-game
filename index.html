@@ -375,7 +375,8 @@
         let gameActive = false;
         let largeMap = false;
         
-        let player = { id: null, x: 2000, y: 2000, r: 18, speed: 6.0, hp: 100, maxHp: 100, angle: 0, nickname: "", legCycle: 0, isMoving: false };
+        // SPEED FIXED: Speed boosted by +25% (From 6.0 to 7.5)
+        let player = { id: null, x: 2000, y: 2000, r: 18, speed: 7.5, hp: 100, maxHp: 100, angle: 0, nickname: "", legCycle: 0, isMoving: false };
         let camera = { x: 2000, y: 2000 };
         let otherPlayers = {};
         let bullets = [];
@@ -403,7 +404,6 @@
             rightJoystick.currentY = rightJoystick.startY;
         }
 
-        // ????? ?????? ?????? ??????? ?????? ?????? ?????? ????? ????? ??????
         const obstacles = [
             { 
                 id: "house_alpha", name: "Command Base Alpha", x: 500, y: 500, w: 250, h: 250, 
@@ -465,7 +465,6 @@
             return false;
         }
 
-        // ??? ???????? ???? ????? ?? ????? ?? ??? ???????
         function getSafeSpawnCoords(radius) {
             let rx, ry, attempts = 0;
             while(attempts < 1000) {
@@ -558,17 +557,18 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // ????? ????? ??????? ??????? ??? ?????? ????????
+        // CHAT FIXED: Packet synced with correct Server packet name "chatMessage"
         function submitPlayerChat() {
             const input = document.getElementById("chat-input-field");
             const text = input.value.trim();
             if(!text) return;
             
             if(currentMode !== "offline") {
-                // ?? ??? ??? Socket ????? ???????? ????????
-                socket.emit("onlineChatPacket", { sender: account.nickname, msg: text });
+                // Sent to server via unified event string
+                socket.emit("chatMessage", { sender: account.nickname, msg: text });
+                // Show locally instantly
+                addChatMessage(account.nickname, text, "player");
             } else {
-                // ??? ??? ???????? ???? ?????? ?? ?????? ???? ???????
                 addChatMessage(account.nickname, text, "player");
                 setTimeout(() => {
                     let activeBots = localBots.filter(b => b.hp > 0);
@@ -607,7 +607,6 @@
             otherPlayers = {};
             for(let id in serverPlayers) {
                 if(id !== player.id) { 
-                    // ???? ??????? ???? ???? ???????? ??? ??????
                     let oldP = otherPlayers[id] || { x: serverPlayers[id].x, y: serverPlayers[id].y, legCycle: 0 };
                     let isMoving = Math.hypot(serverPlayers[id].x - oldP.x, serverPlayers[id].y - oldP.y) > 0.5;
                     let legCycle = oldP.legCycle;
@@ -624,9 +623,11 @@
         socket.on("bulletFired", bData => bullets.push(bData));
         socket.on("onlineKillAward", () => { account.gold += 10; saveAccount(); localKills++; });
         
-        // ??????? ??????? ??????? ?? ??????? ?????? ?? ????? ????? ??? ????????
-        socket.on("receiveOnlineChat", data => {
-            if(gameActive) addChatMessage(data.sender, data.msg, "enemy");
+        // CHAT FIXED: Standardized receiver handling incoming messages perfectly
+        socket.on("chatMessage", data => {
+            if(gameActive && data.sender !== account.nickname) {
+                addChatMessage(data.sender, data.msg, "enemy");
+            }
         });
 
         socket.on("tournamentWinner", (data) => {
@@ -697,7 +698,8 @@
                 let count = 4 + currentStage;
                 for(let i=0; i<count; i++) {
                     let b = getSafeSpawnCoords(16);
-                    localBots.push({ id: "bot_"+i, type: "standard", x: b.x, y: b.y, r: 16, speed: 2.2, hp: 35, maxHp: 35, fireCooldown: Math.random()*50, legCycle: 0, isMoving: true });
+                    // SPEED FIXED: Bots speeds synchronized smoothly (+25% buffed from 2.2 to 2.75)
+                    localBots.push({ id: "bot_"+i, type: "standard", x: b.x, y: b.y, r: 16, speed: 2.75, hp: 35, maxHp: 35, fireCooldown: Math.random()*50, legCycle: 0, isMoving: true });
                 }
             }
         }
@@ -814,10 +816,9 @@
                 }
             }
 
-            // ????? ??????? ???? ?????? ?????? ??? ??????
             player.isMoving = moved;
             if(player.isMoving) {
-                player.legCycle += 0.25; // ???? ???? ???????
+                player.legCycle += 0.35; // Legs step cycles frequency tuned realistically
             } else {
                 player.legCycle = 0;
             }
@@ -839,7 +840,6 @@
             document.getElementById("hp-bar").style.width = (player.hp / player.maxHp * 100) + "%";
             document.getElementById("gold-match-display").innerText = "Gold Bank: " + account.gold + " G";
 
-            // ????? ?????? ????????
             for (let i = bullets.length - 1; i >= 0; i--) {
                 let b = bullets[i]; b.x += b.vx; b.y += b.vy;
                 if (checkCollision(b.x, b.y, 4)) { bullets.splice(i, 1); continue; }
@@ -866,7 +866,6 @@
                 }
             }
 
-            // ???? ??????? ????????? ????? ?????? ??????
             if (currentMode === "offline" || currentMode === "coop") {
                 let activeStandardBots = localBots.filter(b => b.hp > 0 && b.type === "standard");
                 if (activeStandardBots.length >= 6) {
@@ -875,7 +874,7 @@
                     source.r = 35;
                     source.hp = 200;
                     source.maxHp = 200;
-                    source.speed = 1.5;
+                    source.speed = 1.88; // Boss speed amplified +25% proportionally (from 1.5 to 1.88)
                     source.damage = 60; 
                     for(let k = 1; k < 6; k++) { activeStandardBots[k].hp = 0; } 
                     addChatMessage("SYSTEM WARNING", "Six enemy units fused into a SUPER BOT X6 entity!", "system");
@@ -886,7 +885,7 @@
                     let dist = Math.hypot(player.x - bot.x, player.y - bot.y);
                     if(dist < 600) {
                         bot.isMoving = true;
-                        bot.legCycle += 0.15;
+                        bot.legCycle += 0.2;
                         
                         let directAngle = Math.atan2(player.y - bot.y, player.x - bot.x);
                         bot.angle = directAngle;
@@ -947,12 +946,22 @@
             }
         }
 
-        // ???? ????? ??????? ???? ?????? ??????? ?? ????? ?????? ??? ????? (Legs Walk Animation)
+        // DESIGN REWORK: Highly realistic soldiers with ground shadow drop mapping layouts
         function drawHuman(x, y, r, angle, color, name, curHp, maxHp, isBoss = false, legCycle = 0, isMoving = false) {
             if (curHp <= 0) return;
-            ctx.save(); ctx.translate(x, y);
+            ctx.save();
             
-            // 1. ????? ????? ???? HP Bar ??? ?????
+            // 1. Reality Depth Ground Shadow
+            ctx.shadowColor = "rgba(0, 0, 0, 0.65)";
+            ctx.shadowBlur = 12;
+            ctx.shadowOffsetX = 5;
+            ctx.shadowOffsetY = 8;
+            
+            ctx.translate(x, y);
+            
+            // Text and status elements rendered without inheriting shadow
+            ctx.save();
+            ctx.shadowBlur = 0; ctx.shadowOffsetX = 0; ctx.shadowOffsetY = 0;
             ctx.fillStyle = isBoss ? "#ff1744" : "white"; 
             ctx.font = isBoss ? "bold 14px sans-serif" : "bold 12px sans-serif"; 
             ctx.textAlign = "center"; 
@@ -960,38 +969,44 @@
             
             ctx.fillStyle = "#c62828"; ctx.fillRect(-20, -r - 8, 40, 5);
             ctx.fillStyle = "#2e7d32"; ctx.fillRect(-20, -r - 8, 40 * (curHp / maxHp), 5);
+            ctx.restore();
             
             ctx.rotate(angle); 
 
-            // 2. ??????? ?????? ??? ????? (????? ???????? ??? ??? ?????? ?????)
+            // 2. Realistic Leg Walking Cycles Architecture
             if (isMoving) {
-                let leftLegOffset = Math.sin(legCycle) * 10;
-                let rightLegOffset = Math.sin(legCycle + Math.PI) * 10;
+                let leftLegOffset = Math.sin(legCycle) * 8;
+                let rightLegOffset = Math.sin(legCycle + Math.PI) * 8;
 
-                ctx.fillStyle = "#1c2a39";
-                // ????? ??????
-                ctx.fillRect(-12 + leftLegOffset, -r - 4, 10, 8);
-                // ????? ??????
-                ctx.fillRect(-12 + rightLegOffset, r - 4, 10, 8);
+                ctx.fillStyle = "#2c3e50"; // Military tactical boots color
+                // Left Boot
+                ctx.fillRect(-10 + leftLegOffset, -r + 2, 9, 6);
+                // Right Boot
+                ctx.fillRect(-10 + rightLegOffset, r - 8, 9, 6);
             } else {
-                // ??? ?????? ?? ??? ?????? ???????
-                ctx.fillStyle = "#1c2a39";
-                ctx.fillRect(-10, -r - 2, 8, 6);
-                ctx.fillRect(-10, r - 4, 8, 6);
+                ctx.fillStyle = "#2c3e50";
+                ctx.fillRect(-8, -r + 2, 7, 5);
+                ctx.fillRect(-8, r - 7, 7, 5);
             }
             
-            // 3. ??? ??? ?????? (?????? ?????????)
+            // 3. Main Player Vest & Base Torso
             ctx.fillStyle = color; 
             ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill();
             
-            // ????? ??? ??????? ?????? ???? ????? ????? ????
-            ctx.strokeStyle = "rgba(255,255,255,0.4)";
-            ctx.lineWidth = 3;
+            // Outer tactical armor lines outline
+            ctx.strokeStyle = "rgba(0,0,0,0.4)";
+            ctx.lineWidth = 2.5;
             ctx.stroke();
 
-            // 4. ??? ???? ?????? ?????? ??????
-            ctx.fillStyle = "#111"; 
-            ctx.fillRect(5, -4, r * 1.4, 8); 
+            // Premium Inner Camouflage Layer Accent Ring
+            ctx.beginPath(); ctx.arc(0, 0, r * 0.6, 0, Math.PI * 2);
+            ctx.fillStyle = "rgba(255,255,255,0.12)"; ctx.fill();
+
+            // 4. Heavy weapon barrel execution
+            ctx.fillStyle = "#1e272e"; 
+            ctx.fillRect(4, -5, r * 1.45, 10); 
+            ctx.strokeStyle = "#718093"; ctx.lineWidth = 1; ctx.strokeRect(4, -5, r * 1.45, 10);
+            
             ctx.restore();
         }
 
@@ -1005,7 +1020,6 @@
             for(let x=0; x<world.w; x+=100) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,world.h); ctx.stroke(); }
             for(let y=0; y<world.h; y+=100) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(world.w,y); ctx.stroke(); }
 
-            // ??? ?? ?????? ??? 6 ??????? ?????? ????? ?????? ??????
             obstacles.forEach(obs => {
                 ctx.fillStyle = "rgba(44, 62, 80, 0.4)"; ctx.fillRect(obs.x, obs.y, obs.w, obs.h);
                 ctx.fillStyle = "#57606f"; 
@@ -1019,23 +1033,23 @@
                 ctx.fillText(obs.name, obs.x + obs.w/2, obs.y + obs.h/2);
             });
 
-            // ??? ?????? ?????? ?? ????? ??????? ???? ?????
             if (gameActive && player.hp > 0) {
-                drawHuman(player.x, player.y, player.r, player.angle, "#1565C0", player.nickname, player.hp, player.maxHp, false, player.legCycle, player.isMoving);
+                // Realistic Tactical Blue Color Scheme
+                drawHuman(player.x, player.y, player.r, player.angle, "#273c75", player.nickname, player.hp, player.maxHp, false, player.legCycle, player.isMoving);
             }
             
-            // ??? ???? ???????? ????????
             for (let id in otherPlayers) { 
                 let p = otherPlayers[id]; 
-                drawHuman(p.x, p.y, 18, p.angle, "#c62828", p.nickname, p.hp, p.maxHp, false, p.legCycle, p.isMoving); 
+                // Realistic Enemy Dark Red Scheme
+                drawHuman(p.x, p.y, 18, p.angle, "#7f1d1d", p.nickname, p.hp, p.maxHp, false, p.legCycle, p.isMoving); 
             }
             
-            // ??? ??????? ???????
             localBots.forEach(bot => {
                 if(bot.type === "merged_boss") {
-                    drawHuman(bot.x, bot.y, bot.r, bot.angle, "#b71c1c", "SUPER BOT X6", bot.hp, bot.maxHp, true, bot.legCycle, bot.isMoving);
+                    drawHuman(bot.x, bot.y, bot.r, bot.angle, "#9c0517", "SUPER BOT X6", bot.hp, bot.maxHp, true, bot.legCycle, bot.isMoving);
                 } else {
-                    drawHuman(bot.x, bot.y, bot.r, bot.angle, "#e65100", "BOT SOLDIER", bot.hp, bot.maxHp, false, bot.legCycle, bot.isMoving);
+                    // Realistic Bot Camouflage Gray Scheme
+                    drawHuman(bot.x, bot.y, bot.r, bot.angle, "#353b48", "BOT SOLDIER", bot.hp, bot.maxHp, false, bot.legCycle, bot.isMoving);
                 }
             });
 
@@ -1043,7 +1057,6 @@
             bullets.forEach(b => { ctx.beginPath(); ctx.arc(b.x, b.y, 5, 0, Math.PI*2); ctx.fill(); });
             ctx.restore();
 
-            // ??? ???????? ????????
             if (isMobileTouch) {
                 ctx.beginPath(); ctx.arc(leftJoystick.startX, leftJoystick.startY, leftJoystick.maxRadius, 0, Math.PI*2);
                 ctx.strokeStyle = "rgba(255,255,255,0.18)"; ctx.lineWidth = 3; ctx.stroke();
@@ -1063,7 +1076,6 @@
                 ctx.fillText(canvasAlertText, canvas.width/2, canvas.height/2);
             }
 
-            // ??? ??????? ??????? ??????? ??? 6 ??????? ???? ????? ????
             let mSize = largeMap ? Math.min(canvas.width*0.75, canvas.height*0.75) : 130;
             let mX = largeMap ? (canvas.width - mSize)/2 : canvas.width - mSize - 20;
             let mY = largeMap ? (canvas.height - mSize)/2 : 20;
