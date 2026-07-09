@@ -1,7 +1,7 @@
-import express from "express";
-import http from "http";
-import { Server, Socket } from "socket.io";
-import path from "path";
+const express = require("express");
+const http = require("http");
+const { Server } = require("socket.io");
+const path = require("path");
 
 const app = express();
 const server = http.createServer(app);
@@ -80,74 +80,14 @@ const serverObstacles = [
   }
 ];
 
-interface PlayerState {
-  id: string;
-  x: number;
-  y: number;
-  r: number;
-  angle: number;
-  hp: number;
-  maxHp: number;
-  nickname: string;
-  email: string;
-  isMoving: boolean;
-  legCycle: number;
-  gold: number;
-  weapon: number;
-  armor: number;
-}
+const queue1v1 = [];
+const queueBR = [];
+const queueCoop = [];
 
-interface BulletState {
-  id?: string;
-  owner: string;
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  dmg: number;
-  r: number;
-  color: string;
-}
-
-interface BotState {
-  id: string;
-  x: number;
-  y: number;
-  r: number;
-  speed: number;
-  hp: number;
-  maxHp: number;
-  type: "grunt" | "elite" | "HEXA-TITAN";
-  shootCooldown: number;
-  angle: number;
-  isMergedUnit: boolean;
-  mergeFactor: number;
-}
-
-interface RoomState {
-  id: string;
-  mode: "1v1" | "br" | "coop";
-  players: Record<string, PlayerState>;
-  bullets: Array<BulletState>;
-  doorsState: Array<{ doorX: number; doorY: number; isOpen: boolean }>;
-  bots: Array<BotState>;
-}
-
-// Queue system arrays for each online mode
-interface QueueUser {
-  socketId: string;
-  nickname: string;
-  email: string;
-}
-
-const queue1v1: Array<QueueUser> = [];
-const queueBR: Array<QueueUser> = [];
-const queueCoop: Array<QueueUser> = [];
-
-const rooms: Record<string, RoomState> = {};
+const rooms = {};
 
 // Helper function to detect wall/door collisions
-function checkCollision(nx: number, ny: number, r: number, doorsState: RoomState["doorsState"]) {
+function checkCollision(nx, ny, r, doorsState) {
   if (nx - r < 0 || nx + r > WORLD_SIZE || ny - r < 0 || ny + r > WORLD_SIZE) return true;
   for (let obs of serverObstacles) {
     for (let wall of obs.walls) {
@@ -168,7 +108,7 @@ function checkCollision(nx: number, ny: number, r: number, doorsState: RoomState
   return false;
 }
 
-function getSafeSpawnCoords(doorsState: RoomState["doorsState"]) {
+function getSafeSpawnCoords(doorsState) {
   let rx, ry, attempts = 0;
   while (attempts < 1000) {
     rx = Math.random() * (WORLD_SIZE - 400) + 200;
@@ -189,8 +129,7 @@ function getSafeSpawnCoords(doorsState: RoomState["doorsState"]) {
 }
 
 // Clean player from any queue
-function cleanFromAllQueues(socketId: string) {
-  const filterFn = (p: QueueUser) => p.socketId !== socketId;
+function cleanFromAllQueues(socketId) {
   const idx1 = queue1v1.findIndex(p => p.socketId === socketId);
   if (idx1 !== -1) queue1v1.splice(idx1, 1);
   const idxBR = queueBR.findIndex(p => p.socketId === socketId);
@@ -200,11 +139,10 @@ function cleanFromAllQueues(socketId: string) {
 }
 
 // Initialize and match players
-function checkAndStartMatches(queue: Array<QueueUser>, mode: "1v1" | "br" | "coop") {
-  // We match pairs of 2 players instantly
+function checkAndStartMatches(queue, mode) {
   while (queue.length >= 2) {
-    const p1 = queue.shift()!;
-    const p2 = queue.shift()!;
+    const p1 = queue.shift();
+    const p2 = queue.shift();
     const roomId = `room_${mode}_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
 
     const initialDoors = serverObstacles.map(obs => ({
@@ -216,7 +154,7 @@ function checkAndStartMatches(queue: Array<QueueUser>, mode: "1v1" | "br" | "coo
     const spawnP1 = getSafeSpawnCoords(initialDoors);
     const spawnP2 = getSafeSpawnCoords(initialDoors);
 
-    const roomState: RoomState = {
+    const roomState = {
       id: roomId,
       mode: mode,
       players: {
@@ -258,7 +196,7 @@ function checkAndStartMatches(queue: Array<QueueUser>, mode: "1v1" | "br" | "coo
       bots: []
     };
 
-    // If Co-op mode, pre-spawn some server-side hostile bots
+    // If Co-op mode, pre-spawn server hostile bots
     if (mode === "coop") {
       const botCount = 6;
       for (let i = 0; i < botCount; i++) {
@@ -288,14 +226,14 @@ function checkAndStartMatches(queue: Array<QueueUser>, mode: "1v1" | "br" | "coo
 
     if (s1) {
       s1.join(roomId);
-      (s1 as any).roomId = roomId;
-      (s1 as any).userData = p1;
+      s1.roomId = roomId;
+      s1.userData = p1;
       s1.emit("matchFound", { spawn: spawnP1, roomId: roomId, mode: mode, opponent: { nickname: p2.nickname, email: p2.email } });
     }
     if (s2) {
       s2.join(roomId);
-      (s2 as any).roomId = roomId;
-      (s2 as any).userData = p2;
+      s2.roomId = roomId;
+      s2.userData = p2;
       s2.emit("matchFound", { spawn: spawnP2, roomId: roomId, mode: mode, opponent: { nickname: p1.nickname, email: p1.email } });
     }
 
@@ -303,7 +241,7 @@ function checkAndStartMatches(queue: Array<QueueUser>, mode: "1v1" | "br" | "coo
   }
 }
 
-io.on("connection", (socket: Socket) => {
+io.on("connection", (socket) => {
   console.log(`Soldier connected: ${socket.id}`);
 
   socket.on("join1v1Queue", (userData) => {
@@ -340,7 +278,7 @@ io.on("connection", (socket: Socket) => {
   });
 
   socket.on("playerInput", (data) => {
-    const rId = (socket as any).roomId;
+    const rId = socket.roomId;
     if (!rId || !rooms[rId]) return;
 
     const p = rooms[rId].players[socket.id];
@@ -356,11 +294,10 @@ io.on("connection", (socket: Socket) => {
   });
 
   socket.on("fireBullet", (bulletData) => {
-    const rId = (socket as any).roomId;
+    const rId = socket.roomId;
     if (!rId || !rooms[rId]) return;
 
     const room = rooms[rId];
-
     const p = room.players[socket.id];
     if (p && p.hp > 0) {
       // Weapon damage configs matching core metrics
@@ -383,7 +320,7 @@ io.on("connection", (socket: Socket) => {
   });
 
   socket.on("syncMapDoorEvent", (doorData) => {
-    const rId = (socket as any).roomId;
+    const rId = socket.roomId;
     if (!rId || !rooms[rId]) return;
 
     const room = rooms[rId];
@@ -395,7 +332,7 @@ io.on("connection", (socket: Socket) => {
 
   // Safe and synchronized room chat message delivery
   socket.on("sendRoomChatMessage", (data) => {
-    const rId = (socket as any).roomId;
+    const rId = socket.roomId;
     if (!rId || !rooms[rId]) return;
 
     const room = rooms[rId];
@@ -417,7 +354,7 @@ io.on("connection", (socket: Socket) => {
     console.log(`Soldier disconnected: ${socket.id}`);
     cleanFromAllQueues(socket.id);
 
-    const rId = (socket as any).roomId;
+    const rId = socket.roomId;
     if (rId && rooms[rId]) {
       const room = rooms[rId];
       delete room.players[socket.id];
@@ -536,7 +473,7 @@ setInterval(() => {
         if (bot.hp <= 0) return;
 
         // Find nearest live player target
-        let closestPlayer: PlayerState | null = null;
+        let closestPlayer = null;
         let minDist = 999999;
         activePlayers.forEach(p => {
           if (p.hp > 0) {
@@ -549,7 +486,7 @@ setInterval(() => {
         });
 
         if (closestPlayer) {
-          const target: PlayerState = closestPlayer;
+          const target = closestPlayer;
           bot.angle = Math.atan2(target.y - bot.y, target.x - bot.x);
 
           if (minDist < 1000) {
