@@ -933,9 +933,9 @@
             
             // Reconcile client predicted bullets and server bullets
             if (state.bullets) {
-                bullets = state.bullets;
-                // Filter out predicted bullets once server acknowledges them
-                clientBullets = clientBullets.filter(cb => !bullets.some(sb => sb.id === cb.id));
+                // Filter out local player's bullets from the server stream so we don't snap our own locally simulated bullets to laggy server positions
+                let localId = socket.id || player.id;
+                bullets = state.bullets.filter(sb => sb.owner !== localId && sb.owner !== socket.id && sb.owner !== player.id);
             } else {
                 bullets = [];
             }
@@ -1236,11 +1236,25 @@
         // --- Weapon Fire System ---
         function triggerWeaponFireAction() {
             let activeWep = WEAPONS_DATA[account.weapon];
+            
+            // Instantly update targetAngle to the absolute latest input state to prevent frame latency
+            if(isMobileTouch && rightJoystick.active) {
+                player.angle = Math.atan2(rightJoystick.currentY - rightJoystick.startY, rightJoystick.currentX - rightJoystick.startX);
+            } else if (!isMobileTouch) {
+                let worldMouseX = mouse.x + camera.x - canvas.width/2;
+                let worldMouseY = mouse.y + camera.y - canvas.height/2;
+                player.angle = Math.atan2(worldMouseY - player.y, worldMouseX - player.x);
+            }
+            
             let targetAngle = player.angle;
+
+            // Calculate muzzle offset (gun tip position) based on player size and angle
+            let muzzleX = player.x + Math.cos(targetAngle) * (player.r + 12);
+            let muzzleY = player.y + Math.sin(targetAngle) * (player.r + 12);
 
             if(currentMode === "offline") {
                 bullets.push({
-                    owner: player.id, x: player.x, y: player.y,
+                    owner: player.id, x: muzzleX, y: muzzleY,
                     vx: Math.cos(targetAngle) * 15, vy: Math.sin(targetAngle) * 15,
                     dmg: activeWep.dmg, r: 5, color: account.weapon === 2 ? "#00ffff" : "#ffd700"
                 });
@@ -1249,15 +1263,15 @@
                 clientBullets.push({
                     id: bId,
                     owner: socket.id,
-                    x: player.x,
-                    y: player.y,
+                    x: muzzleX,
+                    y: muzzleY,
                     vx: Math.cos(targetAngle) * 15,
                     vy: Math.sin(targetAngle) * 15,
                     dmg: activeWep.dmg,
                     r: 5,
                     color: account.weapon === 2 ? "#00ffff" : "#ffd700"
                 });
-                socket.emit("fireBullet", { id: bId, x: player.x, y: player.y, angle: targetAngle });
+                socket.emit("fireBullet", { id: bId, x: muzzleX, y: muzzleY, angle: targetAngle });
             }
             AudioEngine.playShoot();
         }
@@ -1401,7 +1415,30 @@
                 for (let i = clientBullets.length - 1; i >= 0; i--) {
                     let b = clientBullets[i];
                     b.x += b.vx; b.y += b.vy;
-                    if (checkCollision(b.x, b.y, b.r)) {
+                    
+                    let hitWall = checkCollision(b.x, b.y, b.r);
+                    let hitTarget = false;
+                    
+                    // Check local visual impact on other players
+                    for (let id in otherPlayers) {
+                        let op = otherPlayers[id];
+                        if (op.hp > 0 && Math.hypot(b.x - op.x, b.y - op.y) < op.r + b.r) {
+                            hitTarget = true;
+                            break;
+                        }
+                    }
+                    
+                    // Check local visual impact on bots in coop
+                    if (activeOnlineMode === "coop") {
+                        for (let bot of serverBots) {
+                            if (bot.hp > 0 && Math.hypot(b.x - bot.x, b.y - bot.y) < bot.r + b.r) {
+                                hitTarget = true;
+                                break;
+                            }
+                        }
+                    }
+                    
+                    if (hitWall || hitTarget) {
                         clientBullets.splice(i, 1);
                     }
                 }
