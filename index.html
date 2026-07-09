@@ -392,6 +392,126 @@
         // Safe client-server connection initialization
         const socket = io(window.location.origin || "https://my-online-game-1n7l.onrender.com");
 
+        // --- Procedural High-Fidelity Tactical Audio Engine ---
+        const AudioEngine = {
+            ctx: null,
+            init() {
+                if (!this.ctx) {
+                    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+            },
+            playShoot() {
+                this.init();
+                if (!this.ctx) return;
+                const ctx = this.ctx;
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.type = "sawtooth";
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.15);
+
+                gain.gain.setValueAtTime(0.15, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+                osc.start(now);
+                osc.stop(now + 0.15);
+            },
+            playHit() {
+                this.init();
+                if (!this.ctx) return;
+                const ctx = this.ctx;
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.type = "triangle";
+                osc.frequency.setValueAtTime(180, now);
+                osc.frequency.linearRampToValueAtTime(60, now + 0.1);
+
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+
+                osc.start(now);
+                osc.stop(now + 0.1);
+            },
+            playWin() {
+                this.init();
+                if (!this.ctx) return;
+                const ctx = this.ctx;
+                const now = ctx.currentTime;
+                
+                const playNote = (freq, start, duration) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = "sine";
+                    osc.frequency.setValueAtTime(freq, start);
+                    gain.gain.setValueAtTime(0.15, start);
+                    gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
+                    osc.start(start);
+                    osc.stop(start + duration);
+                };
+
+                playNote(523.25, now, 0.15); // C5
+                playNote(659.25, now + 0.15, 0.15); // E5
+                playNote(783.99, now + 0.3, 0.15); // G5
+                playNote(1046.50, now + 0.45, 0.4); // C6
+            },
+            playLose() {
+                this.init();
+                if (!this.ctx) return;
+                const ctx = this.ctx;
+                const now = ctx.currentTime;
+
+                const playNote = (freq, start, duration) => {
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.type = "sine";
+                    osc.frequency.setValueAtTime(freq, start);
+                    gain.gain.setValueAtTime(0.15, start);
+                    gain.gain.exponentialRampToValueAtTime(0.01, start + duration);
+                    osc.start(start);
+                    osc.stop(start + duration);
+                };
+
+                playNote(392.00, now, 0.2); // G4
+                playNote(349.23, now + 0.2, 0.2); // F4
+                playNote(311.13, now + 0.4, 0.2); // Eb4
+                playNote(261.63, now + 0.6, 0.5); // C4
+            },
+            playDoor() {
+                this.init();
+                if (!this.ctx) return;
+                const ctx = this.ctx;
+                const now = ctx.currentTime;
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                osc.type = "sine";
+                osc.frequency.setValueAtTime(220, now);
+                osc.frequency.linearRampToValueAtTime(330, now + 0.25);
+
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+                osc.start(now);
+                osc.stop(now + 0.25);
+            }
+        };
+
+        let clientBullets = [];
+
         // Auth validation management
         document.getElementById("btn-toggle-auth").addEventListener("click", () => {
             isRegisterMode = !isRegisterMode;
@@ -437,6 +557,13 @@
             document.getElementById("user-display-gold").innerText = account.gold + " G";
             document.getElementById("user-display-level").innerText = "Stage " + account.maxStage;
             document.getElementById("game-chat-box").style.display = "none";
+        }
+
+        function showOnlineLobby() {
+            const screens = ["auth-screen", "shop-screen", "mode-gate", "campaign-screen", "matchmaking-screen", "main-menu"];
+            screens.forEach(s => document.getElementById(s).style.display = "none");
+            document.getElementById("online-lobby").style.display = "flex";
+            document.getElementById("hud").style.display = "none";
         }
 
         document.getElementById("btn-switch-account").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("auth-screen").style.display = "flex"; });
@@ -698,6 +825,7 @@
             if(!door) return;
             door.isOpen = !door.isOpen;
             triggerAlertNotification(door.isOpen ? "Door Opened (F)" : "Door Closed (F)");
+            AudioEngine.playDoor();
             
             if(currentMode === "online" && socket.connected) {
                 socket.emit("syncMapDoorEvent", { doorX: door.x, doorY: door.y, isOpen: door.isOpen });
@@ -727,12 +855,28 @@
         
         document.getElementById("btn-lose-retry").addEventListener("click", () => {
             document.getElementById("screen-lose").style.display="none";
-            initMatchEngine();
+            if (currentMode === "online") {
+                document.getElementById("hud").style.display = "none";
+                document.getElementById("ingame-settings-btn").style.display = "none";
+                document.getElementById("ingame-popup").style.display = "none";
+                document.getElementById("game-chat-box").style.display = "none";
+                showOnlineLobby();
+            } else {
+                initMatchEngine();
+            }
         });
         document.getElementById("btn-win-cont").addEventListener("click", () => {
             document.getElementById("screen-win").style.display="none";
-            currentStage++;
-            initMatchEngine();
+            if (currentMode === "online") {
+                document.getElementById("hud").style.display = "none";
+                document.getElementById("ingame-settings-btn").style.display = "none";
+                document.getElementById("ingame-popup").style.display = "none";
+                document.getElementById("game-chat-box").style.display = "none";
+                showOnlineLobby();
+            } else {
+                currentStage++;
+                initMatchEngine();
+            }
         });
 
         window.startOfflineMission = function(lvl) {
@@ -786,8 +930,40 @@
         // Fully authoritative server state processing with correct rendering loops
         socket.on("gameUpdate", (state) => {
             if(!gameActive || currentMode !== "online") return;
-            bullets = state.bullets || [];
-            serverBots = state.bots || [];
+            
+            // Reconcile client predicted bullets and server bullets
+            if (state.bullets) {
+                bullets = state.bullets;
+                // Filter out predicted bullets once server acknowledges them
+                clientBullets = clientBullets.filter(cb => !bullets.some(sb => sb.id === cb.id));
+            } else {
+                bullets = [];
+            }
+            
+            // Handle bots targets (in coop)
+            if (state.bots) {
+                state.bots.forEach(sb => {
+                    let existing = serverBots.find(b => b.id === sb.id);
+                    if (!existing) {
+                        serverBots.push({
+                            ...sb,
+                            targetX: sb.x,
+                            targetY: sb.y,
+                            targetAngle: sb.angle
+                        });
+                    } else {
+                        existing.targetX = sb.x;
+                        existing.targetY = sb.y;
+                        existing.targetAngle = sb.angle;
+                        existing.hp = sb.hp;
+                        existing.maxHp = sb.maxHp;
+                        existing.type = sb.type;
+                    }
+                });
+                serverBots = serverBots.filter(b => state.bots.some(sb => sb.id === b.id));
+            } else {
+                serverBots = [];
+            }
             
             if(state.doorsState) {
                 state.doorsState.forEach(sd => {
@@ -798,14 +974,78 @@
 
             for(let id in state.players) {
                 if(id === player.id) {
+                    if (state.players[id].hp < player.hp) {
+                        AudioEngine.playHit();
+                    }
                     player.hp = state.players[id].hp;
                     matchGold = state.players[id].gold;
                 } else {
-                    otherPlayers[id] = state.players[id];
+                    let sp = state.players[id];
+                    if (!otherPlayers[id]) {
+                        otherPlayers[id] = {
+                            id: sp.id,
+                            x: sp.x,
+                            y: sp.y,
+                            r: sp.r,
+                            angle: sp.angle,
+                            targetX: sp.x,
+                            targetY: sp.y,
+                            targetAngle: sp.angle,
+                            hp: sp.hp,
+                            maxHp: sp.maxHp || 100,
+                            nickname: sp.nickname,
+                            legCycle: sp.legCycle,
+                            isMoving: sp.isMoving
+                        };
+                    } else {
+                        otherPlayers[id].targetX = sp.x;
+                        otherPlayers[id].targetY = sp.y;
+                        otherPlayers[id].targetAngle = sp.angle;
+                        otherPlayers[id].hp = sp.hp;
+                        otherPlayers[id].nickname = sp.nickname;
+                        otherPlayers[id].legCycle = sp.legCycle;
+                        otherPlayers[id].isMoving = sp.isMoving;
+                    }
                 }
             }
             for(let id in otherPlayers) {
                 if(!state.players[id]) delete otherPlayers[id];
+            }
+        });
+
+        socket.on("matchFinished", (data) => {
+            if (!gameActive || currentMode !== "online") return;
+            
+            gameActive = false;
+            
+            let isWinner = false;
+            if (data.mode === "coop") {
+                isWinner = (data.winnerId === "team");
+            } else {
+                isWinner = (data.winnerId === socket.id);
+            }
+            
+            if (isWinner) {
+                let bonus = activeOnlineMode === "1v1" ? 140 : (activeOnlineMode === "coop" ? 100 : 80);
+                account.gold += matchGold + bonus;
+                saveAccount();
+                
+                document.getElementById("screen-win").style.display = "flex";
+                AudioEngine.playWin();
+                
+                if (data.reason === "disconnect") {
+                    pushSystemChatMessage("Your opponent disconnected! Match won by forfeit.");
+                } else {
+                    pushSystemChatMessage(`Operations Completed! Victory! Got +${matchGold + bonus} G.`);
+                }
+            } else {
+                let consolidation = Math.floor(matchGold * 0.4);
+                account.gold += consolidation;
+                saveAccount();
+                
+                document.getElementById("screen-lose").style.display = "flex";
+                AudioEngine.playLose();
+                pushSystemChatMessage(`Operations Terminated! Defeat. Got +${consolidation} G.`);
             }
         });
 
@@ -815,6 +1055,7 @@
             gameActive = true;
             largeMap = false;
             bullets = [];
+            clientBullets = [];
             otherPlayers = {};
             localBots = [];
             serverBots = [];
@@ -1004,8 +1245,21 @@
                     dmg: activeWep.dmg, r: 5, color: account.weapon === 2 ? "#00ffff" : "#ffd700"
                 });
             } else {
-                socket.emit("fireBullet", { x: player.x, y: player.y, angle: targetAngle });
+                let bId = "bullet_" + socket.id + "_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+                clientBullets.push({
+                    id: bId,
+                    owner: socket.id,
+                    x: player.x,
+                    y: player.y,
+                    vx: Math.cos(targetAngle) * 15,
+                    vy: Math.sin(targetAngle) * 15,
+                    dmg: activeWep.dmg,
+                    r: 5,
+                    color: account.weapon === 2 ? "#00ffff" : "#ffd700"
+                });
+                socket.emit("fireBullet", { id: bId, x: player.x, y: player.y, angle: targetAngle });
             }
+            AudioEngine.playShoot();
         }
 
         // --- Game Processing Frame loops ---
@@ -1073,6 +1327,7 @@
                         localBots.forEach(bot => {
                             if(bot.hp > 0 && Math.hypot(b.x - bot.x, b.y - bot.y) < bot.r + b.r) {
                                 bot.hp -= b.dmg;
+                                AudioEngine.playHit();
                                 bullets.splice(index, 1);
                                 if(bot.hp <= 0) {
                                     localKills++;
@@ -1088,6 +1343,7 @@
                             let prot = ARMORS_DATA[account.armor].protection;
                             let finalDmg = Math.max(2, b.dmg - prot);
                             player.hp -= finalDmg;
+                            AudioEngine.playHit();
                             bullets.splice(index, 1);
                             if(player.hp <= 0) triggerDefeatState();
                         }
@@ -1134,11 +1390,54 @@
                     }
                 });
             } else {
+                // Emitting local player's input state to server
                 socket.emit("playerInput", { 
                     x: player.x, y: player.y, angle: player.angle, 
                     isMoving: player.isMoving, legCycle: player.legCycle,
                     weapon: account.weapon, armor: account.armor
                 });
+
+                // Smoothly update client predicted bullets
+                for (let i = clientBullets.length - 1; i >= 0; i--) {
+                    let b = clientBullets[i];
+                    b.x += b.vx; b.y += b.vy;
+                    if (checkCollision(b.x, b.y, b.r)) {
+                        clientBullets.splice(i, 1);
+                    }
+                }
+                
+                // Extrapolate server bullets smoothly between packets
+                bullets.forEach(b => {
+                    b.x += b.vx;
+                    b.y += b.vy;
+                });
+                
+                // Smoothly interpolate other players
+                for(let id in otherPlayers) {
+                    let op = otherPlayers[id];
+                    if (op.targetX !== undefined) {
+                        op.x += (op.targetX - op.x) * 0.25;
+                        op.y += (op.targetY - op.y) * 0.25;
+                        
+                        let diff = op.targetAngle - op.angle;
+                        diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+                        op.angle += diff * 0.25;
+                    }
+                }
+                
+                // Smoothly interpolate server bots (in co-op)
+                if (activeOnlineMode === "coop") {
+                    serverBots.forEach(bot => {
+                        if (bot.targetX !== undefined) {
+                            bot.x += (bot.targetX - bot.x) * 0.25;
+                            bot.y += (bot.targetY - bot.y) * 0.25;
+                            
+                            let diff = bot.targetAngle - bot.angle;
+                            diff = Math.atan2(Math.sin(diff), Math.cos(diff));
+                            bot.angle += diff * 0.25;
+                        }
+                    });
+                }
             }
 
             document.getElementById("hp-bar").style.width = Math.max(0, player.hp) + "%";
@@ -1156,6 +1455,7 @@
                 }
                 saveAccount();
                 document.getElementById("screen-win").style.display = "flex";
+                AudioEngine.playWin();
             }
         }
 
@@ -1164,6 +1464,7 @@
             account.gold += Math.floor(matchGold * 0.4); 
             saveAccount();
             document.getElementById("screen-lose").style.display = "flex";
+            AudioEngine.playLose();
         }
 
         // --- Painting Frame ---
@@ -1242,6 +1543,10 @@
 
             // Painting flying projectiles
             bullets.forEach(b => {
+                ctx.fillStyle = b.color || varColorFromWeapon(account.weapon);
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
+            });
+            clientBullets.forEach(b => {
                 ctx.fillStyle = b.color || varColorFromWeapon(account.weapon);
                 ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
             });
