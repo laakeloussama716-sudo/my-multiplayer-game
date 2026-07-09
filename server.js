@@ -318,7 +318,7 @@ function triggerServerRPGExplosion(room, ex, ey, ownerId) {
     if (!lineIntersectsObstacle(ex, ey, t.obj.x, t.obj.y)) {
       let baseDamage = 100;
       if (t.type === "player") {
-        const armorsPlat = [0, 3, 7];
+        const armorsPlat = [0, 3, 5, 8, 11, 15];
         const protection = armorsPlat[t.obj.armor] || 0;
         let finalDmg = Math.max(10, baseDamage - protection);
         t.obj.hp = Math.max(0, t.obj.hp - finalDmg);
@@ -423,7 +423,7 @@ io.on("connection", (socket) => {
       if (p.weapon === 2) color = "#00ffff"; // Rifle blue/cyan
       
       if (p.weapon === 4) { // Shotgun pellet
-        damage = Math.floor(damage / 3);
+        damage = Math.floor(damage / 2);
         r = 3;
         color = "#e67e22";
       } else if (p.weapon === 5) { // RPG rocket
@@ -552,8 +552,8 @@ setInterval(() => {
             if (b.weaponId === 5) {
               triggerServerRPGExplosion(room, b.x, b.y, b.owner);
             } else {
-              // Apply armor protection reduction: Recruit (0), Kevlar (3), Nano Aegis (7)
-              const armorsPlat = [0, 3, 7];
+              // Apply armor protection reduction: Leather (0), Silver (3), Gold (5), Diamond (8), Mercury (11), Netherite (15)
+              const armorsPlat = [0, 3, 5, 8, 11, 15];
               const protection = armorsPlat[p.armor] || 0;
               const finalDmg = Math.max(2, b.dmg - protection);
 

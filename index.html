@@ -188,28 +188,41 @@
             flex-direction: column; justify-content: center; align-items: center; z-index: 99; 
         }
 
-        /* Highly Polished Translucent Tactical Chat Panel */
+        /* Minecraft-Style Completely Transparent Chat Panel */
         #game-chat-box {
             position: absolute; bottom: 25px; left: 50%; 
-            transform: translateX(-50%); width: 350px; height: 170px; 
-            background: rgba(6, 11, 17, 0.82); border: 1px solid #1a2f47; 
-            border-radius: 14px; z-index: 8; display: none; 
+            transform: translateX(-50%); width: 380px; height: 170px; 
+            background: transparent; border: none; 
+            z-index: 8; display: none; 
             flex-direction: column; overflow: hidden; 
-            box-shadow: 0 10px 35px rgba(0,0,0,0.6); backdrop-filter: blur(10px);
+            pointer-events: none; /* Let clicks pass through when not typing */
             transition: height 0.2s;
         }
         #chat-messages-container {
             flex: 1; padding: 12px; overflow-y: auto; 
-            font-size: 13px; display: flex; flex-direction: column; 
+            font-size: 14px; display: flex; flex-direction: column; 
             gap: 6px; scroll-behavior: smooth;
+            pointer-events: auto;
         }
-        .chat-row { line-height: 1.4; word-break: break-word; font-family: var(--font-sans); }
-        .chat-sender { font-family: var(--font-display); font-weight: 700; color: #1e88e5; }
+        .chat-row { 
+            line-height: 1.4; 
+            word-break: break-word; 
+            font-family: var(--font-sans); 
+            text-shadow: 1px 1px 1px #000, -1px -1px 1px #000, 1px -1px 1px #000, -1px 1px 1px #000;
+            font-weight: 500;
+        }
+        .chat-sender { font-family: var(--font-display); font-weight: 700; color: #4fc3f7; }
         .chat-sender.system { color: var(--gold); }
         .chat-sender.enemy { color: var(--danger); }
-        .chat-sender.bot { color: #ff9100; }
-        .chat-text { color: #eceff1; }
-        #chat-input-wrapper { display: flex; border-top: 1px solid #1a2f47; background: #04070a; }
+        .chat-sender.bot { color: #ffb74d; }
+        .chat-text { color: #ffffff; } /* Pure white text when anyone writes */
+        #chat-input-wrapper { 
+            display: flex; 
+            border: 1px solid rgba(255,255,255,0.25); 
+            background: rgba(0, 0, 0, 0.55); 
+            border-radius: 6px;
+            pointer-events: auto;
+        }
         #chat-input-field {
             flex: 1; background: transparent; border: none; 
             padding: 12px 14px; color: white; font-size: 13px; 
@@ -219,6 +232,8 @@
             background: #1565C0; border: none; color: white; 
             padding: 0 20px; font-family: var(--font-display); 
             font-size: 12px; font-weight: 700; cursor: pointer;
+            border-top-right-radius: 5px;
+            border-bottom-right-radius: 5px;
             transition: background 0.15s;
         }
         #chat-send-btn:hover { background: #1e88e5; }
@@ -389,9 +404,12 @@
             { id: 5, name: "RPG Launcher / ????????", price: 6000, dmg: 100, range: 3000, fireCooldown: 800, desc: "Map-wide range explosive. Explodes on contact, damages up to 2 targets. Damage does not pierce solid walls." }
         ];
         const ARMORS_DATA = [
-            { id: 0, name: "Recruit Armor / ??? ????", price: 0, protection: 0, desc: "Standard composite issue fabric." },
-            { id: 1, name: "Kevlar Plating / ??? ????????", price: 600, protection: 3, desc: "Provides moderate protective absorbs 3 damage." },
-            { id: 2, name: "Nano Aegis Shield / ??? ????", price: 2500, protection: 7, desc: "High tech nano combat plating, blocks 7 damage." }
+            { id: 0, name: "Leather Armor / ????? ??????", price: 0, protection: 0, desc: "Recruit Leather armor protection. Protects 0." },
+            { id: 1, name: "Silver Armor / ????? ?????", price: 600, protection: 3, desc: "Tempered combat grade silver combat plating. Protects 3." },
+            { id: 2, name: "Gold Armor / ????? ??????", price: 1500, protection: 5, desc: "Heavy gold alloy composite plating. Protects 5." },
+            { id: 3, name: "Diamond Armor / ????? ????????", price: 3000, protection: 8, desc: "Cyan diamond kinetic crystalline layer. Protects 8." },
+            { id: 4, name: "Mercury Armor / ????? ???????", price: 5000, protection: 11, desc: "Liquid metal mercury dynamic displacement shield. Protects 11." },
+            { id: 5, name: "Netherite Armor / ??? ????????", price: 8000, protection: 15, desc: "Apocalyptic dark netherite alloy casing. Protects 15." }
         ];
 
         const BOT_CHAT_PHRASES = [
@@ -701,9 +719,22 @@
             let wRack = document.getElementById("weapons-rack"); wRack.innerHTML = "";
             WEAPONS_DATA.forEach(w => {
                 let status = account.weapon === w.id ? "EQUIPPED" : (account.itemsOwned.includes("w_"+w.id) || w.price===0 ? "EQUIP" : "BUY " + w.price + "G");
+                
+                let bShapeText = "";
+                if (w.id === 0) bShapeText = "Laser Dot / ???? ?????";
+                else if (w.id === 1) bShapeText = "Laser Pellet / ????? ???????? ??????";
+                else if (w.id === 2) bShapeText = "Cyan Tracer / ???? ???? ?????";
+                else if (w.id === 3) bShapeText = "Double Tracer / ????? ???? ?????";
+                else if (w.id === 4) bShapeText = "Spread Pellets / ???? ????? ????";
+                else if (w.id === 5) bShapeText = "Military Rocket / ????? ???? ?????";
+
+                let shotsPerSec = (1000 / w.fireCooldown).toFixed(1);
+
                 wRack.innerHTML += `<div class="shop-item">
                     <h4>${w.name}</h4>
-                    <p style="margin:4px 0; font-size:12px; color:var(--primary);">Dmg: ${w.dmg} | Range: ${w.range}</p>
+                    <p style="margin:4px 0; font-size:12px; color:var(--primary);">Dmg: ${w.dmg} | Range (?????): ${w.range}m</p>
+                    <p style="margin:2px 0; font-size:11px; color:#4caf50;">Fire Speed (???? ???????): ${shotsPerSec} shots/sec</p>
+                    <p style="margin:2px 0; font-size:11px; color:#ff9100;">Bullet (??? ??????): ${bShapeText}</p>
                     <p style="font-size: 10px; color:#90a4ae; min-height: 28px; margin-bottom: 6px;">${w.desc}</p>
                     <button class="btn-premium" style="width:100%; padding:8px; font-size:12px;" onclick="triggerBuy('w', ${w.id}, ${w.price})">${status}</button>
                 </div>`;
@@ -762,21 +793,46 @@
         let canvasAlertText = "";
         let canvasAlertTimer = 0;
 
-        const leftJoystick = { active: false, startX: 85, startY: 0, currentX: 85, currentY: 0, touchId: null, maxRadius: 65 };
-        const rightJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 65 };
+        const leftJoystick = { active: false, startX: 130, startY: 0, currentX: 130, currentY: 0, touchId: null, maxRadius: 85 };
+        const rightJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, touchId: null, maxRadius: 85 };
         let isMobileTouch = false;
         let touchShootInterval = 0;
 
         function updateJoystickLayout() {
-            leftJoystick.startX = 95;
-            leftJoystick.startY = canvas.height - 105; 
-            leftJoystick.currentX = leftJoystick.startX; 
-            leftJoystick.currentY = leftJoystick.startY;
-            
-            rightJoystick.startX = canvas.width - 95; 
-            rightJoystick.startY = canvas.height - 105; 
-            rightJoystick.currentX = rightJoystick.startX; 
-            rightJoystick.currentY = rightJoystick.startY;
+            const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+            if (isMobileDevice) {
+                isMobileTouch = true;
+            }
+
+            if (isMobileTouch) {
+                leftJoystick.maxRadius = 85;
+                leftJoystick.startX = 130;
+                leftJoystick.startY = canvas.height - 130; 
+                if (!leftJoystick.active) {
+                    leftJoystick.currentX = leftJoystick.startX; 
+                    leftJoystick.currentY = leftJoystick.startY;
+                }
+                
+                rightJoystick.maxRadius = 85;
+                rightJoystick.startX = canvas.width - 130; 
+                rightJoystick.startY = canvas.height - 130; 
+                if (!rightJoystick.active) {
+                    rightJoystick.currentX = rightJoystick.startX; 
+                    rightJoystick.currentY = rightJoystick.startY;
+                }
+            } else {
+                leftJoystick.maxRadius = 65;
+                leftJoystick.startX = 95;
+                leftJoystick.startY = canvas.height - 105; 
+                leftJoystick.currentX = leftJoystick.startX; 
+                leftJoystick.currentY = leftJoystick.startY;
+                
+                rightJoystick.maxRadius = 65;
+                rightJoystick.startX = canvas.width - 95; 
+                rightJoystick.startY = canvas.height - 105; 
+                rightJoystick.currentX = rightJoystick.startX; 
+                rightJoystick.currentY = rightJoystick.startY;
+            }
 
             let btn = document.getElementById("ingame-settings-btn");
             if (isMobileTouch || window.innerWidth < 768) {
@@ -1314,8 +1370,16 @@
                     if(!leftJoystick.active) {
                         leftJoystick.active = true;
                         leftJoystick.touchId = t.identifier;
-                        leftJoystick.startX = t.clientX; leftJoystick.startY = t.clientY;
-                        leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY;
+                        // Start from fixed center, calculate delta
+                        let dx = t.clientX - leftJoystick.startX;
+                        let dy = t.clientY - leftJoystick.startY;
+                        let dist = Math.hypot(dx, dy);
+                        if(dist > leftJoystick.maxRadius) {
+                            leftJoystick.currentX = leftJoystick.startX + (dx/dist)*leftJoystick.maxRadius;
+                            leftJoystick.currentY = leftJoystick.startY + (dy/dist)*leftJoystick.maxRadius;
+                        } else {
+                            leftJoystick.currentX = t.clientX; leftJoystick.currentY = t.clientY;
+                        }
                     }
                 } else {
                     if(t.clientX > window.innerWidth - 90 && t.clientY < 240) continue;
@@ -1324,12 +1388,21 @@
                     if(!rightJoystick.active) {
                         rightJoystick.active = true;
                         rightJoystick.touchId = t.identifier;
-                        rightJoystick.startX = t.clientX; rightJoystick.startY = t.clientY;
-                        rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY;
+                        // Start from fixed center, calculate delta
+                        let dx = t.clientX - rightJoystick.startX;
+                        let dy = t.clientY - rightJoystick.startY;
+                        let dist = Math.hypot(dx, dy);
+                        if(dist > rightJoystick.maxRadius) {
+                            rightJoystick.currentX = rightJoystick.startX + (dx/dist)*rightJoystick.maxRadius;
+                            rightJoystick.currentY = rightJoystick.startY + (dy/dist)*rightJoystick.maxRadius;
+                        } else {
+                            rightJoystick.currentX = t.clientX; rightJoystick.currentY = t.clientY;
+                        }
                         
+                        clearInterval(touchShootInterval);
                         touchShootInterval = setInterval(() => {
                             if(gameActive && player.hp > 0) triggerWeaponFireAction();
-                        }, 180);
+                        }, 50); // High responsiveness polling (cooldown throttled internally)
                     }
                 }
             }
@@ -1377,8 +1450,12 @@
         });
 
         // --- Weapon Fire System ---
+        let lastFireTime = 0;
         function triggerWeaponFireAction() {
+            let now = Date.now();
             let activeWep = WEAPONS_DATA[account.weapon];
+            if (now - lastFireTime < activeWep.fireCooldown) return; // Enforce fire cooldown rate
+            lastFireTime = now;
             
             // Instantly update targetAngle to the absolute latest input state to prevent frame latency
             if(isMobileTouch && rightJoystick.active) {
@@ -1403,11 +1480,25 @@
                 else if (account.weapon === 4) { r = 3; color = "#e67e22"; } // Shotgun pellet
                 else if (account.weapon === 5) { r = 8; color = "#f1c40f"; isRPG = true; } // RPG
                 
-                bullets.push({
-                    owner: player.id, x: muzzleX, y: muzzleY,
-                    vx: Math.cos(targetAngle) * 15, vy: Math.sin(targetAngle) * 15,
-                    dmg: activeWep.dmg, r: r, color: color, isRPG: isRPG
-                });
+                if (account.weapon === 4) {
+                    // Shotgun: fires two spreading pellets instead of one!
+                    bullets.push({
+                        owner: player.id, x: muzzleX, y: muzzleY,
+                        vx: Math.cos(targetAngle - 0.12) * 15, vy: Math.sin(targetAngle - 0.12) * 15,
+                        dmg: activeWep.dmg, r: r, color: color, isRPG: isRPG, weaponId: account.weapon
+                    });
+                    bullets.push({
+                        owner: player.id, x: muzzleX, y: muzzleY,
+                        vx: Math.cos(targetAngle + 0.12) * 15, vy: Math.sin(targetAngle + 0.12) * 15,
+                        dmg: activeWep.dmg, r: r, color: color, isRPG: isRPG, weaponId: account.weapon
+                    });
+                } else {
+                    bullets.push({
+                        owner: player.id, x: muzzleX, y: muzzleY,
+                        vx: Math.cos(targetAngle) * 15, vy: Math.sin(targetAngle) * 15,
+                        dmg: activeWep.dmg, r: r, color: color, isRPG: isRPG, weaponId: account.weapon
+                    });
+                }
             } else {
                 let r = 5;
                 let color = "#ffd700";
@@ -1416,20 +1507,31 @@
                 else if (account.weapon === 4) { r = 3; color = "#e67e22"; } // Shotgun pellet
                 else if (account.weapon === 5) { r = 8; color = "#f1c40f"; isRPG = true; } // RPG
 
-                let bId = "bullet_" + socket.id + "_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
-                clientBullets.push({
-                    id: bId,
-                    owner: socket.id,
-                    x: muzzleX,
-                    y: muzzleY,
-                    vx: Math.cos(targetAngle) * 15,
-                    vy: Math.sin(targetAngle) * 15,
-                    dmg: activeWep.dmg,
-                    r: r,
-                    color: color,
-                    isRPG: isRPG
-                });
-                socket.emit("fireBullet", { id: bId, x: muzzleX, y: muzzleY, angle: targetAngle });
+                if (account.weapon === 4) {
+                    // Shotgun: fires two spreading pellets online!
+                    let bId1 = "bullet_" + socket.id + "_" + Date.now() + "_1_" + Math.floor(Math.random() * 1000);
+                    let bId2 = "bullet_" + socket.id + "_" + Date.now() + "_2_" + Math.floor(Math.random() * 1000);
+                    clientBullets.push({
+                        id: bId1, owner: socket.id, x: muzzleX, y: muzzleY,
+                        vx: Math.cos(targetAngle - 0.12) * 15, vy: Math.sin(targetAngle - 0.12) * 15,
+                        dmg: activeWep.dmg, r: r, color: color, isRPG: isRPG, weaponId: account.weapon
+                    });
+                    clientBullets.push({
+                        id: bId2, owner: socket.id, x: muzzleX, y: muzzleY,
+                        vx: Math.cos(targetAngle + 0.12) * 15, vy: Math.sin(targetAngle + 0.12) * 15,
+                        dmg: activeWep.dmg, r: r, color: color, isRPG: isRPG, weaponId: account.weapon
+                    });
+                    socket.emit("fireBullet", { id: bId1, x: muzzleX, y: muzzleY, angle: targetAngle - 0.12 });
+                    socket.emit("fireBullet", { id: bId2, x: muzzleX, y: muzzleY, angle: targetAngle + 0.12 });
+                } else {
+                    let bId = "bullet_" + socket.id + "_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
+                    clientBullets.push({
+                        id: bId, owner: socket.id, x: muzzleX, y: muzzleY,
+                        vx: Math.cos(targetAngle) * 15, vy: Math.sin(targetAngle) * 15,
+                        dmg: activeWep.dmg, r: r, color: color, isRPG: isRPG, weaponId: account.weapon
+                    });
+                    socket.emit("fireBullet", { id: bId, x: muzzleX, y: muzzleY, angle: targetAngle });
+                }
             }
             AudioEngine.playShoot();
         }
@@ -1711,8 +1813,22 @@
         function renderGraphicsFrame() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
+            const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+            let scaleVal = 1.0;
+            if (isMobileDevice) {
+                // Target widescreen virtual horizontal space of 1366px
+                scaleVal = window.innerWidth / 1366;
+                if (scaleVal > 1.0) scaleVal = 1.0;
+                if (scaleVal < 0.55) scaleVal = 0.55;
+            }
+
             ctx.save();
-            ctx.translate(canvas.width/2 - camera.x, canvas.height/2 - camera.y);
+            if (isMobileDevice) {
+                ctx.scale(scaleVal, scaleVal);
+                ctx.translate((canvas.width / scaleVal) / 2 - camera.x, (canvas.height / scaleVal) / 2 - camera.y);
+            } else {
+                ctx.translate(canvas.width/2 - camera.x, canvas.height/2 - camera.y);
+            }
 
             // Ground base textures
             ctx.fillStyle = "#162211"; 
@@ -1782,14 +1898,73 @@
             });
 
             // Painting flying projectiles
-            bullets.forEach(b => {
-                ctx.fillStyle = b.color || varColorFromWeapon(account.weapon);
-                ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
-            });
-            clientBullets.forEach(b => {
-                ctx.fillStyle = b.color || varColorFromWeapon(account.weapon);
-                ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
-            });
+            function drawCustomBullet(ctx, b) {
+                let wepId = b.weaponId !== undefined ? b.weaponId : (b.isRPG ? 5 : (b.color === "#00ffff" ? 2 : (b.color === "#e67e22" ? 4 : 0)));
+                ctx.save();
+                ctx.translate(b.x, b.y);
+                let angle = Math.atan2(b.vy || 0, b.vx || 0);
+                ctx.rotate(angle);
+
+                if (wepId === 0) {
+                    // Starter Pistol: Simple yellow circular energy core
+                    ctx.fillStyle = "#ffeb3b";
+                    ctx.beginPath(); ctx.arc(0, 0, b.r || 5, 0, Math.PI*2); ctx.fill();
+                    ctx.strokeStyle = "#fbc02d"; ctx.lineWidth = 1; ctx.stroke();
+                } else if (wepId === 1) {
+                    // Tactical Pistol: Sleek glowing orange laser pellet
+                    ctx.fillStyle = "#ff9800";
+                    ctx.beginPath(); ctx.arc(0, 0, b.r || 5, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "#ffffff";
+                    ctx.beginPath(); ctx.arc(0, 0, (b.r || 5) * 0.4, 0, Math.PI*2); ctx.fill();
+                } else if (wepId === 2) {
+                    // Assault Rifle: Cyan laser tracer segment pointing in velocity dir
+                    ctx.strokeStyle = "#00ffff";
+                    ctx.lineWidth = 3.5;
+                    ctx.beginPath();
+                    ctx.moveTo(-12, 0);
+                    ctx.lineTo(6, 0);
+                    ctx.stroke();
+                } else if (wepId === 3) {
+                    // SMG: Golden high-speed tracer segment
+                    ctx.strokeStyle = "#ffeb3b";
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.moveTo(-16, 0);
+                    ctx.lineTo(8, 0);
+                    ctx.stroke();
+                } else if (wepId === 4) {
+                    // Shotgun: Red hot fire pellet (a tiny ball of embers)
+                    ctx.fillStyle = "#f44336";
+                    ctx.beginPath(); ctx.arc(0, 0, b.r || 3, 0, Math.PI*2); ctx.fill();
+                    ctx.fillStyle = "#ffeb3b";
+                    ctx.beginPath(); ctx.arc(-2, 0, (b.r || 3) * 0.6, 0, Math.PI*2); ctx.fill();
+                } else if (wepId === 5) {
+                    // RPG Launcher: Rocket outline with tail propulsion fire
+                    ctx.fillStyle = "#4caf50";
+                    ctx.fillRect(-10, -3.5, 14, 7);
+                    ctx.fillStyle = "#f44336";
+                    ctx.beginPath();
+                    ctx.moveTo(4, -3.5);
+                    ctx.lineTo(10, 0);
+                    ctx.lineTo(4, 3.5);
+                    ctx.closePath();
+                    ctx.fill();
+                    ctx.fillStyle = "#ffc107";
+                    ctx.beginPath();
+                    ctx.moveTo(-10, -2.5);
+                    ctx.lineTo(-18, 0);
+                    ctx.lineTo(-10, 2.5);
+                    ctx.closePath();
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = b.color || "#ffd700";
+                    ctx.beginPath(); ctx.arc(0, 0, b.r || 5, 0, Math.PI*2); ctx.fill();
+                }
+                ctx.restore();
+            }
+
+            bullets.forEach(b => drawCustomBullet(ctx, b));
+            clientBullets.forEach(b => drawCustomBullet(ctx, b));
 
             // Painting characters
             if(currentMode === "offline") {
@@ -1901,29 +2076,60 @@
             ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 2; ctx.stroke();
 
             // 3. Armor Plating Styling
-            if (arm === 1) {
-                // Kevlar vest (heavy blue plates)
-                ctx.fillStyle = "#1e3a8a";
+            if (arm === 0) {
+                // Leather Armor / ????? ??????
+                ctx.fillStyle = "#8d6e63"; // Brown Leather
+                ctx.beginPath();
+                ctx.rect(-r * 0.45, -r * 0.55, r * 0.9, r * 1.1);
+                ctx.fill();
+                ctx.strokeStyle = "#5d4037"; ctx.lineWidth = 1.5; ctx.stroke();
+            } else if (arm === 1) {
+                // Silver Armor / ????? ?????
+                ctx.fillStyle = "#cfd8dc"; // Silver light gray
                 ctx.beginPath();
                 ctx.rect(-r * 0.5, -r * 0.65, r * 1.0, r * 1.3);
                 ctx.fill();
-                ctx.strokeStyle = "#3b82f6"; ctx.lineWidth = 1.5; ctx.stroke();
+                ctx.strokeStyle = "#90a4ae"; ctx.lineWidth = 1.5; ctx.stroke();
             } else if (arm === 2) {
-                // Nano Aegis Shield (sleek hexagonal glowing armor)
-                ctx.fillStyle = "#0f172a";
+                // Gold Armor / ????? ??????
+                ctx.fillStyle = "#ffd700"; // Resplendent gold
                 ctx.beginPath();
                 ctx.rect(-r * 0.5, -r * 0.65, r * 1.0, r * 1.3);
                 ctx.fill();
-                ctx.strokeStyle = "#06b6d4"; ctx.lineWidth = 2.5; ctx.stroke();
+                ctx.strokeStyle = "#ffb300"; ctx.lineWidth = 2; ctx.stroke();
+            } else if (arm === 3) {
+                // Diamond Armor / ????? ????????
+                ctx.fillStyle = "#00e5ff"; // Radiant diamond blue
+                ctx.beginPath();
+                ctx.rect(-r * 0.5, -r * 0.65, r * 1.0, r * 1.3);
+                ctx.fill();
+                ctx.strokeStyle = "#00b0ff"; ctx.lineWidth = 2.5; ctx.stroke();
 
-                // Glowing nano-energy chest core
-                ctx.fillStyle = "rgba(6, 182, 212, 0.7)";
+                // Glowing crystal core
+                ctx.fillStyle = "#ffffff";
                 ctx.beginPath(); ctx.arc(-r * 0.1, 0, r * 0.22, 0, Math.PI * 2); ctx.fill();
-            } else {
-                // Recruit Armor (simple standard tactical chest harness)
-                ctx.strokeStyle = "#475569"; ctx.lineWidth = 3;
-                ctx.beginPath(); ctx.moveTo(-r * 0.5, -r * 0.5); ctx.lineTo(r * 0.4, -r * 0.25); ctx.stroke();
-                ctx.beginPath(); ctx.moveTo(-r * 0.5, r * 0.5); ctx.lineTo(r * 0.4, r * 0.25); ctx.stroke();
+            } else if (arm === 4) {
+                // Mercury Armor / ????? ???????
+                ctx.fillStyle = "#eceff1"; // Liquid metal chrome
+                ctx.beginPath();
+                ctx.rect(-r * 0.5, -r * 0.65, r * 1.0, r * 1.3);
+                ctx.fill();
+                ctx.strokeStyle = "#00e5ff"; ctx.lineWidth = 3; ctx.stroke(); // glowing neon cyan outline
+
+                // Kinetic dispersing liquid core
+                ctx.fillStyle = "rgba(0, 229, 255, 0.4)";
+                ctx.beginPath(); ctx.arc(-r * 0.15, 0, r * 0.3, 0, Math.PI * 2); ctx.fill();
+            } else if (arm === 5) {
+                // Netherite Armor / ??? ????????
+                ctx.fillStyle = "#263238"; // Deep obsidian charcoal
+                ctx.beginPath();
+                ctx.rect(-r * 0.55, -r * 0.7, r * 1.1, r * 1.4);
+                ctx.fill();
+                ctx.strokeStyle = "#d500f9"; ctx.lineWidth = 3; ctx.stroke(); // Radiant purple highlights
+
+                // Netherite neon power stripes
+                ctx.fillStyle = "#d500f9";
+                ctx.fillRect(-r * 0.25, -r * 0.1, r * 0.5, r * 0.2);
             }
 
             // 4. Weapons Visual Styles
