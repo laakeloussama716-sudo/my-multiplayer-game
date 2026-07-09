@@ -261,14 +261,24 @@
     <!-- The Armory Shop Screen -->
     <div id="shop-screen" class="screen-overlay">
         <div class="menu-card" style="width: 85%; max-width: 620px;">
-            <h2 style="color: var(--gold); margin-bottom: 5px;">WARMASTER ARMORY</h2>
-            <p id="shop-gold-title" style="margin: 0 0 20px 0; font-size: 16px; color: var(--gold); font-weight: 700; font-family: var(--font-mono);">Your Balance: 0 G</p>
+            <h2 style="color: var(--gold); margin-bottom: 5px;">WARMASTER ARMORY / ?????? ????????</h2>
+            <p id="shop-gold-title" style="margin: 0 0 15px 0; font-size: 16px; color: var(--gold); font-weight: 700; font-family: var(--font-mono);">Your Balance: 0 G</p>
             
-            <h3 style="text-align: left; font-size: 15px; color: var(--primary); margin: 10px 0; font-family: var(--font-display);">Primary Shell Launchers</h3>
-            <div class="shop-container" id="weapons-rack"></div>
+            <!-- Category Selection Tabs -->
+            <div style="display: flex; gap: 10px; margin-bottom: 20px; width: 100%;">
+                <button class="btn-premium" id="shop-tab-weapons" style="flex: 1; padding: 10px;">WEAPONS / ???????</button>
+                <button class="btn-secondary" id="shop-tab-armors" style="flex: 1; padding: 10px;">ARMOR / ??????</button>
+            </div>
             
-            <h3 style="text-align: left; font-size: 15px; color: var(--primary); margin: 10px 0; font-family: var(--font-display);">Aegis Combat Vests</h3>
-            <div class="shop-container" id="armors-rack"></div>
+            <div id="shop-weapons-section" style="display: block;">
+                <h3 style="text-align: left; font-size: 15px; color: var(--primary); margin: 10px 0; font-family: var(--font-display);">Primary Shell Launchers / ???????</h3>
+                <div class="shop-container" id="weapons-rack"></div>
+            </div>
+            
+            <div id="shop-armors-section" style="display: none;">
+                <h3 style="text-align: left; font-size: 15px; color: var(--primary); margin: 10px 0; font-family: var(--font-display);">Aegis Combat Vests / ??????</h3>
+                <div class="shop-container" id="armors-rack"></div>
+            </div>
             
             <button class="btn-premium" id="btn-back-shop" style="margin-top:20px; width: 100%;">RETURN TO TACTICAL LOBBY</button>
         </div>
@@ -371,14 +381,17 @@
         let isRegisterMode = false;
 
         const WEAPONS_DATA = [
-            { id: 0, name: "Pistol Basic", price: 0, reqStage: 1, dmg: 10, desc: "Standard issue tactical sidearm. Infinite ammo." },
-            { id: 1, name: "Assault Carbine", price: 500, reqStage: 5, dmg: 22, desc: "High velocity kinetic blaster." },
-            { id: 2, name: "Plasma Annihilator", price: 2000, reqStage: 15, dmg: 48, desc: "Heavy concentrated fusion cores core." }
+            { id: 0, name: "Starter Pistol / ???? ?????", price: 0, dmg: 6, range: 220, fireCooldown: 300, desc: "A weak starting pistol with low range and low damage." },
+            { id: 1, name: "Tactical Pistol / ??????", price: 300, dmg: 14, range: 400, fireCooldown: 250, desc: "Medium damage, good range sidearm." },
+            { id: 2, name: "Assault Rifle / ????????", price: 650, dmg: 24, range: 650, fireCooldown: 200, desc: "Very good range, good damage weapon." },
+            { id: 3, name: "Submachine Gun / ??????", price: 1100, dmg: 32, range: 1000, fireCooldown: 100, desc: "High damage, long range, fires +50% faster." },
+            { id: 4, name: "Shotgun / ??????", price: 2500, dmg: 70, range: 350, fireCooldown: 400, desc: "Limited to player's view range, extremely high damage." },
+            { id: 5, name: "RPG Launcher / ????????", price: 6000, dmg: 100, range: 3000, fireCooldown: 800, desc: "Map-wide range explosive. Explodes on contact, damages up to 2 targets. Damage does not pierce solid walls." }
         ];
         const ARMORS_DATA = [
-            { id: 0, name: "Recruit Armor", price: 0, reqStage: 1, protection: 0, desc: "Standard composite issue fabric." },
-            { id: 1, name: "Kevlar Plating", price: 600, reqStage: 8, protection: 2, desc: "Absorbs 2 units damage from projectile." },
-            { id: 2, name: "Nano Aegis Shield", price: 2500, reqStage: 20, protection: 5, desc: "Blocks 5 units heavy impact kinetic energy." }
+            { id: 0, name: "Recruit Armor / ??? ????", price: 0, protection: 0, desc: "Standard composite issue fabric." },
+            { id: 1, name: "Kevlar Plating / ??? ????????", price: 600, protection: 3, desc: "Provides moderate protective absorbs 3 damage." },
+            { id: 2, name: "Nano Aegis Shield / ??? ????", price: 2500, protection: 7, desc: "High tech nano combat plating, blocks 7 damage." }
         ];
 
         const BOT_CHAT_PHRASES = [
@@ -512,11 +525,26 @@
 
         let clientBullets = [];
 
-        // Auth validation management
+        // Auth validation management with persistent sessions
+        let activeShopTab = "weapons";
+
+        function toggleAuthMode(isRegister) {
+            isRegisterMode = isRegister;
+            document.getElementById("auth-title").innerText = isRegisterMode ? "Register Call Sign / ????? ????" : "Tactical Souls Gate / ????? ????";
+            document.getElementById("btn-toggle-auth").innerText = isRegisterMode ? "Already verified? Return to gate / ????? ????" : "Request New Account Registration / ????? ???? ????";
+            
+            const nameInput = document.getElementById("auth-name");
+            if (isRegisterMode) {
+                nameInput.style.display = "block";
+                document.getElementById("btn-auth-submit").innerText = "REGISTER USER / ????? ????";
+            } else {
+                nameInput.style.display = "none";
+                document.getElementById("btn-auth-submit").innerText = "AUTHORIZE USER / ????? ????";
+            }
+        }
+
         document.getElementById("btn-toggle-auth").addEventListener("click", () => {
-            isRegisterMode = !isRegisterMode;
-            document.getElementById("auth-title").innerText = isRegisterMode ? "Register Call Sign" : "Tactical Souls Gate";
-            document.getElementById("btn-toggle-auth").innerText = isRegisterMode ? "Already verified? Return to gate" : "Request New Account Registration";
+            toggleAuthMode(!isRegisterMode);
         });
 
         document.getElementById("btn-auth-submit").addEventListener("click", () => {
@@ -525,7 +553,7 @@
             let pass = document.getElementById("auth-pass").value.trim();
             let errorDiv = document.getElementById("auth-error");
 
-            if(!email.includes("@") || name.length < 2 || pass.length < 4) {
+            if(!email.includes("@") || (isRegisterMode && name.length < 2) || pass.length < 4) {
                 errorDiv.innerText = "Error: Core clearance verification failure.";
                 return;
             }
@@ -536,14 +564,33 @@
                 if (existingData) { errorDiv.innerText = "Error: Call Sign already allocated!"; return; }
                 account = { email: email, pass: pass, nickname: name, gold: 500, maxStage: 1, weapon: 0, armor: 0, itemsOwned: ["w_0", "a_0"] };
                 localStorage.setItem(userKey, JSON.stringify(account));
+                localStorage.setItem("ts_active_user_email", email);
                 showMainMenu();
             } else {
                 if (!existingData) { errorDiv.innerText = "Error: Authentication code/call sign mismatch!"; return; }
                 let parsed = JSON.parse(existingData);
-                if (parsed.pass !== pass || parsed.nickname !== name) { errorDiv.innerText = "Error: Cryptography verification fail!"; return; }
+                if (parsed.pass !== pass) { errorDiv.innerText = "Error: Cryptography verification fail!"; return; }
                 account = parsed;
+                localStorage.setItem("ts_active_user_email", email);
                 showMainMenu();
             }
+        });
+
+        // Set up shop tab event listeners
+        document.getElementById("shop-tab-weapons").addEventListener("click", () => {
+            activeShopTab = "weapons";
+            document.getElementById("shop-tab-weapons").className = "btn-premium";
+            document.getElementById("shop-tab-armors").className = "btn-secondary";
+            document.getElementById("shop-weapons-section").style.display = "block";
+            document.getElementById("shop-armors-section").style.display = "none";
+        });
+
+        document.getElementById("shop-tab-armors").addEventListener("click", () => {
+            activeShopTab = "armors";
+            document.getElementById("shop-tab-weapons").className = "btn-secondary";
+            document.getElementById("shop-tab-armors").className = "btn-premium";
+            document.getElementById("shop-weapons-section").style.display = "none";
+            document.getElementById("shop-armors-section").style.display = "block";
         });
 
         function saveAccount() { if(account) localStorage.setItem("ts_user_" + account.email, JSON.stringify(account)); }
@@ -566,7 +613,12 @@
             document.getElementById("hud").style.display = "none";
         }
 
-        document.getElementById("btn-switch-account").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("auth-screen").style.display = "flex"; });
+        document.getElementById("btn-switch-account").addEventListener("click", () => { 
+            localStorage.removeItem("ts_active_user_email");
+            document.getElementById("main-menu").style.display = "none"; 
+            document.getElementById("auth-screen").style.display = "flex"; 
+            toggleAuthMode(false); // Reset to Login/Auth mode
+        });
         document.getElementById("btn-goto-play").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
         
         document.getElementById("btn-back-gate").addEventListener("click", () => { showMainMenu(); });
@@ -574,7 +626,13 @@
         document.getElementById("btn-back-campaign").addEventListener("click", () => { document.getElementById("campaign-screen").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
         document.getElementById("btn-gate-online").addEventListener("click", () => { document.getElementById("mode-gate").style.display = "none"; document.getElementById("online-lobby").style.display = "flex"; });
         document.getElementById("btn-back-lobby").addEventListener("click", () => { document.getElementById("online-lobby").style.display = "none"; document.getElementById("mode-gate").style.display = "flex"; });
-        document.getElementById("btn-goto-shop").addEventListener("click", () => { document.getElementById("main-menu").style.display = "none"; document.getElementById("shop-screen").style.display = "flex"; renderShop(); });
+        document.getElementById("btn-goto-shop").addEventListener("click", () => { 
+            document.getElementById("main-menu").style.display = "none"; 
+            document.getElementById("shop-screen").style.display = "flex"; 
+            // Default tab: weapons
+            document.getElementById("shop-tab-weapons").click();
+            renderShop(); 
+        });
         document.getElementById("btn-back-shop").addEventListener("click", () => { showMainMenu(); });
 
         function renderShop() {
@@ -582,12 +640,22 @@
             let wRack = document.getElementById("weapons-rack"); wRack.innerHTML = "";
             WEAPONS_DATA.forEach(w => {
                 let status = account.weapon === w.id ? "EQUIPPED" : (account.itemsOwned.includes("w_"+w.id) || w.price===0 ? "EQUIP" : "BUY " + w.price + "G");
-                wRack.innerHTML += `<div class="shop-item"><h4>${w.name}</h4><p>Damage: ${w.dmg}</p><button class="btn-premium" style="width:100%; padding:8px;" onclick="triggerBuy('w', ${w.id}, ${w.price})">${status}</button></div>`;
+                wRack.innerHTML += `<div class="shop-item">
+                    <h4>${w.name}</h4>
+                    <p style="margin:4px 0; font-size:12px; color:var(--primary);">Dmg: ${w.dmg} | Range: ${w.range}</p>
+                    <p style="font-size: 10px; color:#90a4ae; min-height: 28px; margin-bottom: 6px;">${w.desc}</p>
+                    <button class="btn-premium" style="width:100%; padding:8px; font-size:12px;" onclick="triggerBuy('w', ${w.id}, ${w.price})">${status}</button>
+                </div>`;
             });
             let aRack = document.getElementById("armors-rack"); aRack.innerHTML = "";
             ARMORS_DATA.forEach(a => {
                 let status = account.armor === a.id ? "EQUIPPED" : (account.itemsOwned.includes("a_"+a.id) || a.price===0 ? "EQUIP" : "BUY " + a.price + "G");
-                aRack.innerHTML += `<div class="shop-item"><h4>${a.name}</h4><p>Block: ${a.protection}</p><button class="btn-premium" style="width:100%; padding:8px;" onclick="triggerBuy('a', ${a.id}, ${a.price})">${status}</button></div>`;
+                aRack.innerHTML += `<div class="shop-item">
+                    <h4>${a.name}</h4>
+                    <p style="margin:4px 0; font-size:12px; color:var(--primary);">Protection: ${a.protection}</p>
+                    <p style="font-size: 10px; color:#90a4ae; min-height: 28px; margin-bottom: 6px;">${a.desc}</p>
+                    <button class="btn-premium" style="width:100%; padding:8px; font-size:12px;" onclick="triggerBuy('a', ${a.id}, ${a.price})">${status}</button>
+                </div>`;
             });
         }
 
@@ -995,7 +1063,9 @@
                             maxHp: sp.maxHp || 100,
                             nickname: sp.nickname,
                             legCycle: sp.legCycle,
-                            isMoving: sp.isMoving
+                            isMoving: sp.isMoving,
+                            weapon: sp.weapon || 0,
+                            armor: sp.armor || 0
                         };
                     } else {
                         otherPlayers[id].targetX = sp.x;
@@ -1005,6 +1075,8 @@
                         otherPlayers[id].nickname = sp.nickname;
                         otherPlayers[id].legCycle = sp.legCycle;
                         otherPlayers[id].isMoving = sp.isMoving;
+                        otherPlayers[id].weapon = sp.weapon || 0;
+                        otherPlayers[id].armor = sp.armor || 0;
                     }
                 }
             }
@@ -1084,7 +1156,10 @@
                         hp: 60 + (currentStage * 8), maxHp: 60 + (currentStage * 8),
                         type: i % 3 === 0 ? "elite" : "grunt",
                         shootCooldown: 0, angle: 0, 
-                        isMergedUnit: false, mergeFactor: 1
+                        isMergedUnit: false, mergeFactor: 1,
+                        legCycle: 0,
+                        weapon: i % 3 === 0 ? 2 : 1,
+                        armor: i % 3 === 0 ? 1 : 0
                     });
                 }
                 triggerAlertNotification("STAGE " + currentStage + " - ELIMINATE ALL BOTS");
@@ -1373,6 +1448,7 @@
                     if(distToPlayer < 950) {
                         let bx = bot.x + Math.cos(bot.angle) * bot.speed;
                         let by = bot.y + Math.sin(bot.angle) * bot.speed;
+                        bot.legCycle += 0.15; // Leg walking animation trigger
 
                         if(!checkCollision(bx, by, bot.r)) {
                             bot.x = bx; bot.y = by;
@@ -1592,27 +1668,27 @@
             if(currentMode === "offline") {
                 localBots.forEach(b => {
                     if(b.hp <= 0) return;
-                    drawCharacterSpriteFrame(b.x, b.y, b.angle, b.r, b.type === "HEXA-TITAN" ? "#ff1744" : "#ff9100", b.type.toUpperCase(), b.hp, b.maxHp, b.legCycle, b.isMergedUnit);
+                    drawCharacterSpriteFrame(b.x, b.y, b.angle, b.r, b.type === "HEXA-TITAN" ? "#ff1744" : "#ff9100", b.type.toUpperCase(), b.hp, b.maxHp, b.legCycle, b.isMergedUnit, b.weapon, b.armor);
                 });
             } else {
                 for(let id in otherPlayers) {
                     let op = otherPlayers[id];
                     if (op.hp > 0) {
-                        drawCharacterSpriteFrame(op.x, op.y, op.angle, op.r, "#f50057", op.nickname, op.hp, 100, op.legCycle, false);
+                        drawCharacterSpriteFrame(op.x, op.y, op.angle, op.r, "#f50057", op.nickname, op.hp, 100, op.legCycle, false, op.weapon, op.armor);
                     }
                 }
                 // Co-op Synchronized Server Bots
                 if (activeOnlineMode === "coop") {
                     serverBots.forEach(b => {
                         if (b.hp > 0) {
-                            drawCharacterSpriteFrame(b.x, b.y, b.angle, b.r, b.type === "elite" ? "#b388ff" : "#ff5252", b.type.toUpperCase(), b.hp, b.maxHp, 0, false);
+                            drawCharacterSpriteFrame(b.x, b.y, b.angle, b.r, b.type === "elite" ? "#b388ff" : "#ff5252", b.type.toUpperCase(), b.hp, b.maxHp, 0, false, b.weapon || 1, b.armor || 0);
                         }
                     });
                 }
             }
 
             if(player.hp > 0) {
-                drawCharacterSpriteFrame(player.x, player.y, player.angle, player.r, "#00e5ff", player.nickname, player.hp, player.maxHp, player.legCycle, false);
+                drawCharacterSpriteFrame(player.x, player.y, player.angle, player.r, "#00e5ff", player.nickname, player.hp, player.maxHp, player.legCycle, false, account.weapon, account.armor);
             }
 
             ctx.restore();
@@ -1637,42 +1713,156 @@
         function varColorFromDoor(isOpen) { return isOpen ? "#4caf50" : "#ff9100"; }
         function varColorFromWeapon(wep) { return wep === 2 ? "#00ffff" : "#ffd700"; }
 
-        // --- Custom Sprite Painting Engine ---
-        function drawCharacterSpriteFrame(cx, cy, angle, r, color, label, hp, maxHp, legCycle, isHexaTitan) {
+        // --- Custom High-Fidelity Sprite Painting Engine ---
+        function drawCharacterSpriteFrame(cx, cy, angle, r, color, label, hp, maxHp, legCycle, isHexaTitan, weaponId, armorId) {
             ctx.save();
             ctx.translate(cx, cy);
             ctx.rotate(angle);
 
-            let leftFootOffset = Math.sin(legCycle) * (r * 0.35);
-            let rightFootOffset = Math.cos(legCycle) * (r * 0.35);
+            // Default fallback if weapon/armor is undefined
+            let wep = weaponId !== undefined ? weaponId : 0;
+            let arm = armorId !== undefined ? armorId : 0;
 
-            ctx.fillStyle = "#151b22";
-            ctx.fillRect(r * 0.2 + leftFootOffset, -r * 0.9, r * 0.4, r * 0.35);
-            ctx.fillRect(r * 0.2 + rightFootOffset, r * 0.55, r * 0.4, r * 0.35);
+            // 1. Walking leg movement animation
+            let leftSwing = Math.sin(legCycle) * (r * 0.5);
+            let rightSwing = -Math.sin(legCycle) * (r * 0.5);
 
-            ctx.fillStyle = "#212c38";
-            ctx.beginPath(); ctx.arc(0, -r*0.6, r*0.4, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(0, r*0.6, r*0.4, 0, Math.PI*2); ctx.fill();
+            // Draw left leg & boot
+            ctx.fillStyle = "#1e293b"; // Pant color
+            ctx.fillRect(-r * 0.4 + leftSwing, -r * 0.7, r * 0.5, r * 0.35);
+            ctx.fillStyle = "#0f172a"; // Boot color
+            ctx.fillRect(-r * 0.5 + leftSwing, -r * 0.75, r * 0.25, r * 0.4);
 
-            ctx.fillStyle = color;
-            ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI*2); ctx.fill();
-            ctx.lineWidth = 3; ctx.strokeStyle = "#0d131a"; ctx.stroke();
+            // Draw right leg & boot
+            ctx.fillStyle = "#1e293b";
+            ctx.fillRect(-r * 0.4 + rightSwing, r * 0.35, r * 0.5, r * 0.35);
+            ctx.fillStyle = "#0f172a";
+            ctx.fillRect(-r * 0.5 + rightSwing, r * 0.35, r * 0.25, r * 0.4);
 
-            if(isHexaTitan) {
-                ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4;
-                ctx.strokeRect(-r*0.4, -r*0.4, r*0.8, r*0.8);
+            // 2. Torso (Human shoulders and jacket)
+            ctx.fillStyle = "#334155";
+            ctx.beginPath();
+            if (ctx.ellipse) {
+                ctx.ellipse(-r * 0.1, 0, r * 0.8, r * 1.05, 0, 0, Math.PI * 2);
+            } else {
+                ctx.arc(-r * 0.1, 0, r * 0.9, 0, Math.PI * 2);
+            }
+            ctx.fill();
+            ctx.strokeStyle = "#1e293b"; ctx.lineWidth = 2; ctx.stroke();
+
+            // 3. Armor Plating Styling
+            if (arm === 1) {
+                // Kevlar vest (heavy blue plates)
+                ctx.fillStyle = "#1e3a8a";
+                ctx.beginPath();
+                ctx.rect(-r * 0.5, -r * 0.65, r * 1.0, r * 1.3);
+                ctx.fill();
+                ctx.strokeStyle = "#3b82f6"; ctx.lineWidth = 1.5; ctx.stroke();
+            } else if (arm === 2) {
+                // Nano Aegis Shield (sleek hexagonal glowing armor)
+                ctx.fillStyle = "#0f172a";
+                ctx.beginPath();
+                ctx.rect(-r * 0.5, -r * 0.65, r * 1.0, r * 1.3);
+                ctx.fill();
+                ctx.strokeStyle = "#06b6d4"; ctx.lineWidth = 2.5; ctx.stroke();
+
+                // Glowing nano-energy chest core
+                ctx.fillStyle = "rgba(6, 182, 212, 0.7)";
+                ctx.beginPath(); ctx.arc(-r * 0.1, 0, r * 0.22, 0, Math.PI * 2); ctx.fill();
+            } else {
+                // Recruit Armor (simple standard tactical chest harness)
+                ctx.strokeStyle = "#475569"; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.moveTo(-r * 0.5, -r * 0.5); ctx.lineTo(r * 0.4, -r * 0.25); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(-r * 0.5, r * 0.5); ctx.lineTo(r * 0.4, r * 0.25); ctx.stroke();
             }
 
-            ctx.fillStyle = "#546e7a";
-            ctx.fillRect(r * 0.4, -5, r * 1.1, 10);
-            ctx.strokeStyle = "#212c38"; ctx.strokeRect(r * 0.4, -5, r * 1.1, 10);
+            // 4. Weapons Visual Styles
+            ctx.save();
+            if (wep === 0) {
+                // Starter Pistol: Simple compact sidearm barrel
+                ctx.fillStyle = "#64748b";
+                ctx.fillRect(r * 0.35, -3, r * 0.7, 6);
+                ctx.strokeStyle = "#334155"; ctx.lineWidth = 1.5; ctx.strokeRect(r * 0.35, -3, r * 0.7, 6);
+            } else if (wep === 1) {
+                // Tactical Pistol: Sleek dark pistol with tactical laser sight dot
+                ctx.fillStyle = "#1e293b";
+                ctx.fillRect(r * 0.35, -3.5, r * 0.9, 7);
+                ctx.fillStyle = "#22c55e"; // Laser dot
+                ctx.beginPath(); ctx.arc(r * 1.6, -3.5, 2, 0, Math.PI * 2); ctx.fill();
+            } else if (wep === 2) {
+                // Assault Rifle: Longer rifle barrel with wooden stock and tactical grip
+                ctx.fillStyle = "#78350f"; // Stock wood accent
+                ctx.fillRect(r * 0.2, -4, r * 0.6, 8);
+                ctx.fillStyle = "#0f172a"; // Barrel metal
+                ctx.fillRect(r * 0.8, -3, r * 1.1, 6);
+                // Flash hider
+                ctx.fillStyle = "#475569";
+                ctx.fillRect(r * 1.9, -4, 4, 8);
+            } else if (wep === 3) {
+                // Submachine Gun: Compact rapid-fire muzzle with muzzle brake
+                ctx.fillStyle = "#334155";
+                ctx.fillRect(r * 0.2, -4.5, r * 1.1, 9);
+                // Dual barrel structure
+                ctx.fillStyle = "#0d131a";
+                ctx.fillRect(r * 1.3, -4, r * 0.4, 3);
+                ctx.fillRect(r * 1.3, 1, r * 0.4, 3);
+            } else if (wep === 4) {
+                // Shotgun: Massive thick wood forearm and pump barrel
+                ctx.fillStyle = "#b45309"; // Brown forearm pump
+                ctx.fillRect(r * 0.3, -5.5, r * 0.7, 11);
+                ctx.fillStyle = "#1e293b"; // Massive double bore barrel
+                ctx.fillRect(r * 1.0, -4.5, r * 0.8, 9);
+            } else if (wep === 5) {
+                // RPG Launcher: Giant military green barrel with visible rocket tip
+                ctx.fillStyle = "#166534"; // Green bazooka tube
+                ctx.fillRect(r * 0.1, -7.5, r * 1.6, 15);
+                // Red/Gold Rocket nose cone sticking out
+                ctx.fillStyle = "#b91c1c";
+                ctx.beginPath();
+                ctx.moveTo(r * 1.7, -5);
+                ctx.lineTo(r * 2.15, 0);
+                ctx.lineTo(r * 1.7, 5);
+                ctx.closePath();
+                ctx.fill();
+            }
+            ctx.restore();
+
+            // 5. Hands gripping the weapon forward
+            ctx.fillStyle = "#e2e8f0"; // Skin tone / tactical gloves
+            ctx.beginPath(); ctx.arc(r * 0.4, -r * 0.45, 4, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(r * 0.55, r * 0.1, 4, 0, Math.PI * 2); ctx.fill();
+
+            // 6. Head & Helmet in center
+            ctx.fillStyle = color; // Colored helmet matching player faction/status
+            ctx.beginPath(); ctx.arc(-r * 0.1, 0, r * 0.52, 0, Math.PI * 2); ctx.fill();
+            ctx.strokeStyle = "#0f172a"; ctx.lineWidth = 2; ctx.stroke();
+
+            // Dark tactical combat visor facing forward (+X direction)
+            ctx.fillStyle = "#1e293b";
+            ctx.fillRect(r * 0.15, -r * 0.28, r * 0.15, r * 0.56);
+            ctx.fillStyle = color; // Glowing neon visor center indicator line
+            ctx.fillRect(r * 0.22, -r * 0.18, 2, r * 0.36);
+
+            // 7. Boss Hexa-Titan outer visual effects
+            if (isHexaTitan) {
+                ctx.strokeStyle = "rgba(255, 23, 68, 0.6)"; ctx.lineWidth = 4;
+                ctx.strokeRect(-r * 0.8, -r * 0.8, r * 1.6, r * 1.6);
+                
+                // Outer rotating shield ring
+                ctx.strokeStyle = "rgba(255, 23, 68, 0.3)"; ctx.lineWidth = 1.5;
+                ctx.beginPath(); ctx.arc(0, 0, r * 1.45, 0, Math.PI * 2); ctx.stroke();
+            }
 
             ctx.restore();
 
+            // 8. Overhead Text, Labels and Health Bar displays
             ctx.fillStyle = "#ffffff"; ctx.font = "bold 13px 'Space Grotesk'";
             ctx.shadowBlur = 4; ctx.shadowColor = "black";
-            ctx.fillText(label, cx - (r * 1.2), cy - r - 15);
+            ctx.textAlign = "center";
+            ctx.fillText(label, cx, cy - r - 15);
+            ctx.textAlign = "left"; // Restore alignments
             
+            // Health Bar outline
             ctx.fillStyle = "rgba(0,0,0,0.65)"; ctx.fillRect(cx - 25, cy - r - 8, 50, 5);
             let hpPercentage = Math.max(0, hp / maxHp);
             ctx.fillStyle = hpPercentage > 0.4 ? "#4caf50" : "#f44336";
@@ -1801,11 +1991,22 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        // Auto initialization call sign mapping
-        if(localStorage.getItem("ts_user_player1@gmail.com")) {
+        // Auto initialization call sign mapping with persistent sessions
+        let savedActiveEmail = localStorage.getItem("ts_active_user_email");
+        if (savedActiveEmail) {
+            let existingData = localStorage.getItem("ts_user_" + savedActiveEmail);
+            if (existingData) {
+                account = JSON.parse(existingData);
+                document.getElementById("auth-screen").style.display = "none";
+                showMainMenu();
+            } else {
+                toggleAuthMode(false);
+            }
+        } else {
             document.getElementById("auth-email").value = "player1@gmail.com";
             document.getElementById("auth-name").value = "Vanguard";
             document.getElementById("auth-pass").value = "123456";
+            toggleAuthMode(false); // Default to login mode on startup
         }
     </script>
 </body>

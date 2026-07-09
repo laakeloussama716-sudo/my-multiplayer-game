@@ -293,6 +293,114 @@ io.on("connection", (socket) => {
     }
   });
 
+  // Geometry helpers for RPG Explosions and obstacle line-of-sight checking
+  function lineIntersectsObstacle(x1, y1, x2, y2) {
+    for (let obs of serverObstacles) {
+      if (lineIntersectsRect(x1, y1, x2, y2, obs.x, obs.y, obs.w, obs.h)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function lineIntersectsRect(x1, y1, x2, y2, rx, ry, rw, rh) {
+    let minX = Math.min(x1, x2);
+    let maxX = Math.max(x1, x2);
+    let minY = Math.min(y1, y2);
+    let maxY = Math.max(y1, y2);
+    
+    if (maxX < rx || minX > rx + rw || maxY < ry || minY > ry + rh) {
+      return false;
+    }
+    
+    if (x1 >= rx && x1 <= rx + rw && y1 >= ry && y1 <= ry + rh) return true;
+    if (x2 >= rx && x2 <= rx + rw && y2 >= ry && y2 <= ry + rh) return true;
+    
+    if (lineSegmentsIntersect(x1, y1, x2, y2, rx, ry, rx + rw, ry)) return true;
+    if (lineSegmentsIntersect(x1, y1, x2, y2, rx, ry + rh, rx + rw, ry + rh)) return true;
+    if (lineSegmentsIntersect(x1, y1, x2, y2, rx, ry, rx, ry + rh)) return true;
+    if (lineSegmentsIntersect(x1, y1, x2, y2, rx + rw, ry, rx + rw, ry + rh)) return true;
+    
+    return false;
+  }
+
+  function lineSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+    let det = (x2 - x1) * (y4 - y3) - (y2 - y1) * (x4 - x3);
+    if (det === 0) return false;
+    
+    let lambda = ((y4 - y3) * (x4 - x1) + (x3 - x4) * (y4 - y1)) / det;
+    let gamma = ((y1 - y2) * (x4 - x1) + (x2 - x1) * (y4 - y1)) / det;
+    
+    return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+  }
+
+  function triggerServerRPGExplosion(room, ex, ey, ownerId) {
+    let targets = [];
+    
+    // Players
+    Object.values(room.players).forEach(p => {
+      if (p.hp > 0 && p.id !== ownerId) {
+        let dist = Math.hypot(p.x - ex, p.y - ey);
+        if (dist < 120 + p.r) {
+          targets.push({ type: "player", obj: p, dist: dist });
+        }
+      }
+    });
+    
+    // Bots
+    room.bots.forEach(bot => {
+      if (bot.hp > 0 && bot.id !== ownerId) {
+        let dist = Math.hypot(bot.x - ex, bot.y - ey);
+        if (dist < 120 + bot.r) {
+          targets.push({ type: "bot", obj: bot, dist: dist });
+        }
+      }
+    });
+    
+    targets.sort((a, b) => a.dist - b.dist);
+    
+    let hits = 0;
+    for (let t of targets) {
+      if (hits >= 2) break;
+      
+      // Line of sight check to block splash through walls
+      if (!lineIntersectsObstacle(ex, ey, t.obj.x, t.obj.y)) {
+        let baseDamage = 100;
+        if (t.type === "player") {
+          const armorsPlat = [0, 3, 7];
+          const protection = armorsPlat[t.obj.armor] || 0;
+          let finalDmg = Math.max(10, baseDamage - protection);
+          t.obj.hp = Math.max(0, t.obj.hp - finalDmg);
+          
+          if (t.obj.hp <= 0) {
+            const killer = room.players[ownerId];
+            if (killer) {
+              const bonusGold = room.mode === "1v1" ? 140 : 80;
+              killer.gold += bonusGold;
+              io.to(room.id).emit("receiveRoomChatMessage", {
+                senderId: "system",
+                nickname: "HQ SYSTEM",
+                text: `${killer.nickname} eliminated ${t.obj.nickname} with RPG! (+${bonusGold} Gold reward)`
+              });
+            }
+          }
+        } else {
+          t.obj.hp = Math.max(0, t.obj.hp - baseDamage);
+          if (t.obj.hp <= 0) {
+            const idx = room.bots.findIndex(b => b.id === t.obj.id);
+            if (idx !== -1) room.bots.splice(idx, 1);
+            const killer = room.players[ownerId];
+            if (killer) {
+              const goldReward = t.obj.type === "elite" ? 50 : 25;
+              killer.gold += goldReward;
+            }
+          }
+        }
+        hits++;
+      }
+    }
+  }
+
   socket.on("fireBullet", (bulletData) => {
     const rId = socket.roomId;
     if (!rId || !rooms[rId]) return;
@@ -300,10 +408,25 @@ io.on("connection", (socket) => {
     const room = rooms[rId];
     const p = room.players[socket.id];
     if (p && p.hp > 0) {
-      // Weapon damage configs matching core metrics
-      const dmgMap = [10, 22, 48];
-      const damage = dmgMap[p.weapon] || 10;
-      const color = p.weapon === 2 ? "#00ffff" : "#ffd700";
+      // Weapon damage configs: starter, pistol, rifle, smg, shotgun, rpg
+      const dmgMap = [6, 14, 24, 32, 70, 100];
+      const rangeMap = [220, 400, 650, 1000, 350, 3000];
+      
+      let damage = dmgMap[p.weapon] || 6;
+      let rangeLeft = rangeMap[p.weapon] || 250;
+      let r = 5;
+      let color = "#ffd700";
+      
+      if (p.weapon === 2) color = "#00ffff"; // Rifle blue/cyan
+      
+      if (p.weapon === 4) { // Shotgun pellet
+        damage = Math.floor(damage / 3);
+        r = 3;
+        color = "#e67e22";
+      } else if (p.weapon === 5) { // RPG rocket
+        r = 8;
+        color = "#f1c40f";
+      }
 
       room.bullets.push({
         id: bulletData.id,
@@ -313,8 +436,10 @@ io.on("connection", (socket) => {
         vx: Math.cos(bulletData.angle) * 15,
         vy: Math.sin(bulletData.angle) * 15,
         dmg: damage,
-        r: 5,
-        color: color
+        r: r,
+        color: color,
+        weaponId: p.weapon,
+        rangeLeft: rangeLeft
       });
     }
   });
@@ -397,8 +522,20 @@ setInterval(() => {
       b.x += b.vx;
       b.y += b.vy;
 
+      // Projectile range decay check
+      if (b.rangeLeft !== undefined) {
+        b.rangeLeft -= Math.hypot(b.vx, b.vy);
+        if (b.rangeLeft <= 0) {
+          room.bullets.splice(i, 1);
+          continue;
+        }
+      }
+
       // Obstacle walls/doors crash checks
       if (checkCollision(b.x, b.y, b.r, room.doorsState)) {
+        if (b.weaponId === 5) {
+          triggerServerRPGExplosion(room, b.x, b.y, b.owner);
+        }
         room.bullets.splice(i, 1);
         continue;
       }
@@ -409,25 +546,29 @@ setInterval(() => {
         if (p.id !== b.owner && p.hp > 0) {
           const dist = Math.hypot(p.x - b.x, p.y - b.y);
           if (dist < p.r + b.r) {
-            // Apply armor protection reduction
-            const armorsPlat = [0, 2, 5];
-            const protection = armorsPlat[p.armor] || 0;
-            const finalDmg = Math.max(2, b.dmg - protection);
+            if (b.weaponId === 5) {
+              triggerServerRPGExplosion(room, b.x, b.y, b.owner);
+            } else {
+              // Apply armor protection reduction: Recruit (0), Kevlar (3), Nano Aegis (7)
+              const armorsPlat = [0, 3, 7];
+              const protection = armorsPlat[p.armor] || 0;
+              const finalDmg = Math.max(2, b.dmg - protection);
 
-            p.hp = Math.max(0, p.hp - finalDmg);
+              p.hp = Math.max(0, p.hp - finalDmg);
 
-            // Handle player death
-            if (p.hp <= 0) {
-              const killer = room.players[b.owner];
-              if (killer) {
-                // Award gold bounty immediately
-                const bonusGold = room.mode === "1v1" ? 140 : 80;
-                killer.gold += bonusGold;
-                io.to(room.id).emit("receiveRoomChatMessage", {
-                  senderId: "system",
-                  nickname: "HQ SYSTEM",
-                  text: `${killer.nickname} eliminated ${p.nickname}! (+${bonusGold} Gold reward)`
-                });
+              // Handle player death
+              if (p.hp <= 0) {
+                const killer = room.players[b.owner];
+                if (killer) {
+                  // Award gold bounty immediately
+                  const bonusGold = room.mode === "1v1" ? 140 : 80;
+                  killer.gold += bonusGold;
+                  io.to(room.id).emit("receiveRoomChatMessage", {
+                    senderId: "system",
+                    nickname: "HQ SYSTEM",
+                    text: `${killer.nickname} eliminated ${p.nickname}! (+${bonusGold} Gold reward)`
+                  });
+                }
               }
             }
 
@@ -447,19 +588,22 @@ setInterval(() => {
           if (bot.hp > 0 && b.owner !== bot.id) {
             const dist = Math.hypot(bot.x - b.x, bot.y - b.y);
             if (dist < bot.r + b.r) {
-              bot.hp -= b.dmg;
-              room.bullets.splice(i, 1);
-              bulletRemoved = true;
-
-              if (bot.hp <= 0) {
-                room.bots.splice(j, 1);
-                // Award bot bounty to shooter
-                const killer = room.players[b.owner];
-                if (killer) {
-                  const goldReward = bot.type === "elite" ? 50 : 25;
-                  killer.gold += goldReward;
+              if (b.weaponId === 5) {
+                triggerServerRPGExplosion(room, b.x, b.y, b.owner);
+              } else {
+                bot.hp -= b.dmg;
+                if (bot.hp <= 0) {
+                  room.bots.splice(j, 1);
+                  // Award bot bounty to shooter
+                  const killer = room.players[b.owner];
+                  if (killer) {
+                    const goldReward = bot.type === "elite" ? 50 : 25;
+                    killer.gold += goldReward;
+                  }
                 }
               }
+              room.bullets.splice(i, 1);
+              bulletRemoved = true;
               break;
             }
           }
