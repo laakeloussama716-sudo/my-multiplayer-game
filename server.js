@@ -241,6 +241,117 @@ function checkAndStartMatches(queue, mode) {
   }
 }
 
+// Geometry helpers for RPG Explosions and obstacle line-of-sight checking
+function lineIntersectsObstacle(x1, y1, x2, y2) {
+  for (let obs of serverObstacles) {
+    if (lineIntersectsRect(x1, y1, x2, y2, obs.x, obs.y, obs.w, obs.h)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function lineIntersectsRect(x1, y1, x2, y2, rx, ry, rw, rh) {
+  let minX = Math.min(x1, x2);
+  let maxX = Math.max(x1, x2);
+  let minY = Math.min(y1, y2);
+  let maxY = Math.max(y1, y2);
+  
+  if (maxX < rx || minX > rx + rw || maxY < ry || minY > ry + rh) {
+    return false;
+  }
+  
+  if (x1 >= rx && x1 <= rx + rw && y1 >= ry && y1 <= ry + rh) return true;
+  if (x2 >= rx && x2 <= rx + rw && y2 >= ry && y2 <= ry + rh) return true;
+  
+  if (lineSegmentsIntersect(x1, y1, x2, y2, rx, ry, rx + rw, ry)) return true;
+  if (lineSegmentsIntersect(x1, y1, x2, y2, rx, ry + rh, rx + rw, ry + rh)) return true;
+  if (lineSegmentsIntersect(x1, y1, x2, y2, rx, ry, rx, ry + rh)) return true;
+  if (lineSegmentsIntersect(x1, y1, x2, y2, rx + rw, ry, rx + rw, ry + rh)) return true;
+  
+  return false;
+}
+
+function lineSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
+  let det = (x2 - x1) * (y4 - y3) - (y2 - y1) * (x4 - x3);
+  if (det === 0) return false;
+  
+  let lambda = ((y4 - y3) * (x4 - x1) + (x3 - x4) * (y4 - y1)) / det;
+  let gamma = ((y1 - y2) * (x4 - x1) + (x2 - x1) * (y4 - y1)) / det;
+  
+  return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
+}
+
+function triggerServerRPGExplosion(room, ex, ey, ownerId) {
+  // Notify all clients in the room to play visual/sound explosion effects
+  io.to(room.id).emit("rpgExplode", { x: ex, y: ey });
+
+  let targets = [];
+  
+  // Players
+  Object.values(room.players).forEach(p => {
+    if (p.hp > 0 && p.id !== ownerId) {
+      let dist = Math.hypot(p.x - ex, p.y - ey);
+      if (dist < 120 + p.r) {
+        targets.push({ type: "player", obj: p, dist: dist });
+      }
+    }
+  });
+  
+  // Bots
+  room.bots.forEach(bot => {
+    if (bot.hp > 0 && bot.id !== ownerId) {
+      let dist = Math.hypot(bot.x - ex, bot.y - ey);
+      if (dist < 120 + bot.r) {
+        targets.push({ type: "bot", obj: bot, dist: dist });
+      }
+    }
+  });
+  
+  targets.sort((a, b) => a.dist - b.dist);
+  
+  let hits = 0;
+  for (let t of targets) {
+    if (hits >= 2) break;
+    
+    // Line of sight check to block splash through walls
+    if (!lineIntersectsObstacle(ex, ey, t.obj.x, t.obj.y)) {
+      let baseDamage = 100;
+      if (t.type === "player") {
+        const armorsPlat = [0, 3, 7];
+        const protection = armorsPlat[t.obj.armor] || 0;
+        let finalDmg = Math.max(10, baseDamage - protection);
+        t.obj.hp = Math.max(0, t.obj.hp - finalDmg);
+        
+        if (t.obj.hp <= 0) {
+          const killer = room.players[ownerId];
+          if (killer) {
+            const bonusGold = room.mode === "1v1" ? 140 : 80;
+            killer.gold += bonusGold;
+            io.to(room.id).emit("receiveRoomChatMessage", {
+              senderId: "system",
+              nickname: "HQ SYSTEM",
+              text: `${killer.nickname} eliminated ${t.obj.nickname} with RPG! (+${bonusGold} Gold reward)`
+            });
+          }
+        }
+      } else {
+        t.obj.hp = Math.max(0, t.obj.hp - baseDamage);
+        if (t.obj.hp <= 0) {
+          const idx = room.bots.findIndex(b => b.id === t.obj.id);
+          if (idx !== -1) room.bots.splice(idx, 1);
+          const killer = room.players[ownerId];
+          if (killer) {
+            const goldReward = t.obj.type === "elite" ? 50 : 25;
+            killer.gold += goldReward;
+          }
+        }
+      }
+      hits++;
+    }
+  }
+}
+
 io.on("connection", (socket) => {
   console.log(`Soldier connected: ${socket.id}`);
 
@@ -292,114 +403,6 @@ io.on("connection", (socket) => {
       if (data.armor !== undefined) p.armor = data.armor;
     }
   });
-
-  // Geometry helpers for RPG Explosions and obstacle line-of-sight checking
-  function lineIntersectsObstacle(x1, y1, x2, y2) {
-    for (let obs of serverObstacles) {
-      if (lineIntersectsRect(x1, y1, x2, y2, obs.x, obs.y, obs.w, obs.h)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  function lineIntersectsRect(x1, y1, x2, y2, rx, ry, rw, rh) {
-    let minX = Math.min(x1, x2);
-    let maxX = Math.max(x1, x2);
-    let minY = Math.min(y1, y2);
-    let maxY = Math.max(y1, y2);
-    
-    if (maxX < rx || minX > rx + rw || maxY < ry || minY > ry + rh) {
-      return false;
-    }
-    
-    if (x1 >= rx && x1 <= rx + rw && y1 >= ry && y1 <= ry + rh) return true;
-    if (x2 >= rx && x2 <= rx + rw && y2 >= ry && y2 <= ry + rh) return true;
-    
-    if (lineSegmentsIntersect(x1, y1, x2, y2, rx, ry, rx + rw, ry)) return true;
-    if (lineSegmentsIntersect(x1, y1, x2, y2, rx, ry + rh, rx + rw, ry + rh)) return true;
-    if (lineSegmentsIntersect(x1, y1, x2, y2, rx, ry, rx, ry + rh)) return true;
-    if (lineSegmentsIntersect(x1, y1, x2, y2, rx + rw, ry, rx + rw, ry + rh)) return true;
-    
-    return false;
-  }
-
-  function lineSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
-    let det = (x2 - x1) * (y4 - y3) - (y2 - y1) * (x4 - x3);
-    if (det === 0) return false;
-    
-    let lambda = ((y4 - y3) * (x4 - x1) + (x3 - x4) * (y4 - y1)) / det;
-    let gamma = ((y1 - y2) * (x4 - x1) + (x2 - x1) * (y4 - y1)) / det;
-    
-    return (0 < lambda && lambda < 1) && (0 < gamma && gamma < 1);
-  }
-
-  function triggerServerRPGExplosion(room, ex, ey, ownerId) {
-    let targets = [];
-    
-    // Players
-    Object.values(room.players).forEach(p => {
-      if (p.hp > 0 && p.id !== ownerId) {
-        let dist = Math.hypot(p.x - ex, p.y - ey);
-        if (dist < 120 + p.r) {
-          targets.push({ type: "player", obj: p, dist: dist });
-        }
-      }
-    });
-    
-    // Bots
-    room.bots.forEach(bot => {
-      if (bot.hp > 0 && bot.id !== ownerId) {
-        let dist = Math.hypot(bot.x - ex, bot.y - ey);
-        if (dist < 120 + bot.r) {
-          targets.push({ type: "bot", obj: bot, dist: dist });
-        }
-      }
-    });
-    
-    targets.sort((a, b) => a.dist - b.dist);
-    
-    let hits = 0;
-    for (let t of targets) {
-      if (hits >= 2) break;
-      
-      // Line of sight check to block splash through walls
-      if (!lineIntersectsObstacle(ex, ey, t.obj.x, t.obj.y)) {
-        let baseDamage = 100;
-        if (t.type === "player") {
-          const armorsPlat = [0, 3, 7];
-          const protection = armorsPlat[t.obj.armor] || 0;
-          let finalDmg = Math.max(10, baseDamage - protection);
-          t.obj.hp = Math.max(0, t.obj.hp - finalDmg);
-          
-          if (t.obj.hp <= 0) {
-            const killer = room.players[ownerId];
-            if (killer) {
-              const bonusGold = room.mode === "1v1" ? 140 : 80;
-              killer.gold += bonusGold;
-              io.to(room.id).emit("receiveRoomChatMessage", {
-                senderId: "system",
-                nickname: "HQ SYSTEM",
-                text: `${killer.nickname} eliminated ${t.obj.nickname} with RPG! (+${bonusGold} Gold reward)`
-              });
-            }
-          }
-        } else {
-          t.obj.hp = Math.max(0, t.obj.hp - baseDamage);
-          if (t.obj.hp <= 0) {
-            const idx = room.bots.findIndex(b => b.id === t.obj.id);
-            if (idx !== -1) room.bots.splice(idx, 1);
-            const killer = room.players[ownerId];
-            if (killer) {
-              const goldReward = t.obj.type === "elite" ? 50 : 25;
-              killer.gold += goldReward;
-            }
-          }
-        }
-        hits++;
-      }
-    }
-  }
 
   socket.on("fireBullet", (bulletData) => {
     const rId = socket.roomId;

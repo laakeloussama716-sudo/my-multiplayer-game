@@ -520,10 +520,71 @@
 
                 osc.start(now);
                 osc.stop(now + 0.25);
+            },
+            playExplosion() {
+                this.init();
+                if (!this.ctx) return;
+                const ctx = this.ctx;
+                const now = ctx.currentTime;
+                
+                // Low-frequency thump
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = "sawtooth";
+                osc.frequency.setValueAtTime(140, now);
+                osc.frequency.exponentialRampToValueAtTime(10, now + 0.6);
+                gain.gain.setValueAtTime(0.5, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.6);
+                osc.start(now);
+                osc.stop(now + 0.6);
+
+                // Noise burst for explosion crackle
+                try {
+                    const bufferSize = ctx.sampleRate * 0.5; // 0.5s duration
+                    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+                    const data = buffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        data[i] = Math.random() * 2 - 1;
+                    }
+                    const noiseNode = ctx.createBufferSource();
+                    noiseNode.buffer = buffer;
+                    
+                    const noiseFilter = ctx.createBiquadFilter();
+                    noiseFilter.type = "lowpass";
+                    noiseFilter.frequency.setValueAtTime(1000, now);
+                    noiseFilter.frequency.exponentialRampToValueAtTime(200, now + 0.5);
+                    
+                    const noiseGain = ctx.createGain();
+                    noiseGain.gain.setValueAtTime(0.3, now);
+                    noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                    
+                    noiseNode.connect(noiseFilter);
+                    noiseFilter.connect(noiseGain);
+                    noiseGain.connect(ctx.destination);
+                    
+                    noiseNode.start(now);
+                    noiseNode.stop(now + 0.5);
+                } catch(e) {
+                    console.error("Procedural noise generation skipped:", e);
+                }
             }
         };
 
         let clientBullets = [];
+        let visualExplosions = [];
+
+        function triggerVisualExplosion(ex, ey) {
+            visualExplosions.push({
+                x: ex,
+                y: ey,
+                timer: 40,
+                maxTimer: 40,
+                maxRadius: 130
+            });
+            AudioEngine.playExplosion();
+        }
 
         // Auth validation management with persistent sessions
         let activeShopTab = "weapons";
@@ -995,6 +1056,10 @@
             }
         });
 
+        socket.on("rpgExplode", (data) => {
+            triggerVisualExplosion(data.x, data.y);
+        });
+
         // Fully authoritative server state processing with correct rendering loops
         socket.on("gameUpdate", (state) => {
             if(!gameActive || currentMode !== "online") return;
@@ -1041,7 +1106,10 @@
             }
 
             for(let id in state.players) {
-                if(id === player.id) {
+                if(id === socket.id || id === player.id) {
+                    if (!player.id && socket.id) {
+                        player.id = socket.id;
+                    }
                     if (state.players[id].hp < player.hp) {
                         AudioEngine.playHit();
                     }
@@ -1328,12 +1396,26 @@
             let muzzleY = player.y + Math.sin(targetAngle) * (player.r + 12);
 
             if(currentMode === "offline") {
+                let r = 5;
+                let color = "#ffd700";
+                let isRPG = false;
+                if (account.weapon === 2) color = "#00ffff"; // Rifle
+                else if (account.weapon === 4) { r = 3; color = "#e67e22"; } // Shotgun pellet
+                else if (account.weapon === 5) { r = 8; color = "#f1c40f"; isRPG = true; } // RPG
+                
                 bullets.push({
                     owner: player.id, x: muzzleX, y: muzzleY,
                     vx: Math.cos(targetAngle) * 15, vy: Math.sin(targetAngle) * 15,
-                    dmg: activeWep.dmg, r: 5, color: account.weapon === 2 ? "#00ffff" : "#ffd700"
+                    dmg: activeWep.dmg, r: r, color: color, isRPG: isRPG
                 });
             } else {
+                let r = 5;
+                let color = "#ffd700";
+                let isRPG = false;
+                if (account.weapon === 2) color = "#00ffff"; // Rifle
+                else if (account.weapon === 4) { r = 3; color = "#e67e22"; } // Shotgun pellet
+                else if (account.weapon === 5) { r = 8; color = "#f1c40f"; isRPG = true; } // RPG
+
                 let bId = "bullet_" + socket.id + "_" + Date.now() + "_" + Math.floor(Math.random() * 1000);
                 clientBullets.push({
                     id: bId,
@@ -1343,8 +1425,9 @@
                     vx: Math.cos(targetAngle) * 15,
                     vy: Math.sin(targetAngle) * 15,
                     dmg: activeWep.dmg,
-                    r: 5,
-                    color: account.weapon === 2 ? "#00ffff" : "#ffd700"
+                    r: r,
+                    color: color,
+                    isRPG: isRPG
                 });
                 socket.emit("fireBullet", { id: bId, x: muzzleX, y: muzzleY, angle: targetAngle });
             }
@@ -1408,33 +1491,77 @@
                 bullets.forEach((b, index) => {
                     b.x += b.vx; b.y += b.vy;
                     
+                    let bulletRemoved = false;
                     if(checkCollision(b.x, b.y, b.r)) {
-                        bullets.splice(index, 1); return;
+                        if (b.isRPG) {
+                            triggerVisualExplosion(b.x, b.y);
+                            localBots.forEach(bot => {
+                                if (bot.hp > 0) {
+                                    let d = Math.hypot(bot.x - b.x, bot.y - b.y);
+                                    if (d < 120 + bot.r) {
+                                        bot.hp -= 100;
+                                        if (bot.hp <= 0) {
+                                            localKills++;
+                                            let bonus = bot.isMergedUnit ? 180 : 30;
+                                            matchGold += bonus;
+                                            pushSystemChatMessage(`Hostile eliminated by RPG blast! +${bonus} Gold earned.`);
+                                        }
+                                    }
+                                }
+                            });
+                            checkMatchVictoryCondition();
+                        }
+                        bullets.splice(index, 1);
+                        bulletRemoved = true;
                     }
 
-                    if(b.owner === player.id) {
-                        localBots.forEach(bot => {
-                            if(bot.hp > 0 && Math.hypot(b.x - bot.x, b.y - bot.y) < bot.r + b.r) {
-                                bot.hp -= b.dmg;
-                                AudioEngine.playHit();
-                                bullets.splice(index, 1);
-                                if(bot.hp <= 0) {
-                                    localKills++;
-                                    let bonus = bot.isMergedUnit ? 180 : 30;
-                                    matchGold += bonus;
-                                    pushSystemChatMessage(`Hostile eliminated! +${bonus} Gold earned.`);
+                    if (!bulletRemoved) {
+                        if(b.owner === player.id) {
+                            for (let i = localBots.length - 1; i >= 0; i--) {
+                                let bot = localBots[i];
+                                if(bot.hp > 0 && Math.hypot(b.x - bot.x, b.y - bot.y) < bot.r + b.r) {
+                                    if (b.isRPG) {
+                                        triggerVisualExplosion(b.x, b.y);
+                                        localBots.forEach(b2 => {
+                                            if (b2.hp > 0) {
+                                                let d = Math.hypot(b2.x - b.x, b2.y - b.y);
+                                                if (d < 120 + b2.r) {
+                                                    b2.hp -= 100;
+                                                    if (b2.hp <= 0) {
+                                                        localKills++;
+                                                        let bonus = b2.isMergedUnit ? 180 : 30;
+                                                        matchGold += bonus;
+                                                        pushSystemChatMessage(`Hostile eliminated by RPG blast! +${bonus} Gold earned.`);
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    } else {
+                                        bot.hp -= b.dmg;
+                                    }
+                                    AudioEngine.playHit();
+                                    bullets.splice(index, 1);
+                                    bulletRemoved = true;
                                     checkMatchVictoryCondition();
+                                    break;
                                 }
                             }
-                        });
-                    } else {
-                        if(Math.hypot(b.x - player.x, b.y - player.y) < player.r + b.r) {
-                            let prot = ARMORS_DATA[account.armor].protection;
-                            let finalDmg = Math.max(2, b.dmg - prot);
-                            player.hp -= finalDmg;
-                            AudioEngine.playHit();
-                            bullets.splice(index, 1);
-                            if(player.hp <= 0) triggerDefeatState();
+                        } else {
+                            if(Math.hypot(b.x - player.x, b.y - player.y) < player.r + b.r) {
+                                if (b.isRPG) {
+                                    triggerVisualExplosion(b.x, b.y);
+                                    let prot = ARMORS_DATA[account.armor].protection;
+                                    let finalDmg = Math.max(10, 100 - prot);
+                                    player.hp -= finalDmg;
+                                } else {
+                                    let prot = ARMORS_DATA[account.armor].protection;
+                                    let finalDmg = Math.max(2, b.dmg - prot);
+                                    player.hp -= finalDmg;
+                                }
+                                AudioEngine.playHit();
+                                bullets.splice(index, 1);
+                                if(player.hp <= 0) triggerDefeatState();
+                            }
                         }
                     }
                 });
@@ -1689,6 +1816,29 @@
 
             if(player.hp > 0) {
                 drawCharacterSpriteFrame(player.x, player.y, player.angle, player.r, "#00e5ff", player.nickname, player.hp, player.maxHp, player.legCycle, false, account.weapon, account.armor);
+            }
+
+            // Update and paint visual explosions
+            for (let i = visualExplosions.length - 1; i >= 0; i--) {
+                let ex = visualExplosions[i];
+                ex.timer -= 1.5;
+                if (ex.timer <= 0) {
+                    visualExplosions.splice(i, 1);
+                    continue;
+                }
+                
+                let progress = 1 - (ex.timer / ex.maxTimer);
+                let currentR = ex.maxRadius * progress;
+                
+                // Draw multiple layered rings for depth
+                ctx.fillStyle = "rgba(255, 87, 34, " + (0.42 * (1 - progress)) + ")";
+                ctx.beginPath(); ctx.arc(ex.x, ex.y, currentR, 0, Math.PI * 2); ctx.fill();
+                
+                ctx.fillStyle = "rgba(255, 193, 7, " + (0.65 * (1 - progress)) + ")";
+                ctx.beginPath(); ctx.arc(ex.x, ex.y, currentR * 0.7, 0, Math.PI * 2); ctx.fill();
+                
+                ctx.fillStyle = "rgba(255, 255, 255, " + (0.85 * (1 - progress)) + ")";
+                ctx.beginPath(); ctx.arc(ex.x, ex.y, currentR * 0.35, 0, Math.PI * 2); ctx.fill();
             }
 
             ctx.restore();
