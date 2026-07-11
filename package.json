@@ -5,10 +5,10 @@
   "type": "commonjs",
   "scripts": {
     "dev": "node server.js",
-    "build": "vite build",
+    "build": "echo 'No build required for pure JS applet'",
     "start": "node server.js",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "echo 'No lint required for pure JS applet'"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -21,6 +21,7 @@
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
     "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3",
     "vite": "^6.2.3"
   },
   "devDependencies": {

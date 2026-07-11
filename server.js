@@ -172,7 +172,8 @@ function checkAndStartMatches(queue, mode) {
           legCycle: 0,
           gold: 0,
           weapon: 0,
-          armor: 0
+          armor: 0,
+          diedDuringMatch: false
         },
         [p2.socketId]: {
           id: p2.socketId,
@@ -188,17 +189,19 @@ function checkAndStartMatches(queue, mode) {
           legCycle: 0,
           gold: 0,
           weapon: 0,
-          armor: 0
+          armor: 0,
+          diedDuringMatch: false
         }
       },
       bullets: [],
       doorsState: initialDoors,
-      bots: []
+      bots: [],
+      roomFinished: false
     };
 
-    // If Co-op mode, pre-spawn server hostile bots
+    // Spawn server hostile bots in Co-op mode
     if (mode === "coop") {
-      const botCount = 6;
+      const botCount = 8; // Intense alliance vs bots combat
       for (let i = 0; i < botCount; i++) {
         const bSpawn = getSafeSpawnCoords(initialDoors);
         roomState.bots.push({
@@ -206,10 +209,10 @@ function checkAndStartMatches(queue, mode) {
           x: bSpawn.x,
           y: bSpawn.y,
           r: 16,
-          speed: 3.2,
+          speed: 3.0, // Reduced speed slightly for smoother network rendering
           hp: 80,
           maxHp: 80,
-          type: i % 2 === 0 ? "elite" : "grunt",
+          type: i % 3 === 0 ? "elite" : "grunt",
           shootCooldown: 0,
           angle: 0,
           isMergedUnit: false,
@@ -220,7 +223,6 @@ function checkAndStartMatches(queue, mode) {
 
     rooms[roomId] = roomState;
 
-    // Direct socket tracking assignment
     const s1 = io.sockets.sockets.get(p1.socketId);
     const s2 = io.sockets.sockets.get(p2.socketId);
 
@@ -283,26 +285,23 @@ function lineSegmentsIntersect(x1, y1, x2, y2, x3, y3, x4, y4) {
 }
 
 function triggerServerRPGExplosion(room, ex, ey, ownerId) {
-  // Notify all clients in the room to play visual/sound explosion effects
   io.to(room.id).emit("rpgExplode", { x: ex, y: ey });
 
   let targets = [];
   
-  // Players
   Object.values(room.players).forEach(p => {
-    if (p.hp > 0 && p.id !== ownerId) {
+    if (p.hp > 0) {
       let dist = Math.hypot(p.x - ex, p.y - ey);
-      if (dist < 120 + p.r) {
+      if (dist < 130 + p.r) {
         targets.push({ type: "player", obj: p, dist: dist });
       }
     }
   });
   
-  // Bots
   room.bots.forEach(bot => {
-    if (bot.hp > 0 && bot.id !== ownerId) {
+    if (bot.hp > 0) {
       let dist = Math.hypot(bot.x - ex, bot.y - ey);
-      if (dist < 120 + bot.r) {
+      if (dist < 130 + bot.r) {
         targets.push({ type: "bot", obj: bot, dist: dist });
       }
     }
@@ -312,9 +311,8 @@ function triggerServerRPGExplosion(room, ex, ey, ownerId) {
   
   let hits = 0;
   for (let t of targets) {
-    if (hits >= 2) break;
+    if (hits >= 2) break; // limit to 2 splash targets
     
-    // Line of sight check to block splash through walls
     if (!lineIntersectsObstacle(ex, ey, t.obj.x, t.obj.y)) {
       let baseDamage = 100;
       if (t.type === "player") {
@@ -324,6 +322,7 @@ function triggerServerRPGExplosion(room, ex, ey, ownerId) {
         t.obj.hp = Math.max(0, t.obj.hp - finalDmg);
         
         if (t.obj.hp <= 0) {
+          t.obj.diedDuringMatch = true; // Mark as died during the match for co-op prize calculations
           const killer = room.players[ownerId];
           if (killer) {
             const bonusGold = room.mode === "1v1" ? 140 : 80;
@@ -342,8 +341,7 @@ function triggerServerRPGExplosion(room, ex, ey, ownerId) {
           if (idx !== -1) room.bots.splice(idx, 1);
           const killer = room.players[ownerId];
           if (killer) {
-            const goldReward = t.obj.type === "elite" ? 50 : 25;
-            killer.gold += goldReward;
+            killer.gold += 30; // Online bots give 30 gold per kill
           }
         }
       }
@@ -394,11 +392,14 @@ io.on("connection", (socket) => {
 
     const p = rooms[rId].players[socket.id];
     if (p) {
-      p.x = data.x;
-      p.y = data.y;
-      p.angle = data.angle;
-      p.isMoving = data.isMoving;
-      p.legCycle = data.legCycle;
+      // Allow spectating player to send input for viewpoint changes but lock position if dead
+      if (p.hp > 0) {
+        p.x = data.x;
+        p.y = data.y;
+        p.angle = data.angle;
+        p.isMoving = data.isMoving;
+        p.legCycle = data.legCycle;
+      }
       if (data.weapon !== undefined) p.weapon = data.weapon;
       if (data.armor !== undefined) p.armor = data.armor;
     }
@@ -411,7 +412,6 @@ io.on("connection", (socket) => {
     const room = rooms[rId];
     const p = room.players[socket.id];
     if (p && p.hp > 0) {
-      // Weapon damage configs: starter, pistol, rifle, smg, shotgun, rpg
       const dmgMap = [6, 14, 24, 32, 70, 100];
       const rangeMap = [220, 400, 650, 1000, 350, 3000];
       
@@ -419,16 +419,16 @@ io.on("connection", (socket) => {
       let rangeLeft = rangeMap[p.weapon] || 250;
       let r = 5;
       let color = "#ffd700";
+      let isRPG = false;
       
-      if (p.weapon === 2) color = "#00ffff"; // Rifle blue/cyan
-      
-      if (p.weapon === 4) { // Shotgun pellet
-        damage = Math.floor(damage / 2);
+      if (p.weapon === 2) color = "#00ffff";
+      if (p.weapon === 4) {
         r = 3;
         color = "#e67e22";
-      } else if (p.weapon === 5) { // RPG rocket
+      } else if (p.weapon === 5) {
         r = 8;
         color = "#f1c40f";
+        isRPG = true;
       }
 
       room.bullets.push({
@@ -442,7 +442,8 @@ io.on("connection", (socket) => {
         r: r,
         color: color,
         weaponId: p.weapon,
-        rangeLeft: rangeLeft
+        rangeLeft: rangeLeft,
+        isRPG: isRPG
       });
     }
   });
@@ -458,7 +459,6 @@ io.on("connection", (socket) => {
     }
   });
 
-  // Safe and synchronized room chat message delivery
   socket.on("sendRoomChatMessage", (data) => {
     const rId = socket.roomId;
     if (!rId || !rooms[rId]) return;
@@ -471,6 +471,46 @@ io.on("connection", (socket) => {
         nickname: p.nickname,
         text: data.text
       });
+    }
+  });
+
+  socket.on("leaveActiveRoom", () => {
+    const rId = socket.roomId;
+    if (rId && rooms[rId]) {
+      const room = rooms[rId];
+      delete room.players[socket.id];
+      socket.leave(rId);
+      delete socket.roomId;
+
+      const remainingIds = Object.keys(room.players);
+      if (remainingIds.length > 0) {
+        if (room.mode !== "coop") {
+          io.to(rId).emit("matchFinished", {
+            mode: room.mode,
+            winnerId: remainingIds[0],
+            reason: "disconnect"
+          });
+          delete rooms[rId];
+        } else {
+          io.to(rId).emit("receiveRoomChatMessage", {
+            senderId: "system",
+            nickname: "HQ SYSTEM",
+            text: `Your teammate left the field of operation.`
+          });
+          // Check if all remaining players are dead
+          const allRemainingDead = remainingIds.every(id => room.players[id].hp <= 0);
+          if (allRemainingDead) {
+            io.to(rId).emit("matchFinished", {
+              mode: "coop",
+              winnerId: "bots",
+              reason: "elimination"
+            });
+            delete rooms[rId];
+          }
+        }
+      } else {
+        delete rooms[rId];
+      }
     }
   });
 
@@ -487,25 +527,34 @@ io.on("connection", (socket) => {
       const room = rooms[rId];
       delete room.players[socket.id];
 
-      // Notify other players in the room of disconnect
       socket.to(rId).emit("receiveRoomChatMessage", {
         senderId: "system",
         nickname: "HQ SYSTEM",
         text: "Your teammate/rival has disconnected from active operations."
       });
 
-      // Declare remaining player as winner immediately
       const remainingIds = Object.keys(room.players);
       if (remainingIds.length > 0) {
-        io.to(rId).emit("matchFinished", {
-          mode: room.mode,
-          winnerId: remainingIds[0],
-          reason: "disconnect"
-        });
-      }
-
-      // If room has no active players left, clean up the room
-      if (Object.keys(room.players).length === 0) {
+        if (room.mode !== "coop") {
+          io.to(rId).emit("matchFinished", {
+            mode: room.mode,
+            winnerId: remainingIds[0],
+            reason: "disconnect"
+          });
+          delete rooms[rId];
+        } else {
+          // If co-op, check if remaining player is dead
+          const allRemainingDead = remainingIds.every(id => room.players[id].hp <= 0);
+          if (allRemainingDead) {
+            io.to(rId).emit("matchFinished", {
+              mode: "coop",
+              winnerId: "bots",
+              reason: "elimination"
+            });
+            delete rooms[rId];
+          }
+        }
+      } else {
         delete rooms[rId];
         console.log(`[Multiplayer] Room ${rId} fully terminated.`);
       }
@@ -513,10 +562,12 @@ io.on("connection", (socket) => {
   });
 });
 
-// Authoritative physics loop ticking at 30 FPS
+// Authoritative physics loop ticking at 30 FPS (33ms)
 setInterval(() => {
   for (let rId in rooms) {
     const room = rooms[rId];
+    if (room.roomFinished) continue;
+
     const activePlayers = Object.values(room.players);
 
     // 1. Projectile physics and bounds/collisions checks
@@ -525,7 +576,6 @@ setInterval(() => {
       b.x += b.vx;
       b.y += b.vy;
 
-      // Projectile range decay check
       if (b.rangeLeft !== undefined) {
         b.rangeLeft -= Math.hypot(b.vx, b.vy);
         if (b.rangeLeft <= 0) {
@@ -534,36 +584,32 @@ setInterval(() => {
         }
       }
 
-      // Obstacle walls/doors crash checks
       if (checkCollision(b.x, b.y, b.r, room.doorsState)) {
-        if (b.weaponId === 5) {
+        if (b.isRPG) {
           triggerServerRPGExplosion(room, b.x, b.y, b.owner);
         }
         room.bullets.splice(i, 1);
         continue;
       }
 
-      // Check bullet hits on players
       let bulletRemoved = false;
       for (let p of activePlayers) {
         if (p.id !== b.owner && p.hp > 0) {
           const dist = Math.hypot(p.x - b.x, p.y - b.y);
           if (dist < p.r + b.r) {
-            if (b.weaponId === 5) {
+            if (b.isRPG) {
               triggerServerRPGExplosion(room, b.x, b.y, b.owner);
             } else {
-              // Apply armor protection reduction: Leather (0), Silver (3), Gold (5), Diamond (8), Mercury (11), Netherite (15)
               const armorsPlat = [0, 3, 5, 8, 11, 15];
               const protection = armorsPlat[p.armor] || 0;
               const finalDmg = Math.max(2, b.dmg - protection);
 
               p.hp = Math.max(0, p.hp - finalDmg);
 
-              // Handle player death
               if (p.hp <= 0) {
+                p.diedDuringMatch = true;
                 const killer = room.players[b.owner];
                 if (killer) {
-                  // Award gold bounty immediately
                   const bonusGold = room.mode === "1v1" ? 140 : 80;
                   killer.gold += bonusGold;
                   io.to(room.id).emit("receiveRoomChatMessage", {
@@ -584,24 +630,21 @@ setInterval(() => {
 
       if (bulletRemoved) continue;
 
-      // Check bullet hits on server-side bots in Co-op mode
       if (room.mode === "coop" && room.bots.length > 0) {
         for (let j = room.bots.length - 1; j >= 0; j--) {
           const bot = room.bots[j];
           if (bot.hp > 0 && b.owner !== bot.id) {
             const dist = Math.hypot(bot.x - b.x, bot.y - b.y);
             if (dist < bot.r + b.r) {
-              if (b.weaponId === 5) {
+              if (b.isRPG) {
                 triggerServerRPGExplosion(room, b.x, b.y, b.owner);
               } else {
                 bot.hp -= b.dmg;
                 if (bot.hp <= 0) {
                   room.bots.splice(j, 1);
-                  // Award bot bounty to shooter
                   const killer = room.players[b.owner];
                   if (killer) {
-                    const goldReward = bot.type === "elite" ? 50 : 25;
-                    killer.gold += goldReward;
+                    killer.gold += 30; // 30 Gold for bot kill online
                   }
                 }
               }
@@ -619,7 +662,6 @@ setInterval(() => {
       room.bots.forEach(bot => {
         if (bot.hp <= 0) return;
 
-        // Find nearest live player target
         let closestPlayer = null;
         let minDist = 999999;
         activePlayers.forEach(p => {
@@ -644,7 +686,6 @@ setInterval(() => {
               bot.x = bx;
               bot.y = by;
             } else {
-              // Sliding raycast avoidance offset
               const slideX = bot.x + Math.cos(bot.angle + Math.PI / 2) * bot.speed;
               const slideY = bot.y + Math.sin(bot.angle + Math.PI / 2) * bot.speed;
               if (!checkCollision(slideX, slideY, bot.r, room.doorsState)) {
@@ -653,11 +694,11 @@ setInterval(() => {
               }
             }
 
-            // Shoot AI projectiles back
             bot.shootCooldown--;
             if (bot.shootCooldown <= 0 && minDist < 450) {
               bot.shootCooldown = bot.type === "elite" ? 30 : 50;
               room.bullets.push({
+                id: `bot_bullet_${Math.random()}`,
                 owner: bot.id,
                 x: bot.x,
                 y: bot.y,
@@ -665,7 +706,9 @@ setInterval(() => {
                 vy: Math.sin(bot.angle) * 11,
                 dmg: bot.type === "elite" ? 15 : 8,
                 r: 4,
-                color: "#ff3d00"
+                color: "#ff3d00",
+                weaponId: bot.type === "elite" ? 2 : 1,
+                rangeLeft: 500
               });
             }
           }
@@ -686,6 +729,7 @@ setInterval(() => {
             winnerId: winner.id,
             reason: "elimination"
           });
+          room.roomFinished = true;
           delete rooms[rId];
           roomFinished = true;
         }
@@ -698,14 +742,51 @@ setInterval(() => {
           winnerId: "bots",
           reason: "elimination"
         });
+        room.roomFinished = true;
         delete rooms[rId];
         roomFinished = true;
       } else if (room.bots.length === 0) {
+        // Alliance VICTORY! Calculate shares dynamically!
+        const p1 = playersList[0];
+        const p2 = playersList[1];
+
+        const totalGoldEarned = (p1 ? p1.gold : 0) + (p2 ? p2.gold : 0) + 100;
+        
+        let p1Share = 0;
+        let p2Share = 0;
+
+        const p1Died = p1 ? p1.diedDuringMatch : false;
+        const p2Died = p2 ? p2.diedDuringMatch : false;
+
+        if (!p1Died && !p2Died) {
+          // Neither died: equal split
+          p1Share = Math.floor(totalGoldEarned / 2);
+          p2Share = Math.floor(totalGoldEarned / 2);
+        } else {
+          // If one died and the other survived: dead player takes 30% of total pool, surviving player gets 70%
+          if (p1 && p1Died) {
+            p1Share = Math.floor(totalGoldEarned * 0.3);
+            p2Share = totalGoldEarned - p1Share;
+          } else if (p2 && p2Died) {
+            p2Share = Math.floor(totalGoldEarned * 0.3);
+            p1Share = totalGoldEarned - p2Share;
+          } else {
+            p1Share = Math.floor(totalGoldEarned / 2);
+            p2Share = Math.floor(totalGoldEarned / 2);
+          }
+        }
+
         io.to(room.id).emit("matchFinished", {
           mode: "coop",
           winnerId: "team",
-          reason: "clear"
+          reason: "clear",
+          shares: {
+            [p1 ? p1.id : ""]: p1Share,
+            [p2 ? p2.id : ""]: p2Share
+          },
+          totalPool: totalGoldEarned
         });
+        room.roomFinished = true;
         delete rooms[rId];
         roomFinished = true;
       }
@@ -713,7 +794,7 @@ setInterval(() => {
 
     if (roomFinished) continue;
 
-    // 4. Emit authorized state update packet to all players inside room
+    // 4. Emit synchronized game state update packet
     io.to(room.id).emit("gameUpdate", {
       players: room.players,
       bullets: room.bullets,
@@ -723,18 +804,13 @@ setInterval(() => {
   }
 }, 33);
 
-// Serve static assets from the root directory
-app.use(express.static(path.join(__dirname, ".")));
+// Serve static index.html or SPA root
+app.use(express.static(__dirname));
 
-// Serve index.html for any unmatched route (SPA fallback)
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-function startServer() {
-  server.listen(PORT, "0.0.0.0", () => {
-    console.log(`[TACTICAL SERVER RUNNING ON PORT ${PORT}]`);
-  });
-}
-
-startServer();
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`[TACTICAL SERVER RUNNING ON PORT ${PORT}]`);
+});
